@@ -21,6 +21,61 @@ class KS_Network_Admin {
 		add_action( 'admin_bar_menu', array( __CLASS__, 'admin_bar' ), 35 );
 		add_action( 'admin_init', array( __CLASS__, 'refresh_sunrise' ) );
 		add_action( 'admin_post_ks_switch_mode', array( __CLASS__, 'switch_mode' ) );
+		add_action( 'admin_post_ks_apply_theme', array( __CLASS__, 'apply_theme' ) );
+		// Every church site uses the Kingdom Church theme, also sites added under Network Admin → Sites.
+		add_action( 'wp_initialize_site', array( __CLASS__, 'theme_for_new_site' ), 200 );
+	}
+
+	/**
+	 * Give a newly created site the Kingdom Church theme.
+	 *
+	 * @param WP_Site $site Site.
+	 */
+	public static function theme_for_new_site( $site ) {
+		if ( is_main_site( $site->blog_id ) || ! wp_get_theme( 'kingdom' )->exists() ) {
+			return;
+		}
+		switch_to_blog( $site->blog_id );
+		if ( 'kingdom' !== get_option( 'stylesheet' ) ) {
+			switch_theme( 'kingdom' );
+		}
+		restore_current_blog();
+	}
+
+	/**
+	 * Church sites that are not using the Kingdom Church theme.
+	 *
+	 * @return array blog_id => site address.
+	 */
+	public static function sites_without_theme() {
+		$out = array();
+		foreach ( get_sites( array( 'number' => 1000, 'network_id' => get_current_network_id(), 'fields' => 'ids' ) ) as $id ) {
+			if ( ! is_main_site( $id ) && 'kingdom' !== get_blog_option( $id, 'stylesheet' ) ) {
+				$out[ $id ] = untrailingslashit( preg_replace( '#^https?://#', '', get_home_url( $id ) ) );
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Put every church site on the Kingdom Church theme.
+	 */
+	public static function apply_theme() {
+		if ( ! current_user_can( 'manage_network' ) || ! check_admin_referer( 'ks_apply_theme' ) ) {
+			wp_die( esc_html__( 'You are not allowed to do that.', 'kingdom-saas' ), 403 );
+		}
+		$done = 0;
+		if ( wp_get_theme( 'kingdom' )->exists() ) {
+			foreach ( array_keys( self::sites_without_theme() ) as $id ) {
+				switch_to_blog( $id );
+				switch_theme( 'kingdom' );
+				restore_current_blog();
+				++$done;
+			}
+		}
+		set_site_transient( 'ks_theme_result', $done, 600 );
+		wp_safe_redirect( network_admin_url( 'admin.php?page=kingdom-cloud' ) );
+		exit;
 	}
 
 	/**
@@ -144,6 +199,11 @@ class KS_Network_Admin {
 		$out[]   = in_array( 'kingdom', $allowed, true )
 			? array( 'ok', __( 'Kingdom Church theme is enabled for the network', 'kingdom-saas' ), '' )
 			: array( 'fail', __( 'Kingdom Church theme is not enabled for the network', 'kingdom-saas' ), __( 'Network Admin → Themes → Kingdom Church → Network Enable. New church sites use it automatically.', 'kingdom-saas' ) );
+		$wrong = self::sites_without_theme();
+		if ( $wrong ) {
+			/* translators: 1: number of sites, 2: list of addresses */
+			$out[] = array( 'fail', sprintf( _n( '%d church site is not using the Kingdom Church theme', '%d church sites are not using the Kingdom Church theme', count( $wrong ), 'kingdom-saas' ), count( $wrong ) ), sprintf( __( '%s — these pages and the Church Admin dashboard look wrong on phones. Press “Use the Kingdom Church theme on all church sites” below.', 'kingdom-saas' ), implode( ', ', array_slice( $wrong, 0, 5 ) ) . ( count( $wrong ) > 5 ? ' …' : '' ) ) );
+		}
 
 		$out[] = defined( 'SUNRISE' ) && SUNRISE && file_exists( WP_CONTENT_DIR . '/sunrise.php' )
 			? array( 'ok', __( 'Custom domains are set up (sunrise.php)', 'kingdom-saas' ), '' )
@@ -274,6 +334,18 @@ class KS_Network_Admin {
 					<?php endforeach; ?>
 				</tbody>
 			</table>
+			<?php $theme_done = get_site_transient( 'ks_theme_result' ); ?>
+			<?php if ( false !== $theme_done ) : ?>
+				<?php delete_site_transient( 'ks_theme_result' ); ?>
+				<div class="notice notice-success inline"><p><?php /* translators: %d: number of sites */ echo esc_html( sprintf( _n( 'Done: %d church site now uses the Kingdom Church theme.', 'Done: %d church sites now use the Kingdom Church theme.', (int) $theme_done, 'kingdom-saas' ), (int) $theme_done ) ); ?></p></div>
+			<?php endif; ?>
+			<?php if ( self::sites_without_theme() && wp_get_theme( 'kingdom' )->exists() ) : ?>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:12px 0">
+					<input type="hidden" name="action" value="ks_apply_theme">
+					<?php wp_nonce_field( 'ks_apply_theme' ); ?>
+					<button class="button button-primary"><?php esc_html_e( 'Use the Kingdom Church theme on all church sites', 'kingdom-saas' ); ?></button>
+				</form>
+			<?php endif; ?>
 			<p class="description"><?php esc_html_e( 'Reload this page after each change to check again.', 'kingdom-saas' ); ?></p>
 			<?php self::render_switch(); ?>
 		</div>
