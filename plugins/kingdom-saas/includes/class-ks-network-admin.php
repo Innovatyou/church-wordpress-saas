@@ -51,7 +51,8 @@ class KS_Network_Admin {
 		$out = array();
 		foreach ( get_sites( array( 'number' => 1000, 'network_id' => get_current_network_id(), 'fields' => 'ids' ) ) as $id ) {
 			if ( ! is_main_site( $id ) && 'kingdom' !== get_blog_option( $id, 'stylesheet' ) ) {
-				$out[ $id ] = untrailingslashit( preg_replace( '#^https?://#', '', get_home_url( $id ) ) );
+				$theme      = wp_get_theme( (string) get_blog_option( $id, 'stylesheet' ) );
+				$out[ $id ] = untrailingslashit( preg_replace( '#^https?://#', '', get_home_url( $id ) ) ) . ' (' . ( $theme->exists() ? $theme->get( 'Name' ) : get_blog_option( $id, 'stylesheet' ) ) . ')';
 			}
 		}
 		return $out;
@@ -199,7 +200,12 @@ class KS_Network_Admin {
 		$out[]   = in_array( 'kingdom', $allowed, true )
 			? array( 'ok', __( 'Kingdom Church theme is enabled for the network', 'kingdom-saas' ), '' )
 			: array( 'fail', __( 'Kingdom Church theme is not enabled for the network', 'kingdom-saas' ), __( 'Network Admin → Themes → Kingdom Church → Network Enable. New church sites use it automatically.', 'kingdom-saas' ) );
-		$wrong = self::sites_without_theme();
+		$wrong    = self::sites_without_theme();
+		$churches = self::church_count();
+		if ( ! $wrong && $churches ) {
+			/* translators: %d: number of church sites */
+			$out[] = array( 'ok', sprintf( _n( 'The church site uses the Kingdom Church theme', 'All %d church sites use the Kingdom Church theme', $churches, 'kingdom-saas' ), $churches ), '' );
+		}
 		if ( $wrong ) {
 			/* translators: 1: number of sites, 2: list of addresses */
 			$out[] = array( 'fail', sprintf( _n( '%d church site is not using the Kingdom Church theme', '%d church sites are not using the Kingdom Church theme', count( $wrong ), 'kingdom-saas' ), count( $wrong ) ), sprintf( __( '%s — these pages and the Church Admin dashboard look wrong on phones. Press “Use the Kingdom Church theme on all church sites” below.', 'kingdom-saas' ), implode( ', ', array_slice( $wrong, 0, 5 ) ) . ( count( $wrong ) > 5 ? ' …' : '' ) ) );
@@ -305,7 +311,7 @@ class KS_Network_Admin {
 		?>
 		<div class="wrap ks-wrap">
 			<?php KS_Network_Setup::phone_css(); ?>
-			<h1><?php esc_html_e( 'Kingdom Cloud', 'kingdom-saas' ); ?></h1>
+			<h1><?php esc_html_e( 'Kingdom Cloud', 'kingdom-saas' ); ?> <small style="font-size:13px;font-weight:400;color:#646970"><?php echo esc_html( sprintf( /* translators: 1: Kingdom Cloud version, 2: Church Suite version */ __( 'version %1$s · Church Suite %2$s', 'kingdom-saas' ), KS_VERSION, defined( 'KCS_VERSION' ) ? KCS_VERSION : '—' ) ); ?></small></h1>
 			<?php if ( ! empty( $switched['done'] ) ) : ?>
 				<div class="notice notice-success"><p><?php echo esc_html( sprintf( /* translators: %s: example address */ __( 'Done. New churches now get addresses like %s.', 'kingdom-saas' ), ks_address( 'gracechapel' ) ) ); ?></p></div>
 			<?php elseif ( ! empty( $switched['error'] ) ) : ?>
