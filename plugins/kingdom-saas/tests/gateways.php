@@ -43,6 +43,34 @@ $res = wp_remote_get( 'http://churchhub.localhost/wp-json/ks/v1/billing/return?r
 $loc = wp_remote_retrieve_header( $res, 'location' );
 $ok( 'return URL verifies and redirects to church billing with ks_paid=1', false !== strpos( $loc, 'faith.churchhub.localhost' ) && false !== strpos( $loc, 'ks_paid=1' ) && 'paid' === KS_Billing::invoice( $inv->reference )->status );
 
+// Flutterwave: checkout → webhook (secret hash) → verified by our reference.
+ks_set( array( 'flutterwave_secret' => 'FLWSECK_TEST-abc', 'flutterwave_hash' => 'my-hash-123' ) );
+$ok( 'flutterwave offered', isset( KS_Billing::gateways( 'NGN' )['flutterwave'] ) );
+$url  = KS_Billing::checkout( $faith, 'growth', 'month', 'local', 'flutterwave' );
+$sent = get_site_option( 'ks_test_last_flutterwave' );
+$ok( 'flutterwave checkout returns hosted URL', is_string( $url ) && 0 === strpos( $url, 'https://checkout.flutterwave.com/' ) );
+$ok( 'flutterwave amount, NGN, redirect, secret key', 40000.0 === (float) $sent['amount'] && 'NGN' === $sent['currency'] && false !== strpos( $sent['redirect_url'], 'billing/return' ) && 'Bearer FLWSECK_TEST-abc' === $sent['_auth'] );
+$inv  = KS_Billing::invoice( $sent['tx_ref'] );
+update_site_option( 'ks_test_mock', array( 'amount' => 40000, 'currency' => 'NGN' ) );
+$body = wp_json_encode( array( 'event' => 'charge.completed', 'data' => array( 'tx_ref' => $inv->reference, 'status' => 'successful' ) ) );
+$ok( 'flutterwave webhook wrong hash → 401', 401 === $hook( 'webhooks/flutterwave', $body, array( 'verif-hash' => 'wrong' ) ) );
+$ok( 'flutterwave webhook wrong hash leaves invoice pending', 'pending' === KS_Billing::invoice( $inv->reference )->status );
+$ok( 'flutterwave webhook right hash → 200', 200 === $hook( 'webhooks/flutterwave', $body, array( 'verif-hash' => 'my-hash-123' ) ) );
+$ok( 'flutterwave invoice paid', 'paid' === KS_Billing::invoice( $inv->reference )->status );
+// Return URL: Flutterwave appends status/transaction_id, which we ignore in favour of our own lookup.
+$url = KS_Billing::checkout( $faith, 'growth', 'month', 'local', 'flutterwave' );
+$inv = KS_Billing::invoice( get_site_option( 'ks_test_last_flutterwave' )['tx_ref'] );
+update_site_option( 'ks_test_mock', array( 'amount' => 40000, 'currency' => 'NGN', 'status' => 'failed' ) );
+$res = wp_remote_get( 'http://churchhub.localhost/wp-json/ks/v1/billing/return?reference=' . $inv->reference . '&status=successful&tx_ref=' . $inv->reference . '&transaction_id=1', array( 'redirection' => 0 ) );
+$ok( 'flutterwave return with faked "successful" in URL is not trusted', false !== strpos( (string) wp_remote_retrieve_header( $res, 'location' ), 'ks_paid=0' ) && 'pending' === KS_Billing::invoice( $inv->reference )->status );
+update_site_option( 'ks_test_mock', array( 'amount' => 400, 'currency' => 'NGN' ) );
+$ok( 'flutterwave underpaid is rejected', false === KS_Billing::verify( $inv ) && 'failed' === KS_Billing::invoice( $inv->reference )->status );
+$url = KS_Billing::checkout( $faith, 'growth', 'month', 'local', 'flutterwave' );
+$inv = KS_Billing::invoice( get_site_option( 'ks_test_last_flutterwave' )['tx_ref'] );
+update_site_option( 'ks_test_mock', array( 'amount' => 40000, 'currency' => 'NGN', 'ref' => 'KSI-OTHER' ) );
+$ok( 'flutterwave payment for another reference is not accepted', false === KS_Billing::verify( $inv ) );
+ks_set( array( 'flutterwave_secret' => '', 'flutterwave_hash' => '' ) );
+
 // Stripe: checkout → signed webhook.
 $url = KS_Billing::checkout( $faith, 'growth', 'month', 'international', 'stripe' );
 $sent = get_site_option( 'ks_test_last_stripe' );

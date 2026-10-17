@@ -2,7 +2,7 @@
 /**
  * Subscription billing: checkout, verification, webhooks and invoices.
  *
- * Gateways: Paystack and Stripe (hosted checkout, verified server-side), bank transfer
+ * Gateways: Paystack, Flutterwave and Stripe (hosted checkout, verified server-side), bank transfer
  * (confirmed by the platform owner) and a test checkout when test mode is on.
  *
  * @package KingdomSaaS
@@ -25,6 +25,9 @@ class KS_Billing {
 		$out = array();
 		if ( ks_get( 'paystack_secret' ) && ( ! $currency || in_array( $currency, array( 'NGN', 'GHS', 'ZAR', 'KES', 'USD' ), true ) ) ) {
 			$out['paystack'] = __( 'Paystack — card, bank transfer, USSD', 'kingdom-saas' );
+		}
+		if ( ks_get( 'flutterwave_secret' ) ) {
+			$out['flutterwave'] = __( 'Flutterwave — card, bank transfer, USSD, mobile money', 'kingdom-saas' );
 		}
 		if ( ks_get( 'stripe_secret' ) ) {
 			$out['stripe'] = __( 'Stripe — card, Apple Pay, Google Pay', 'kingdom-saas' );
@@ -128,6 +131,32 @@ class KS_Billing {
 				}
 				return empty( $res['data']['authorization_url'] ) ? new WP_Error( 'ks_paystack', $res['message'] ?? 'Paystack error' ) : $res['data']['authorization_url'];
 
+			case 'flutterwave':
+				$res = self::api(
+					'POST',
+					'https://api.flutterwave.com/v3/payments',
+					array(
+						'tx_ref'         => $ref,
+						'amount'         => (float) $price['amount'],
+						'currency'       => $price['currency'],
+						'redirect_url'   => $return,
+						'customer'       => array(
+							'email' => $sub->owner_email,
+							'name'  => $sub->church_name,
+						),
+						'customizations' => array(
+							'title'       => ks_get( 'platform_name' ),
+							'description' => $label,
+						),
+						'meta'           => array( 'blog_id' => $blog_id, 'plan' => $plan, 'interval' => $interval ),
+					),
+					array( 'Authorization' => 'Bearer ' . ks_get( 'flutterwave_secret' ) )
+				);
+				if ( is_wp_error( $res ) ) {
+					return $res;
+				}
+				return empty( $res['data']['link'] ) ? new WP_Error( 'ks_flutterwave', $res['message'] ?? 'Flutterwave error' ) : $res['data']['link'];
+
 			case 'stripe':
 				$res = self::api(
 					'POST',
@@ -186,6 +215,15 @@ class KS_Billing {
 				$ok     = true;
 				$amount = ( (int) $res['data']['amount'] ) / 100;
 				$cur    = strtoupper( (string) $res['data']['currency'] );
+				$gref   = (string) ( $res['data']['id'] ?? '' );
+			}
+		} elseif ( 'flutterwave' === $inv->gateway ) {
+			// Look the payment up by our own reference: never trust the transaction ID in the return URL.
+			$res = self::api( 'GET', add_query_arg( 'tx_ref', rawurlencode( $inv->reference ), 'https://api.flutterwave.com/v3/transactions/verify_by_reference' ), array(), array( 'Authorization' => 'Bearer ' . ks_get( 'flutterwave_secret' ) ) );
+			if ( ! is_wp_error( $res ) && 'successful' === ( $res['data']['status'] ?? '' ) && $inv->reference === ( $res['data']['tx_ref'] ?? '' ) ) {
+				$ok     = true;
+				$amount = (float) ( $res['data']['amount'] ?? 0 );
+				$cur    = strtoupper( (string) ( $res['data']['currency'] ?? '' ) );
 				$gref   = (string) ( $res['data']['id'] ?? '' );
 			}
 		} elseif ( 'stripe' === $inv->gateway ) {
@@ -305,6 +343,28 @@ class KS_Billing {
 			if ( $inv ) {
 				self::verify( $inv );
 			}
+		}
+		return true;
+	}
+
+	/**
+	 * Flutterwave webhook (charge.completed). Flutterwave sends the "secret hash" from the dashboard
+	 * in the verif-hash header; the payment itself is always re-checked with the API.
+	 *
+	 * @param string $body Raw body.
+	 * @param string $hash verif-hash header.
+	 * @return bool
+	 */
+	public static function flutterwave_webhook( $body, $hash ) {
+		$secret = (string) ks_get( 'flutterwave_hash' );
+		if ( ! $secret || ! hash_equals( $secret, (string) $hash ) ) {
+			return false;
+		}
+		$event = json_decode( $body, true );
+		$ref   = (string) ( $event['data']['tx_ref'] ?? ( $event['txRef'] ?? '' ) );
+		$inv   = $ref ? self::invoice( $ref ) : null;
+		if ( $inv && 'flutterwave' === $inv->gateway ) {
+			self::verify( $inv );
 		}
 		return true;
 	}

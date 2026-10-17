@@ -6,7 +6,7 @@ A complete church website kit:
 |---|---|---|
 | **Kingdom Church** theme | `themes/kingdom/` | Modern, responsive design with **25 page templates**, 20 reusable sections, dark mode, Customizer options and a one-click starter site |
 | **Kingdom Church Suite** plugin | `plugins/kingdom-church-suite/` | Partnerships, partner login and dashboard, admin partner/payment management, payment gateways, REST API, email notifications, newsletter, YouTube live, sermons, events, prayer and advanced SEO |
-| **Kingdom Cloud** (SaaS) plugin | `plugins/kingdom-saas/` | Sell the theme + plugin to many churches on WordPress Multisite: sign-up with free trial, a site per church, custom domains, subscription billing (Paystack, Stripe, bank transfer), plan limits, automatic suspension and a platform dashboard. See [its README](plugins/kingdom-saas/README.md). |
+| **Kingdom Cloud** (SaaS) plugin | `plugins/kingdom-saas/` | Sell the theme + plugin to many churches on WordPress Multisite: sign-up with free trial, a site per church, custom domains, subscription billing (Paystack, Flutterwave, Stripe, bank transfer), plan limits, automatic suspension and a platform dashboard. See [its README](plugins/kingdom-saas/README.md). |
 
 The theme works on its own. The plugin holds all data and business logic, so your content and partners survive a theme change.
 

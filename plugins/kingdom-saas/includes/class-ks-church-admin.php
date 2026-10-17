@@ -173,7 +173,7 @@ class KS_Church_Admin {
 	 * @return array
 	 */
 	public static function allow_gateways( $hosts ) {
-		return array_merge( $hosts, array( 'checkout.paystack.com', 'checkout.stripe.com', wp_parse_url( network_home_url(), PHP_URL_HOST ) ) );
+		return array_merge( $hosts, array( 'checkout.paystack.com', 'checkout.flutterwave.com', 'checkout-v2.flutterwave.com', 'checkout.stripe.com', wp_parse_url( network_home_url(), PHP_URL_HOST ) ) );
 	}
 
 	/**

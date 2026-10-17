@@ -1,5 +1,5 @@
 <?php
-// Test only: fake Paystack and Stripe API responses (the sandbox has no outbound access).
+// Test only: fake Paystack, Flutterwave and Stripe API responses (the sandbox has no outbound access).
 add_filter( 'pre_http_request', function ( $pre, $args, $url ) {
 	$m = get_site_option( 'ks_test_mock', array() );
 	if ( false !== strpos( $url, 'api.paystack.co/transaction/initialize' ) ) {
@@ -9,6 +9,15 @@ add_filter( 'pre_http_request', function ( $pre, $args, $url ) {
 	}
 	if ( false !== strpos( $url, 'api.paystack.co/transaction/verify/' ) ) {
 		return array( 'response' => array( 'code' => 200 ), 'body' => wp_json_encode( array( 'status' => true, 'data' => array( 'status' => 'success', 'amount' => $m['amount'], 'currency' => $m['currency'], 'id' => 991 ) ) ) );
+	}
+	if ( false !== strpos( $url, 'api.flutterwave.com/v3/payments' ) ) {
+		$b = json_decode( $args['body'], true );
+		update_site_option( 'ks_test_last_flutterwave', $b + array( '_auth' => $args['headers']['Authorization'] ?? '' ) );
+		return array( 'response' => array( 'code' => 200 ), 'body' => wp_json_encode( array( 'status' => 'success', 'data' => array( 'link' => 'https://checkout.flutterwave.com/v3/hosted/pay/fake' . $b['tx_ref'] ) ) ) );
+	}
+	if ( false !== strpos( $url, 'api.flutterwave.com/v3/transactions/verify_by_reference' ) ) {
+		parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $q );
+		return array( 'response' => array( 'code' => 200 ), 'body' => wp_json_encode( array( 'status' => 'success', 'data' => array( 'status' => $m['status'] ?? 'successful', 'tx_ref' => $m['ref'] ?? $q['tx_ref'], 'amount' => $m['amount'], 'currency' => $m['currency'], 'id' => 7788 ) ) ) );
 	}
 	if ( false !== strpos( $url, 'api.stripe.com/v1/checkout/sessions' ) && 'POST' === $args['method'] ) {
 		update_site_option( 'ks_test_last_stripe', $args['body'] );

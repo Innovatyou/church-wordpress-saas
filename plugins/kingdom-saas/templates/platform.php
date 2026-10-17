@@ -279,12 +279,15 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 				<fieldset class="ks-card ks-form">
 					<legend><?php esc_html_e( 'Payments', 'kingdom-saas' ); ?></legend>
 					<label><?php esc_html_e( 'Paystack secret key', 'kingdom-saas' ); ?><input type="password" name="paystack_secret" value="<?php echo esc_attr( ks_get( 'paystack_secret' ) ); ?>" autocomplete="off"></label>
+					<label><?php esc_html_e( 'Flutterwave public key', 'kingdom-saas' ); ?><input name="flutterwave_public" value="<?php echo esc_attr( ks_get( 'flutterwave_public' ) ); ?>" autocomplete="off" placeholder="FLWPUBK-…"></label>
+					<label><?php esc_html_e( 'Flutterwave secret key', 'kingdom-saas' ); ?><input type="password" name="flutterwave_secret" value="<?php echo esc_attr( ks_get( 'flutterwave_secret' ) ); ?>" autocomplete="off" placeholder="FLWSECK-…"></label>
+					<label><?php esc_html_e( 'Flutterwave webhook secret hash (any long password you also type in Flutterwave → Settings → Webhooks)', 'kingdom-saas' ); ?><input type="password" name="flutterwave_hash" value="<?php echo esc_attr( ks_get( 'flutterwave_hash' ) ); ?>" autocomplete="off"></label>
 					<label><?php esc_html_e( 'Stripe secret key', 'kingdom-saas' ); ?><input type="password" name="stripe_secret" value="<?php echo esc_attr( ks_get( 'stripe_secret' ) ); ?>" autocomplete="off"></label>
 					<label><?php esc_html_e( 'Stripe webhook signing secret', 'kingdom-saas' ); ?><input type="password" name="stripe_webhook" value="<?php echo esc_attr( ks_get( 'stripe_webhook' ) ); ?>" autocomplete="off"></label>
 					<label><?php esc_html_e( 'Cloudflare Turnstile site key (bot protection on sign-up, optional)', 'kingdom-saas' ); ?><input name="turnstile_site" value="<?php echo esc_attr( ks_get( 'turnstile_site' ) ); ?>" autocomplete="off"></label>
 					<label><?php esc_html_e( 'Cloudflare Turnstile secret key', 'kingdom-saas' ); ?><input type="password" name="turnstile_secret" value="<?php echo esc_attr( ks_get( 'turnstile_secret' ) ); ?>" autocomplete="off"></label>
 					<label class="ks-check"><input type="checkbox" name="test_mode" value="1" <?php checked( '1', ks_get( 'test_mode' ) ); ?>> <?php esc_html_e( 'Test mode (adds a simulated “Test payment” option)', 'kingdom-saas' ); ?></label>
-					<p class="ks-small"><?php esc_html_e( 'Webhooks:', 'kingdom-saas' ); ?> <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/paystack' ) ); ?></code> · <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/stripe' ) ); ?></code></p>
+					<p class="ks-small"><?php esc_html_e( 'Webhooks:', 'kingdom-saas' ); ?> <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/paystack' ) ); ?></code> · <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/flutterwave' ) ); ?></code> · <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/stripe' ) ); ?></code></p>
 				</fieldset>
 				<fieldset class="ks-card ks-form ks-span-2">
 					<legend><?php esc_html_e( 'Bank transfer', 'kingdom-saas' ); ?></legend>

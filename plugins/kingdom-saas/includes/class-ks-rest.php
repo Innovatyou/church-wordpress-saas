@@ -28,6 +28,7 @@ class KS_REST {
 		register_rest_route( 'ks/v1', '/subdomain', array( 'methods' => 'GET', 'callback' => array( __CLASS__, 'subdomain' ), 'permission_callback' => $public ) );
 		register_rest_route( 'ks/v1', '/billing/return', array( 'methods' => 'GET', 'callback' => array( __CLASS__, 'billing_return' ), 'permission_callback' => $public ) );
 		register_rest_route( 'ks/v1', '/webhooks/paystack', array( 'methods' => 'POST', 'callback' => array( __CLASS__, 'paystack' ), 'permission_callback' => $public ) );
+		register_rest_route( 'ks/v1', '/webhooks/flutterwave', array( 'methods' => 'POST', 'callback' => array( __CLASS__, 'flutterwave' ), 'permission_callback' => $public ) );
 		register_rest_route( 'ks/v1', '/webhooks/stripe', array( 'methods' => 'POST', 'callback' => array( __CLASS__, 'stripe' ), 'permission_callback' => $public ) );
 		register_rest_route( 'ks/v1', '/tls', array( 'methods' => 'GET', 'callback' => array( __CLASS__, 'tls' ), 'permission_callback' => $public ) );
 	}
@@ -110,6 +111,17 @@ class KS_REST {
 	 */
 	public static function paystack( $req ) {
 		$ok = KS_Billing::paystack_webhook( $req->get_body(), (string) $req->get_header( 'x-paystack-signature' ) );
+		return new WP_REST_Response( array( 'ok' => $ok ), $ok ? 200 : 401 );
+	}
+
+	/**
+	 * POST /webhooks/flutterwave.
+	 *
+	 * @param WP_REST_Request $req Request.
+	 * @return WP_REST_Response
+	 */
+	public static function flutterwave( $req ) {
+		$ok = KS_Billing::flutterwave_webhook( $req->get_body(), (string) $req->get_header( 'verif-hash' ) );
 		return new WP_REST_Response( array( 'ok' => $ok ), $ok ? 200 : 401 );
 	}
 
