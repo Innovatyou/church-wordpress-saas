@@ -34,11 +34,12 @@ Churches still receive their own **tithes, offerings and partnership payments** 
 3. **WordPress**: install WordPress, then enable Multisite with subdomains (Tools → Network Setup). Add the lines from [`deploy/wp-config-snippet.php`](deploy/wp-config-snippet.php).
 4. **Custom domains**: copy [`deploy/sunrise.php`](deploy/sunrise.php) to `wp-content/sunrise.php` (with `define( 'SUNRISE', true );`).
 5. **Activate**: upload `themes/kingdom`, `plugins/kingdom-church-suite` and `plugins/kingdom-saas`. In Network Admin: **Network Enable** the Kingdom theme and **Network Activate** both plugins.
-6. **Settings**: visit `https://yourplatform.com/platform/?tab=settings`. Set your platform name, brand colour, support email, CNAME target or server IP, Paystack and Stripe keys, and bank details. Turn **test mode off**. Recommended: add free [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/) keys to protect sign-up from bots.
+6. **Check your setup**: Network Admin → **Kingdom Cloud** shows a setup check (plugins, theme, sunrise.php, wildcard DNS, landing page, payments, HTTPS) and links to the platform dashboard.
+7. **Settings**: visit `https://yourplatform.com/platform/?tab=settings`. Set your platform name, brand colour, support email, CNAME target or server IP, Paystack and Stripe keys, and bank details. Turn **test mode off**. Recommended: add free [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/) keys to protect sign-up from bots.
    Behind Cloudflare or a load balancer, add `define( 'KCS_TRUSTED_PROXY_HEADER', 'HTTP_CF_CONNECTING_IP' );` to wp-config.php so rate limits see each visitor's own address.
-7. **Webhooks**: add them in Paystack (Settings → API Keys & Webhooks) and in Stripe (event `checkout.session.completed`). The URLs are shown on the Settings tab.
-8. **Cron**: add a real cron job that runs WP-Cron for every site (see the snippet) so trials, reminders, suspensions, church emails and notifications run on time.
-9. Edit **Plans & pricing**, then sign up a test church from your landing page.
+8. **Webhooks**: add them in Paystack (Settings → API Keys & Webhooks) and in Stripe (event `checkout.session.completed`). The URLs are shown on the Settings tab.
+9. **Cron**: add a real cron job that runs WP-Cron for every site (see the snippet) so trials, reminders, suspensions, church emails and notifications run on time.
+10. Edit **Plans & pricing**, then sign up a test church from your landing page.
 
 **Billing rules**: paying ahead on the same plan adds a period after the current one; paying for a different plan starts it now and credits unused paid time; paying during the free trial keeps the remaining trial days; a church suspended by the platform owner stays suspended after paying until it is reactivated.
 

@@ -570,7 +570,7 @@ class KCS_Admin {
 			<select name="purpose"><option value=""><?php esc_html_e( 'All purposes', 'kingdom-church-suite' ); ?></option>
 				<?php foreach ( kcs_all_purposes() as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $filters['purpose'], $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?>
 			</select>
-			<input type="date" name="date_from" value="<?php echo esc_attr( $filters['date_from'] ); ?>"> – <input type="date" name="date_to" value="<?php echo esc_attr( $filters['date_to'] ); ?>">
+			<input type="date" name="date_from" value="<?php echo esc_attr( $filters['date_from'] ); ?>" aria-label="<?php esc_attr_e( 'From date', 'kingdom-church-suite' ); ?>"><span class="kcs-filters__dash" aria-hidden="true">–</span><input type="date" aria-label="<?php esc_attr_e( 'To date', 'kingdom-church-suite' ); ?>" name="date_to" value="<?php echo esc_attr( $filters['date_to'] ); ?>">
 			<?php if ( $filters['partner_id'] ) : ?><input type="hidden" name="partner_id" value="<?php echo (int) $filters['partner_id']; ?>"><?php endif; ?>
 			<button class="button"><?php esc_html_e( 'Filter', 'kingdom-church-suite' ); ?></button>
 			<?php $table->search_box( __( 'Search', 'kingdom-church-suite' ), 'kcs-payment' ); ?>

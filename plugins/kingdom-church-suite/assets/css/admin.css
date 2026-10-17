@@ -21,7 +21,7 @@
 .kcs-badge--failed, .kcs-badge--overdue, .kcs-badge--cancelled, .kcs-badge--unsubscribed { background: #fee2e2; color: #991b1b; }
 .kcs-badge--review, .kcs-badge--paused, .kcs-badge--draft, .kcs-badge--refunded { background: #e0e7ff; color: #3730a3; }
 .kcs-note { color: #b32d2e; }
-.kcs-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+.kcs-filters { clear: both; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
 .kcs-filters .search-box { margin-left: auto; }
 .kcs-code { background: #1d2327; color: #f0f0f1; padding: 14px; border-radius: 8px; overflow: auto; white-space: pre-wrap; }
 .kcs-shortcodes code { white-space: nowrap; }
@@ -44,3 +44,28 @@
 .kcs-seo-analysis li::before { position: absolute; left: 0; font-weight: 700; }
 .kcs-seo-analysis li.is-good::before { content: "●"; color: #00a32a; }
 .kcs-seo-analysis li.is-bad::before { content: "●"; color: #d63638; }
+
+/* Phones and small tablets (WordPress switches to its mobile admin at 782px) */
+@media (max-width: 782px) {
+	.kcs-admin { overflow-wrap: anywhere; }
+	.kcs-admin .kcs-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+	.kcs-admin .kcs-card { padding: 14px; }
+	.kcs-admin .kcs-card strong { font-size: 18px; }
+	.kcs-panel { padding: 14px; overflow-x: auto; }
+	.kcs-cols, .kcs-cols--form { gap: 14px; }
+	/* Filter bar: one control per line, full width. */
+	.kcs-admin .subsubsub { float: none; margin-bottom: 6px; }
+	.kcs-filters { display: grid; grid-template-columns: 1fr 1fr; clear: both; }
+	.kcs-filters select, .kcs-filters input[type="date"], .kcs-filters .search-box, .kcs-filters .search-box input[type="search"] { width: 100%; max-width: 100%; min-width: 0; margin: 0; }
+	.kcs-filters select, .kcs-filters .search-box, .kcs-filters > .button { grid-column: 1 / -1; }
+	.kcs-filters .search-box { display: flex; gap: 6px; float: none; position: static; }
+	.kcs-filters .search-box input[type="search"] { flex: 1; }
+	.kcs-filters__dash { display: none; }
+	/* Simple tables scroll sideways inside their box instead of widening the page. */
+	.kcs-admin table.widefat:not(.wp-list-table) { display: block; max-width: 100%; overflow-x: auto; }
+	.kcs-shortcodes code { white-space: normal; word-break: break-word; }
+	.kcs-admin input[type="text"], .kcs-admin input[type="email"], .kcs-admin input[type="url"], .kcs-admin input[type="number"], .kcs-admin select, .kcs-admin textarea { max-width: 100%; }
+	.kcs-admin .form-table td input.regular-text { width: 100%; }
+	.kcs-chart { gap: 4px; height: 160px; }
+	.kcs-chart__bar em { font-size: 9px; }
+}
