@@ -225,6 +225,14 @@ class KS_Network_Setup {
 	}
 
 	/**
+	 * Keep the Kingdom Cloud admin pages inside a phone screen: WordPress buttons never wrap,
+	 * so a long label (such as an address) would otherwise widen the whole page.
+	 */
+	public static function phone_css() {
+		echo '<style>.ks-wrap .button{white-space:normal;height:auto;min-height:30px;line-height:1.4;padding-top:6px;padding-bottom:6px;max-width:100%;text-align:center;overflow-wrap:anywhere}.ks-wrap .button-hero{padding-top:10px;padding-bottom:10px}.ks-wrap .card,.ks-wrap .widefat,.ks-wrap fieldset,.ks-wrap textarea{max-width:100%;box-sizing:border-box}.ks-wrap td,.ks-wrap label,.ks-wrap p,.ks-wrap li,.ks-wrap code{overflow-wrap:anywhere}.ks-wrap textarea.code{white-space:pre;overflow:auto}@media (max-width:782px){.ks-wrap .button-hero{display:block;margin:0 0 8px}}</style>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+
+	/**
 	 * Setup page.
 	 */
 	public static function render() {
@@ -237,7 +245,8 @@ class KS_Network_Setup {
 			'fail' => array( 'dashicons-dismiss', '#d63638' ),
 		);
 		?>
-		<div class="wrap">
+		<div class="wrap ks-wrap">
+			<?php self::phone_css(); ?>
 			<h1><?php esc_html_e( 'Kingdom Cloud setup', 'kingdom-saas' ); ?></h1>
 			<?php if ( is_array( $result ) && ! empty( $result['manual'] ) ) : ?>
 				<div class="notice notice-warning"><p><?php esc_html_e( 'The network was created, but some files could not be written. Paste the text below, save, then log in again.', 'kingdom-saas' ); ?></p></div>

@@ -243,7 +243,8 @@ class KS_Network_Admin {
 		$switched = get_site_transient( 'ks_switch_result' );
 		delete_site_transient( 'ks_switch_result' );
 		?>
-		<div class="wrap">
+		<div class="wrap ks-wrap">
+			<?php KS_Network_Setup::phone_css(); ?>
 			<h1><?php esc_html_e( 'Kingdom Cloud', 'kingdom-saas' ); ?></h1>
 			<?php if ( ! empty( $switched['done'] ) ) : ?>
 				<div class="notice notice-success"><p><?php echo esc_html( sprintf( /* translators: %s: example address */ __( 'Done. New churches now get addresses like %s.', 'kingdom-saas' ), ks_address( 'gracechapel' ) ) ); ?></p></div>
