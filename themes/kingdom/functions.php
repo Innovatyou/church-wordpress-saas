@@ -1,13 +1,13 @@
 <?php
 /**
- * Kingdom Church theme bootstrap.
+ * Ministry OS theme bootstrap.
  *
  * @package Kingdom
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'KINGDOM_VERSION', '1.2.0' );
+define( 'KINGDOM_VERSION', '1.3.0' );
 define( 'KINGDOM_DIR', get_template_directory() );
 define( 'KINGDOM_URI', get_template_directory_uri() );
 

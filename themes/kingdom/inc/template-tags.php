@@ -93,7 +93,7 @@ function kingdom_background_video( $src, $poster = '' ) {
 /**
  * Website settings the Church Admin dashboard can change (sections + banner).
  *
- * Exposed to the Kingdom Church Suite plugin through the kcs_website_settings filter.
+ * Exposed to the Ministry OS Church Suite plugin through the kcs_website_settings filter.
  *
  * @return array key => [label, type, group, default, choices?]
  */
@@ -356,7 +356,7 @@ function kingdom_shortcode( $shortcode ) {
 		return do_shortcode( $shortcode );
 	}
 	if ( current_user_can( 'activate_plugins' ) ) {
-		return '<div class="k-notice">' . esc_html__( 'Activate the Kingdom Church Suite plugin to show this feature.', 'kingdom' ) . '</div>';
+		return '<div class="k-notice">' . esc_html__( 'Activate the Ministry OS Church Suite plugin to show this feature.', 'kingdom' ) . '</div>';
 	}
 	return '';
 }

@@ -1,4 +1,4 @@
-/* Kingdom Cloud — platform pages. */
+/* Ministry OS Cloud — platform pages. */
 (function () {
 	'use strict';
 	var script = document.currentScript || document.querySelector('script[data-rest]');

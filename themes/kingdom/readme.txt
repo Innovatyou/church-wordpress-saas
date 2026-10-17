@@ -1,4 +1,4 @@
-=== Kingdom Church ===
+=== Ministry OS ===
 Contributors: kingdomchurch
 Requires at least: 6.0
 Tested up to: 6.8
@@ -11,9 +11,9 @@ A modern, fast and fully customisable church theme with a full-screen mobile men
 
 == Description ==
 
-Kingdom Church works on its own and connects to the Kingdom Church Suite plugin for partnerships, giving, prayer requests, the church app, newsletters and SEO. Sections that need the plugin hide themselves when it is not active.
+Ministry OS works on its own and connects to the Ministry OS Church Suite plugin for partnerships, giving, prayer requests, the church app, newsletters and SEO. Sections that need the plugin hide themselves when it is not active.
 
-Set it up from Appearance → Kingdom Setup (creates the pages and menus) and Appearance → Customize → Kingdom Church Theme. With Church Suite active, church staff can also change colours, fonts, sections and the live stream from the front-end Church Admin.
+Set it up from Appearance → Ministry OS Setup (creates the pages and menus) and Appearance → Customize → Ministry OS Theme. With Church Suite active, church staff can also change colours, fonts, sections and the live stream from the front-end Church Admin.
 
 Fonts: choose a ready-made pairing or any heading/body font from the library. Fonts load from Google Fonts by default; choose "Device fonts only" to load nothing from Google (fastest, no third-party requests).
 
@@ -31,8 +31,8 @@ Fonts: choose a ready-made pairing or any heading/body font from the library. Fo
 
 == Copyright ==
 
-Kingdom Church WordPress Theme, (C) 2026 Kingdom Church Suite.
-Kingdom Church is distributed under the terms of the GNU GPL v2 or later.
+Ministry OS WordPress Theme, (C) 2026 Ministry OS Church Suite.
+Ministry OS is distributed under the terms of the GNU GPL v2 or later.
 
 == Resources ==
 

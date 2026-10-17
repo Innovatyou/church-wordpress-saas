@@ -1,4 +1,4 @@
-/* Kingdom Church Suite — front-end components.
+/* Ministry OS Church Suite — front-end components.
  * Colours inherit from the theme via CSS custom properties when available. */
 :root {
 	--kcs-primary: var(--k-primary, #5b2a86);

@@ -1,6 +1,6 @@
 <?php
 /**
- * Network Admin → Kingdom Cloud: links to the platform dashboard and a setup check that says,
+ * Network Admin → Ministry OS Cloud: links to the platform dashboard and a setup check that says,
  * in plain words, what is still missing (plugins, theme, sunrise.php, wildcard DNS, cache…).
  *
  * @package KingdomSaaS
@@ -22,12 +22,12 @@ class KS_Network_Admin {
 		add_action( 'admin_init', array( __CLASS__, 'refresh_sunrise' ) );
 		add_action( 'admin_post_ks_switch_mode', array( __CLASS__, 'switch_mode' ) );
 		add_action( 'admin_post_ks_apply_theme', array( __CLASS__, 'apply_theme' ) );
-		// Every church site uses the Kingdom Church theme, also sites added under Network Admin → Sites.
+		// Every church site uses the Ministry OS theme, also sites added under Network Admin → Sites.
 		add_action( 'wp_initialize_site', array( __CLASS__, 'theme_for_new_site' ), 200 );
 	}
 
 	/**
-	 * Give a newly created site the Kingdom Church theme.
+	 * Give a newly created site the Ministry OS theme.
 	 *
 	 * @param WP_Site $site Site.
 	 */
@@ -43,7 +43,7 @@ class KS_Network_Admin {
 	}
 
 	/**
-	 * Church sites that are not using the Kingdom Church theme.
+	 * Church sites that are not using the Ministry OS theme.
 	 *
 	 * @return array blog_id => site address.
 	 */
@@ -59,7 +59,7 @@ class KS_Network_Admin {
 	}
 
 	/**
-	 * Put every church site on the Kingdom Church theme.
+	 * Put every church site on the Ministry OS theme.
 	 */
 	public static function apply_theme() {
 		if ( ! current_user_can( 'manage_network' ) || ! check_admin_referer( 'ks_apply_theme' ) ) {
@@ -109,7 +109,7 @@ class KS_Network_Admin {
 		$current = (string) file_get_contents( $config ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		$patched = KS_Network_Setup::patch_config( $current, $subdomain );
 		if ( false === $patched || ! wp_is_writable( $config ) || false === file_put_contents( $config, $patched ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			$manual['wp-config.php — replace the Kingdom Cloud / MULTISITE lines with'] = KS_Network_Setup::config_block( $subdomain );
+			$manual['wp-config.php — replace the Ministry OS Cloud / MULTISITE lines with'] = KS_Network_Setup::config_block( $subdomain );
 		}
 		if ( ! KS_Network_Setup::is_nginx() ) {
 			$ht = ABSPATH . '.htaccess';
@@ -142,7 +142,7 @@ class KS_Network_Admin {
 		if ( ! file_exists( $live ) || ! wp_is_writable( $live ) || md5_file( $live ) === md5_file( $bundle ) ) {
 			return;
 		}
-		if ( false !== strpos( (string) file_get_contents( $live, false, null, 0, 400 ), 'Kingdom Cloud — custom domain helper' ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( false !== strpos( (string) file_get_contents( $live, false, null, 0, 400 ), 'Ministry OS Cloud — custom domain helper' ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 			@copy( $bundle, $live ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 		}
 	}
@@ -151,7 +151,7 @@ class KS_Network_Admin {
 	 * Menu item.
 	 */
 	public static function menu() {
-		add_menu_page( __( 'Kingdom Cloud', 'kingdom-saas' ), __( 'Kingdom Cloud', 'kingdom-saas' ), 'manage_network', 'kingdom-cloud', array( __CLASS__, 'render' ), 'dashicons-cloud', 3 );
+		add_menu_page( __( 'Ministry OS Cloud', 'kingdom-saas' ), __( 'Ministry OS Cloud', 'kingdom-saas' ), 'manage_network', 'kingdom-cloud', array( __CLASS__, 'render' ), 'dashicons-cloud', 3 );
 	}
 
 	/**
@@ -189,31 +189,31 @@ class KS_Network_Admin {
 			: array( 'ok', sprintf( /* translators: %s: example address */ __( 'Multisite is on — church addresses like %s (subfolders, no wildcard DNS needed)', 'kingdom-saas' ), ks_address( 'gracechapel' ) ), '' );
 
 		$out[] = is_plugin_active_for_network( plugin_basename( KS_FILE ) )
-			? array( 'ok', __( 'Kingdom Cloud is network-activated', 'kingdom-saas' ), '' )
-			: array( 'fail', __( 'Kingdom Cloud is not network-activated', 'kingdom-saas' ), __( 'Network Admin → Plugins → Kingdom Cloud → Network Activate. Activating it on one site only is not enough.', 'kingdom-saas' ) );
+			? array( 'ok', __( 'Ministry OS Cloud is network-activated', 'kingdom-saas' ), '' )
+			: array( 'fail', __( 'Ministry OS Cloud is not network-activated', 'kingdom-saas' ), __( 'Network Admin → Plugins → Ministry OS Cloud → Network Activate. Activating it on one site only is not enough.', 'kingdom-saas' ) );
 
 		$out[] = is_plugin_active_for_network( 'kingdom-church-suite/kingdom-church-suite.php' )
-			? array( 'ok', __( 'Kingdom Church Suite is network-activated', 'kingdom-saas' ), '' )
-			: array( 'fail', __( 'Kingdom Church Suite is not network-activated', 'kingdom-saas' ), __( 'Network Admin → Plugins → Kingdom Church Suite → Network Activate, so every church gets partnerships, giving and Church Admin.', 'kingdom-saas' ) );
+			? array( 'ok', __( 'Ministry OS Church Suite is network-activated', 'kingdom-saas' ), '' )
+			: array( 'fail', __( 'Ministry OS Church Suite is not network-activated', 'kingdom-saas' ), __( 'Network Admin → Plugins → Ministry OS Church Suite → Network Activate, so every church gets partnerships, giving and Church Admin.', 'kingdom-saas' ) );
 
 		$theme = wp_get_theme( 'kingdom' );
 		if ( $theme->exists() && ! ks_theme_ok() ) {
 			/* translators: 1: theme name, 2: theme author */
-			$out[] = array( 'fail', __( 'The wrong theme is installed in the "kingdom" folder', 'kingdom-saas' ), sprintf( __( 'Your themes folder has "%1$s" by %2$s, a different theme from WordPress.org that uses the same folder name, instead of Kingdom Church. Church sites look broken until you fix it: Network Admin → Themes → Network Disable and Delete "%1$s", then Add New → Upload Theme → kingdom-theme.zip → Network Enable.', 'kingdom-saas' ), $theme->get( 'Name' ), wp_strip_all_tags( $theme->get( 'Author' ) ) ) );
+			$out[] = array( 'fail', __( 'The wrong theme is installed in the "kingdom" folder', 'kingdom-saas' ), sprintf( __( 'Your themes folder has "%1$s" by %2$s, a different theme from WordPress.org that uses the same folder name, instead of Ministry OS. Church sites look broken until you fix it: Network Admin → Themes → Network Disable and Delete "%1$s", then Add New → Upload Theme → kingdom-theme.zip → Network Enable.', 'kingdom-saas' ), $theme->get( 'Name' ), wp_strip_all_tags( $theme->get( 'Author' ) ) ) );
 		}
 		$allowed = array_keys( (array) WP_Theme::get_allowed_on_network() );
 		$out[]   = in_array( 'kingdom', $allowed, true )
-			? array( 'ok', __( 'Kingdom Church theme is enabled for the network', 'kingdom-saas' ), '' )
-			: array( 'fail', __( 'Kingdom Church theme is not enabled for the network', 'kingdom-saas' ), __( 'Network Admin → Themes → Kingdom Church → Network Enable. New church sites use it automatically.', 'kingdom-saas' ) );
+			? array( 'ok', __( 'Ministry OS theme is enabled for the network', 'kingdom-saas' ), '' )
+			: array( 'fail', __( 'Ministry OS theme is not enabled for the network', 'kingdom-saas' ), __( 'Network Admin → Themes → Ministry OS → Network Enable. New church sites use it automatically.', 'kingdom-saas' ) );
 		$wrong    = self::sites_without_theme();
 		$churches = self::church_count();
 		if ( ! $wrong && $churches && ks_theme_ok() ) {
 			/* translators: %d: number of church sites */
-			$out[] = array( 'ok', sprintf( _n( 'The church site uses the Kingdom Church theme', 'All %d church sites use the Kingdom Church theme', $churches, 'kingdom-saas' ), $churches ), '' );
+			$out[] = array( 'ok', sprintf( _n( 'The church site uses the Ministry OS theme', 'All %d church sites use the Ministry OS theme', $churches, 'kingdom-saas' ), $churches ), '' );
 		}
 		if ( $wrong ) {
 			/* translators: 1: number of sites, 2: list of addresses */
-			$out[] = array( 'fail', sprintf( _n( '%d church site is not using the Kingdom Church theme', '%d church sites are not using the Kingdom Church theme', count( $wrong ), 'kingdom-saas' ), count( $wrong ) ), sprintf( __( '%s — these pages and the Church Admin dashboard look wrong on phones. Press “Use the Kingdom Church theme on all church sites” below.', 'kingdom-saas' ), implode( ', ', array_slice( $wrong, 0, 5 ) ) . ( count( $wrong ) > 5 ? ' …' : '' ) ) );
+			$out[] = array( 'fail', sprintf( _n( '%d church site is not using the Ministry OS theme', '%d church sites are not using the Ministry OS theme', count( $wrong ), 'kingdom-saas' ), count( $wrong ) ), sprintf( __( '%s — these pages and the Church Admin dashboard look wrong on phones. Press “Use the Ministry OS theme on all church sites” below.', 'kingdom-saas' ), implode( ', ', array_slice( $wrong, 0, 5 ) ) . ( count( $wrong ) > 5 ? ' …' : '' ) ) );
 		}
 
 		$out[] = defined( 'SUNRISE' ) && SUNRISE && file_exists( WP_CONTENT_DIR . '/sunrise.php' )
@@ -247,7 +247,7 @@ class KS_Network_Admin {
 		} elseif ( false !== strpos( $body, 'ks--landing' ) ) {
 			$out[] = array( 'ok', __( 'Your home page shows the platform landing page', 'kingdom-saas' ), '' );
 		} else {
-			$out[] = array( 'fail', __( 'Your home page is not showing the platform landing page', 'kingdom-saas' ), __( 'Usually an old cached copy: purge your cache (LiteSpeed Cache → Purge All, and your host\'s cache, e.g. hPanel → Cache Manager). Also check Kingdom Cloud is network-activated above.', 'kingdom-saas' ) );
+			$out[] = array( 'fail', __( 'Your home page is not showing the platform landing page', 'kingdom-saas' ), __( 'Usually an old cached copy: purge your cache (LiteSpeed Cache → Purge All, and your host\'s cache, e.g. hPanel → Cache Manager). Also check Ministry OS Cloud is network-activated above.', 'kingdom-saas' ) );
 		}
 
 		$keys  = ks_get( 'paystack_secret' ) || ks_get( 'flutterwave_secret' ) || ks_get( 'stripe_secret' ) || KS_Bank::available();
@@ -316,7 +316,7 @@ class KS_Network_Admin {
 		?>
 		<div class="wrap ks-wrap">
 			<?php KS_Network_Setup::phone_css(); ?>
-			<h1><?php esc_html_e( 'Kingdom Cloud', 'kingdom-saas' ); ?> <small style="font-size:13px;font-weight:400;color:#646970"><?php echo esc_html( sprintf( /* translators: 1: Kingdom Cloud version, 2: Church Suite version */ __( 'version %1$s · Church Suite %2$s', 'kingdom-saas' ), KS_VERSION, defined( 'KCS_VERSION' ) ? KCS_VERSION : '—' ) ); ?></small></h1>
+			<h1><?php esc_html_e( 'Ministry OS Cloud', 'kingdom-saas' ); ?> <small style="font-size:13px;font-weight:400;color:#646970"><?php echo esc_html( sprintf( /* translators: 1: Ministry OS Cloud version, 2: Church Suite version */ __( 'version %1$s · Church Suite %2$s', 'kingdom-saas' ), KS_VERSION, defined( 'KCS_VERSION' ) ? KCS_VERSION : '—' ) ); ?></small></h1>
 			<?php if ( ! empty( $switched['done'] ) ) : ?>
 				<div class="notice notice-success"><p><?php echo esc_html( sprintf( /* translators: %s: example address */ __( 'Done. New churches now get addresses like %s.', 'kingdom-saas' ), ks_address( 'gracechapel' ) ) ); ?></p></div>
 			<?php elseif ( ! empty( $switched['error'] ) ) : ?>
@@ -348,13 +348,13 @@ class KS_Network_Admin {
 			<?php $theme_done = get_site_transient( 'ks_theme_result' ); ?>
 			<?php if ( false !== $theme_done ) : ?>
 				<?php delete_site_transient( 'ks_theme_result' ); ?>
-				<div class="notice notice-success inline"><p><?php /* translators: %d: number of sites */ echo esc_html( sprintf( _n( 'Done: %d church site now uses the Kingdom Church theme.', 'Done: %d church sites now use the Kingdom Church theme.', (int) $theme_done, 'kingdom-saas' ), (int) $theme_done ) ); ?></p></div>
+				<div class="notice notice-success inline"><p><?php /* translators: %d: number of sites */ echo esc_html( sprintf( _n( 'Done: %d church site now uses the Ministry OS theme.', 'Done: %d church sites now use the Ministry OS theme.', (int) $theme_done, 'kingdom-saas' ), (int) $theme_done ) ); ?></p></div>
 			<?php endif; ?>
 			<?php if ( self::sites_without_theme() && ks_theme_ok() ) : ?>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:12px 0">
 					<input type="hidden" name="action" value="ks_apply_theme">
 					<?php wp_nonce_field( 'ks_apply_theme' ); ?>
-					<button class="button button-primary"><?php esc_html_e( 'Use the Kingdom Church theme on all church sites', 'kingdom-saas' ); ?></button>
+					<button class="button button-primary"><?php esc_html_e( 'Use the Ministry OS theme on all church sites', 'kingdom-saas' ); ?></button>
 				</form>
 			<?php endif; ?>
 			<p class="description"><?php esc_html_e( 'Reload this page after each change to check again.', 'kingdom-saas' ); ?></p>

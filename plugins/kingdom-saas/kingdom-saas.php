@@ -1,14 +1,14 @@
 <?php
 /**
- * Plugin Name:       Kingdom Cloud (SaaS)
+ * Plugin Name:       Ministry OS Cloud (SaaS)
  * Plugin URI:        https://example.com/kingdom-cloud
- * Description:       Sell Kingdom Church websites as a service: church sign-up with free trial, a site per church (yourplatform.com/church or church.yourplatform.com), custom domains, subscription billing (Paystack, Flutterwave, Stripe, bank transfer), plan limits, automatic suspension and a platform dashboard. Sets up WordPress Multisite for you (Tools → Kingdom Cloud setup).
- * Version:           1.5.3
+ * Description:       Sell Ministry OS websites as a service: church sign-up with free trial, a site per church (yourplatform.com/church or church.yourplatform.com), custom domains, subscription billing (Paystack, Flutterwave, Stripe, bank transfer), plan limits, automatic suspension and a platform dashboard. Sets up WordPress Multisite for you (Tools → Ministry OS Cloud setup).
+ * Version:           1.6.0
  * Update URI:        https://github.com/Innovatyou/church-wordpress-saas
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Network:           true
- * Author:            Kingdom Church Suite
+ * Author:            Ministry OS
  * License:           GPL-2.0-or-later
  * Text Domain:       kingdom-saas
  *
@@ -17,13 +17,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'KS_VERSION', '1.5.3' );
+define( 'KS_VERSION', '1.6.0' );
 define( 'KS_DB_VERSION', '1.1.0' );
 define( 'KS_FILE', __FILE__ );
 define( 'KS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'KS_URL', plugin_dir_url( __FILE__ ) );
 
-// Not a network yet: offer the one-click setup (Tools → Kingdom Cloud setup) and stop here.
+// Not a network yet: offer the one-click setup (Tools → Ministry OS Cloud setup) and stop here.
 if ( ! is_multisite() ) {
 	require_once KS_PATH . 'includes/class-ks-network-setup.php';
 	KS_Network_Setup::init();

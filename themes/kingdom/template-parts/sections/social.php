@@ -8,7 +8,7 @@
 $kingdom_social = kingdom_social_links();
 if ( ! $kingdom_social ) {
 	if ( current_user_can( 'edit_theme_options' ) ) {
-		echo '<div class="k-container k-section"><div class="k-notice">' . esc_html__( 'Add your social profiles in Customize → Kingdom Church Theme → Social Profiles to show this section.', 'kingdom' ) . '</div></div>';
+		echo '<div class="k-container k-section"><div class="k-notice">' . esc_html__( 'Add your social profiles in Customize → Ministry OS Theme → Social Profiles to show this section.', 'kingdom' ) . '</div></div>';
 	}
 	return;
 }

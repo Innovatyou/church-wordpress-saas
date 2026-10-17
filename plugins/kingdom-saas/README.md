@@ -1,6 +1,6 @@
-# Kingdom Cloud — sell church websites as a service
+# Ministry OS Cloud — sell church websites as a service
 
-Kingdom Cloud turns the Kingdom Church theme and Kingdom Church Suite plugin into a SaaS you can sell to many churches. Each church gets:
+Ministry OS Cloud turns the Ministry OS theme and Ministry OS Church Suite plugin into a SaaS you can sell to many churches. Each church gets:
 
 - its own website on `theirchurch.yourplatform.com`, with their own domain available later
 - its own partners, payments and Church Admin dashboard
@@ -32,12 +32,12 @@ Churches still receive their own **tithes, offerings and partnership payments** 
 ### The easy way (shared hosting such as Hostinger, cPanel, Plesk)
 
 1. **Fresh WordPress** on your platform domain (e.g. `yourplatform.com`), installed at the root of the domain. Turn on SSL for the domain.
-2. **Upload the three zips** from [`dist/`](../../dist): *Plugins → Add New → Upload Plugin* for `kingdom-church-suite.zip` and `kingdom-saas.zip`, and *Appearance → Themes → Add New → Upload Theme* for `kingdom-theme.zip`. Activate Kingdom Cloud.
-3. **One click**: a yellow "Kingdom Cloud is almost ready" message appears. Click **Set up my platform** (or go to *Tools → Kingdom Cloud setup*), choose the church address style and click **Set up my platform now**.
+2. **Upload the three zips** from [`dist/`](../../dist): *Plugins → Add New → Upload Plugin* for `kingdom-church-suite.zip` and `kingdom-saas.zip`, and *Appearance → Themes → Add New → Upload Theme* for `kingdom-theme.zip`. Activate Ministry OS Cloud.
+3. **One click**: a yellow "Ministry OS Cloud is almost ready" message appears. Click **Set up my platform** (or go to *Tools → Ministry OS Cloud setup*), choose the church address style and click **Set up my platform now**.
    - **Subfolders** — `yourplatform.com/gracechapel` (default, **use this on shared hosting** such as Hostinger, cPanel or Plesk: works everywhere, no wildcard DNS, your SSL already covers it).
    - **Subdomains** — `gracechapel.yourplatform.com` (needs a server that sends every `*.yourplatform.com` to WordPress — a VPS or hosting with wildcard subdomains — plus a `*` DNS record and SSL for `*.yourplatform.com`).
-   Either way churches can connect their own domain later. While no church has signed up you can switch style in *Network Admin → Kingdom Cloud*. This backs up and writes `wp-config.php` and `.htaccess`, switches on Multisite with subdomains, installs `sunrise.php`, network-activates both plugins and enables the theme. No code to copy. (If a file cannot be written, the page shows the exact text to paste.)
-4. **Log in again.** You land on *Network Admin → Kingdom Cloud*, a setup check that lists anything still missing with the fix next to it.
+   Either way churches can connect their own domain later. While no church has signed up you can switch style in *Network Admin → Ministry OS Cloud*. This backs up and writes `wp-config.php` and `.htaccess`, switches on Multisite with subdomains, installs `sunrise.php`, network-activates both plugins and enables the theme. No code to copy. (If a file cannot be written, the page shows the exact text to paste.)
+4. **Log in again.** You land on *Network Admin → Ministry OS Cloud*, a setup check that lists anything still missing with the fix next to it.
 5. **Subdomain style only** (skip for subfolders): a DNS **A record** for `*` (i.e. `*.yourplatform.com`) pointing to your server IP, a wildcard subdomain / server alias sending every subdomain to the WordPress folder, and SSL covering the subdomains (e.g. Cloudflare). The setup check tells you which part is missing.
 6. **Purge caches** (LiteSpeed Cache → Purge All, and your host's cache) and open your domain: you should see the sales landing page.
 7. **Platform settings**: *Open platform dashboard → Settings* (`/platform/?tab=settings`): platform name, brand colour, support email, Paystack, Flutterwave or Stripe keys, or bank accounts (for Flutterwave also set a webhook secret hash and paste the same value plus the webhook URL shown under Settings into Flutterwave → Settings → Webhooks); add Cloudflare Turnstile keys; turn **test mode off**.

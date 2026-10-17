@@ -5,7 +5,7 @@
  * @package Kingdom
  */
 
-// Needs the Kingdom Church Suite plugin (plans, payments, prayer and live stream).
+// Needs the Ministry OS Church Suite plugin (plans, payments, prayer and live stream).
 if ( ! kingdom_plugin_active() ) {
 	return;
 }

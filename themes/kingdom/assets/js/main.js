@@ -1,5 +1,5 @@
 /**
- * Kingdom Church theme interactions (no dependencies).
+ * Ministry OS theme interactions (no dependencies).
  */
 (function () {
 	'use strict';

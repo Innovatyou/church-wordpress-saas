@@ -290,7 +290,7 @@ class KCS_SEO {
 			$type = 'video.other';
 		}
 
-		echo "\n<!-- Kingdom Church Suite SEO -->\n";
+		echo "\n<!-- Ministry OS Church Suite SEO -->\n";
 		if ( $desc ) {
 			echo '<meta name="description" content="' . esc_attr( $desc ) . '">' . "\n";
 		}
@@ -339,7 +339,7 @@ class KCS_SEO {
 			echo '<meta name="ICBM" content="' . esc_attr( kcs_get_option( 'geo_lat' ) . ', ' . kcs_get_option( 'geo_lng' ) ) . '">' . "\n";
 		}
 		echo '<script type="application/ld+json">' . wp_json_encode( self::schema(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . "</script>\n";
-		echo "<!-- / Kingdom Church Suite SEO -->\n";
+		echo "<!-- / Ministry OS Church Suite SEO -->\n";
 	}
 
 	/* ---------------------------------------------------------------------

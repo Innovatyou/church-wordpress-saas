@@ -1,6 +1,6 @@
 <?php
 /**
- * Kingdom Cloud — custom domain helper.
+ * Ministry OS Cloud — custom domain helper.
  *
  * Copy this file to wp-content/sunrise.php and add this line to wp-config.php
  * (above "That's all, stop editing!"):
@@ -40,7 +40,7 @@ defined( 'ABSPATH' ) || exit;
 		define( 'COOKIE_DOMAIN', '' );
 	}
 
-	// Setup check (Network Admin → Kingdom Cloud): proves a random subdomain reaches this WordPress.
+	// Setup check (Network Admin → Ministry OS Cloud): proves a random subdomain reaches this WordPress.
 	if ( '/.well-known/ks-probe' === $path ) {
 		header( 'Content-Type: text/plain; charset=utf-8' );
 		header( 'Cache-Control: no-store' );

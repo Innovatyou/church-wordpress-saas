@@ -1,20 +1,20 @@
-# Kingdom Church — WordPress Theme + Church Suite Plugin
+# Ministry OS — WordPress Theme + Church Suite Plugin
 
 A complete church website kit:
 
 | Package | Path | What it does |
 |---|---|---|
-| **Kingdom Church** theme | `themes/kingdom/` | Modern, responsive design with **25 page templates**, 20 reusable sections, dark mode, Customizer options and a one-click starter site |
-| **Kingdom Church Suite** plugin | `plugins/kingdom-church-suite/` | Partnerships, partner login and dashboard, admin partner/payment management, payment gateways, REST API, email notifications, newsletter, YouTube live, sermons, events, prayer and advanced SEO |
-| **Kingdom Cloud** (SaaS) plugin | `plugins/kingdom-saas/` | Sell the theme + plugin to many churches on WordPress Multisite: sign-up with free trial, a site per church, custom domains, subscription billing (Paystack, Flutterwave, Stripe, bank transfer), plan limits, automatic suspension and a platform dashboard. See [its README](plugins/kingdom-saas/README.md). |
+| **Ministry OS** theme | `themes/kingdom/` | Modern, responsive design with **25 page templates**, 20 reusable sections, dark mode, Customizer options and a one-click starter site |
+| **Ministry OS Church Suite** plugin | `plugins/kingdom-church-suite/` | Partnerships, partner login and dashboard, admin partner/payment management, payment gateways, REST API, email notifications, newsletter, YouTube live, sermons, events, prayer and advanced SEO |
+| **Ministry OS Cloud** (SaaS) plugin | `plugins/kingdom-saas/` | Sell the theme + plugin to many churches on WordPress Multisite: sign-up with free trial, a site per church, custom domains, subscription billing (Paystack, Flutterwave, Stripe, bank transfer), plan limits, automatic suspension and a platform dashboard. See [its README](plugins/kingdom-saas/README.md). |
 
-> **Theme name clash:** WordPress.org has an unrelated free theme called "Kingdom" (by BestWebLayout) that uses the same `kingdom` folder. Older copies of this theme could be "updated" to it by WordPress, which makes church sites look broken. From theme 1.2.0 and plugins 1.2.1 / 1.5.3 an `Update URI` header stops this. If Network Admin → Kingdom Cloud says *"The wrong theme is installed in the kingdom folder"*, delete that theme and upload `dist/kingdom-theme.zip` again.
+> **Theme name clash:** WordPress.org has an unrelated free theme called "Kingdom" (by BestWebLayout) that uses the same `kingdom` folder. Older copies of this theme could be "updated" to it by WordPress, which makes church sites look broken. From theme 1.2.0 and plugins 1.2.1 / 1.5.3 an `Update URI` header stops this. If Network Admin → Ministry OS Cloud says *"The wrong theme is installed in the kingdom folder"*, delete that theme and upload `dist/kingdom-theme.zip` again.
 
 The theme works on its own. The plugin holds all data and business logic, so your content and partners survive a theme change.
 
-**Two ways to use it:** install the theme and Church Suite on one church's WordPress site (below), or run **Kingdom Cloud** on a Multisite network and sell church websites as a service, where each church signs up, gets its own site and pays you monthly or yearly.
+**Two ways to use it:** install the theme and Church Suite on one church's WordPress site (below), or run **Ministry OS Cloud** on a Multisite network and sell church websites as a service, where each church signs up, gets its own site and pays you monthly or yearly.
 
-**Selling to many churches (Kingdom Cloud)?** Install a fresh WordPress, upload all three zips, activate Kingdom Cloud and click **Set up my platform** — it switches on Multisite for you (no editing wp-config.php or .htaccess). Full steps: [plugins/kingdom-saas/README.md](plugins/kingdom-saas/README.md#going-live).
+**Selling to many churches (Ministry OS Cloud)?** Install a fresh WordPress, upload all three zips, activate Ministry OS Cloud and click **Set up my platform** — it switches on Multisite for you (no editing wp-config.php or .htaccess). Full steps: [plugins/kingdom-saas/README.md](plugins/kingdom-saas/README.md#going-live).
 
 ---
 
@@ -26,9 +26,9 @@ The theme works on its own. The plugin holds all data and business logic, so you
    - SaaS (only for selling to many churches on Multisite): [kingdom-saas.zip](https://github.com/Innovatyou/church-wordpress-saas/raw/main/dist/kingdom-saas.zip) → see [its README](plugins/kingdom-saas/README.md)
 
    Updating: upload the newer zip the same way and choose **Replace current with uploaded**. Settings, partners and payments are kept.
-2. Go to **Appearance → Kingdom Setup**, pick a homepage layout and click **Create starter site**. This creates every page with its template, the main and footer menus, the homepage and the blog page. It never deletes content.
+2. Go to **Appearance → Ministry OS Setup**, pick a homepage layout and click **Create starter site**. This creates every page with its template, the main and footer menus, the homepage and the blog page. It never deletes content.
 3. Go to **Church Suite → Settings** and fill in church details, service schedule, payment gateways, email, YouTube and SEO.
-4. Go to **Appearance → Customize → Kingdom Church Theme** to set colours, fonts, header style, hero, sections, contact and social links.
+4. Go to **Appearance → Customize → Ministry OS Theme** to set colours, fonts, header style, hero, sections, contact and social links.
 5. Install an SMTP plugin (WP Mail SMTP, FluentSMTP…) with Mailgun, SendGrid, SES, Brevo or Postmark for reliable email.
 6. Use a real server cron for timely emails and reminders: `*/5 * * * * curl -s https://yoursite.com/wp-cron.php >/dev/null`
 
@@ -279,7 +279,7 @@ Templates: copy any file from `plugins/kingdom-church-suite/templates/` to `your
 
 ## Replacing the church images with real or AI-generated photos
 
-The default images are illustrations bundled in `themes/kingdom/assets/img/`. To use photos, go to **Appearance → Customize → Kingdom Church Theme → Church Images & Gallery**, click a slot and upload. Remove a photo to bring the illustration back. No code is needed.
+The default images are illustrations bundled in `themes/kingdom/assets/img/`. To use photos, go to **Appearance → Customize → Ministry OS Theme → Church Images & Gallery**, click a slot and upload. Remove a photo to bring the illustration back. No code is needed.
 
 If you want AI-generated photos first, these prompts work well in Midjourney, DALL·E, Ideogram or Adobe Firefly (landscape 16:10, 1920 px or wider):
 

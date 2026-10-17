@@ -1,4 +1,4 @@
-# Kingdom Cloud — end-to-end tests
+# Ministry OS Cloud — end-to-end tests
 
 These tests drive a real WordPress Multisite network (MariaDB/MySQL, subdomain install)
 in Chromium with Playwright. They were used to confirm every SaaS flow before release.

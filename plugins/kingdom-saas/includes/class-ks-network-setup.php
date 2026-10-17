@@ -2,15 +2,15 @@
 /**
  * One-click platform setup on a normal (single) WordPress site.
  *
- * Kingdom Cloud needs WordPress Multisite (church subfolders or subdomains). Instead of editing wp-config.php and
- * .htaccess by hand, Tools → Kingdom Cloud setup does it all, the same way WordPress's own
+ * Ministry OS Cloud needs WordPress Multisite (church subfolders or subdomains). Instead of editing wp-config.php and
+ * .htaccess by hand, Tools → Ministry OS Cloud setup does it all, the same way WordPress's own
  * Network Setup and `wp core multisite-convert` do:
  *
  * 1. backs up wp-config.php and .htaccess;
  * 2. creates the network tables;
  * 3. writes the network lines to wp-config.php and the rewrite rules to .htaccess;
  * 4. installs sunrise.php (custom domains);
- * 5. network-activates Kingdom Cloud and Kingdom Church Suite and network-enables the theme.
+ * 5. network-activates Ministry OS Cloud and Ministry OS Church Suite and network-enables the theme.
  *
  * When a file cannot be written, the page shows the exact text to paste instead.
  *
@@ -41,10 +41,10 @@ class KS_Network_Setup {
 	}
 
 	/**
-	 * Tools → Kingdom Cloud setup.
+	 * Tools → Ministry OS Cloud setup.
 	 */
 	public static function menu() {
-		add_management_page( __( 'Kingdom Cloud setup', 'kingdom-saas' ), __( 'Kingdom Cloud setup', 'kingdom-saas' ), 'manage_options', 'kingdom-cloud-setup', array( __CLASS__, 'render' ) );
+		add_management_page( __( 'Ministry OS Cloud setup', 'kingdom-saas' ), __( 'Ministry OS Cloud setup', 'kingdom-saas' ), 'manage_options', 'kingdom-cloud-setup', array( __CLASS__, 'render' ) );
 	}
 
 	/**
@@ -54,7 +54,7 @@ class KS_Network_Setup {
 		if ( ! current_user_can( 'manage_options' ) || ( isset( $_GET['page'] ) && 'kingdom-cloud-setup' === $_GET['page'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			return;
 		}
-		echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'Kingdom Cloud is almost ready.', 'kingdom-saas' ) . '</strong> ' . esc_html__( 'It needs to turn this site into a network of church websites. This takes one click.', 'kingdom-saas' ) . ' <a class="button button-primary" href="' . esc_url( admin_url( 'tools.php?page=kingdom-cloud-setup' ) ) . '">' . esc_html__( 'Set up my platform', 'kingdom-saas' ) . '</a></p></div>';
+		echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'Ministry OS Cloud is almost ready.', 'kingdom-saas' ) . '</strong> ' . esc_html__( 'It needs to turn this site into a network of church websites. This takes one click.', 'kingdom-saas' ) . ' <a class="button button-primary" href="' . esc_url( admin_url( 'tools.php?page=kingdom-cloud-setup' ) ) . '">' . esc_html__( 'Set up my platform', 'kingdom-saas' ) . '</a></p></div>';
 	}
 
 	/**
@@ -111,8 +111,8 @@ class KS_Network_Setup {
 			$ht    = ABSPATH . '.htaccess';
 			$out[] = ( file_exists( $ht ) ? wp_is_writable( $ht ) : wp_is_writable( ABSPATH ) ) ? array( 'ok', __( '.htaccess can be updated automatically', 'kingdom-saas' ) ) : array( 'warn', __( '.htaccess cannot be written: you will be shown the rules to paste.', 'kingdom-saas' ) );
 		}
-		$out[] = file_exists( WP_PLUGIN_DIR . '/kingdom-church-suite/kingdom-church-suite.php' ) ? array( 'ok', __( 'Kingdom Church Suite plugin is uploaded', 'kingdom-saas' ) ) : array( 'warn', __( 'Upload the Kingdom Church Suite plugin too (Plugins → Add New → Upload). You can do it after setup in Network Admin → Plugins.', 'kingdom-saas' ) );
-		$out[] = self::theme_ok() ? array( 'ok', __( 'Kingdom Church theme is uploaded', 'kingdom-saas' ) ) : array( 'warn', __( 'Upload the Kingdom Church theme too (Appearance → Themes → Add New → Upload). You can do it after setup in Network Admin → Themes.', 'kingdom-saas' ) );
+		$out[] = file_exists( WP_PLUGIN_DIR . '/kingdom-church-suite/kingdom-church-suite.php' ) ? array( 'ok', __( 'Ministry OS Church Suite plugin is uploaded', 'kingdom-saas' ) ) : array( 'warn', __( 'Upload the Ministry OS Church Suite plugin too (Plugins → Add New → Upload). You can do it after setup in Network Admin → Plugins.', 'kingdom-saas' ) );
+		$out[] = self::theme_ok() ? array( 'ok', __( 'Ministry OS theme is uploaded', 'kingdom-saas' ) ) : array( 'warn', __( 'Upload the Ministry OS theme too (Appearance → Themes → Add New → Upload). You can do it after setup in Network Admin → Themes.', 'kingdom-saas' ) );
 		return $out;
 	}
 
@@ -124,7 +124,7 @@ class KS_Network_Setup {
 	 */
 	public static function config_block( $subdomain = true ) {
 		$domain = self::domain();
-		return "/* Kingdom Cloud network (added by Tools → Kingdom Cloud setup) */\n"
+		return "/* Ministry OS Cloud network (added by Tools → Ministry OS Cloud setup) */\n"
 			. "define( 'WP_ALLOW_MULTISITE', true );\n"
 			. "define( 'MULTISITE', true );\n"
 			. "define( 'SUBDOMAIN_INSTALL', " . ( $subdomain ? 'true' : 'false' ) . " );\n"
@@ -133,7 +133,7 @@ class KS_Network_Setup {
 			. "define( 'SITE_ID_CURRENT_SITE', 1 );\n"
 			. "define( 'BLOG_ID_CURRENT_SITE', 1 );\n"
 			. "define( 'SUNRISE', true );\n"
-			. "/* End Kingdom Cloud network */\n";
+			. "/* End Ministry OS Cloud network */\n";
 	}
 
 	/**
@@ -193,7 +193,7 @@ class KS_Network_Setup {
 	 */
 	public static function patch_config( $config, $subdomain = true ) {
 		// Remove an earlier block and any hand-added copies of the constants.
-		$config = preg_replace( "#/\* Kingdom Cloud network.*?/\* End Kingdom Cloud network \*/\R?(\R)?#s", "", $config );
+		$config = preg_replace( "#/\* Ministry OS Cloud network.*?/\* End Ministry OS Cloud network \*/\R?(\R)?#s", "", $config );
 		foreach ( self::CONSTANTS as $c ) {
 			$config = preg_replace( '/^[ \t]*define\(\s*[\'"]' . $c . '[\'"]\s*,[^;]*\);[^\r\n]*\R?/m', '', $config );
 		}
@@ -225,17 +225,17 @@ class KS_Network_Setup {
 	}
 
 	/**
-	 * Is our Kingdom Church theme installed (not another theme that uses the same "kingdom" folder)?
+	 * Is our Ministry OS theme installed (not another theme that uses the same "kingdom" folder)?
 	 *
 	 * @return bool
 	 */
 	public static function theme_ok() {
 		$theme = wp_get_theme( 'kingdom' );
-		return $theme->exists() && 'Kingdom Church' === $theme->get( 'Name' );
+		return $theme->exists() && in_array( $theme->get( 'Name' ), array( 'Ministry OS', 'Kingdom Church' ), true );
 	}
 
 	/**
-	 * Keep the Kingdom Cloud admin pages inside a phone screen: WordPress buttons never wrap,
+	 * Keep the Ministry OS Cloud admin pages inside a phone screen: WordPress buttons never wrap,
 	 * so a long label (such as an address) would otherwise widen the whole page.
 	 */
 	public static function phone_css() {
@@ -257,7 +257,7 @@ class KS_Network_Setup {
 		?>
 		<div class="wrap ks-wrap">
 			<?php self::phone_css(); ?>
-			<h1><?php esc_html_e( 'Kingdom Cloud setup', 'kingdom-saas' ); ?></h1>
+			<h1><?php esc_html_e( 'Ministry OS Cloud setup', 'kingdom-saas' ); ?></h1>
 			<?php if ( is_array( $result ) && ! empty( $result['manual'] ) ) : ?>
 				<div class="notice notice-warning"><p><?php esc_html_e( 'The network was created, but some files could not be written. Paste the text below, save, then log in again.', 'kingdom-saas' ); ?></p></div>
 				<?php foreach ( $result['manual'] as $file => $text ) : ?>
@@ -280,10 +280,10 @@ class KS_Network_Setup {
 			<ol style="max-width:760px">
 				<li><?php esc_html_e( 'wp-config.php and .htaccess are backed up next to the originals (names ending in .kc-backup).', 'kingdom-saas' ); ?></li>
 				<li><?php esc_html_e( 'WordPress Multisite is switched on, exactly as Tools → Network Setup would — no copying code.', 'kingdom-saas' ); ?></li>
-				<li><?php esc_html_e( 'Custom domains are prepared (sunrise.php), Kingdom Cloud and Kingdom Church Suite are activated for every church, and the Kingdom Church theme is enabled.', 'kingdom-saas' ); ?></li>
-				<li><?php esc_html_e( 'You log in again and land on Network Admin → Kingdom Cloud, which checks the rest (addresses, payments, HTTPS).', 'kingdom-saas' ); ?></li>
+				<li><?php esc_html_e( 'Custom domains are prepared (sunrise.php), Ministry OS Cloud and Ministry OS Church Suite are activated for every church, and the Ministry OS theme is enabled.', 'kingdom-saas' ); ?></li>
+				<li><?php esc_html_e( 'You log in again and land on Network Admin → Ministry OS Cloud, which checks the rest (addresses, payments, HTTPS).', 'kingdom-saas' ); ?></li>
 			</ol>
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Turn this site into your Kingdom Cloud platform now?', 'kingdom-saas' ) ); ?>');">
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Turn this site into your Ministry OS Cloud platform now?', 'kingdom-saas' ) ); ?>');">
 				<input type="hidden" name="action" value="ks_convert">
 				<h2><?php esc_html_e( 'Church website addresses', 'kingdom-saas' ); ?></h2>
 				<?php $kc_domain = self::domain(); ?>

@@ -35,7 +35,7 @@ kingdom_page_header( '', __( 'Honour the Lord with your wealth, with the firstfr
 			} elseif ( kingdom_plugin_active() ) {
 				echo kingdom_shortcode( '[kcs_tithe]' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			} else {
-				echo '<p>' . esc_html__( 'Activate the Kingdom Church Suite plugin to accept tithes and offerings online.', 'kingdom' ) . '</p>';
+				echo '<p>' . esc_html__( 'Activate the Ministry OS Church Suite plugin to accept tithes and offerings online.', 'kingdom' ) . '</p>';
 			}
 			?>
 		</div>

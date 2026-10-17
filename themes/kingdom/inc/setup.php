@@ -396,7 +396,7 @@ function kingdom_plugin_notice() {
 		return;
 	}
 	$dismiss = wp_nonce_url( add_query_arg( 'kingdom_dismiss_plugin', 1 ), 'kingdom_dismiss' );
-	echo '<div class="notice notice-info"><p><strong>' . esc_html__( 'Kingdom Church theme:', 'kingdom' ) . '</strong> ' . esc_html__( 'activate the Kingdom Church Suite plugin to enable partnerships, online giving, live streaming, sermons, events, newsletters and SEO.', 'kingdom' ) . ' <a href="' . esc_url( admin_url( 'plugins.php' ) ) . '">' . esc_html__( 'Go to plugins', 'kingdom' ) . '</a> · <a href="' . esc_url( $dismiss ) . '">' . esc_html__( 'Dismiss', 'kingdom' ) . '</a></p></div>';
+	echo '<div class="notice notice-info"><p><strong>' . esc_html__( 'Ministry OS theme:', 'kingdom' ) . '</strong> ' . esc_html__( 'activate the Ministry OS Church Suite plugin to enable partnerships, online giving, live streaming, sermons, events, newsletters and SEO.', 'kingdom' ) . ' <a href="' . esc_url( admin_url( 'plugins.php' ) ) . '">' . esc_html__( 'Go to plugins', 'kingdom' ) . '</a> · <a href="' . esc_url( $dismiss ) . '">' . esc_html__( 'Dismiss', 'kingdom' ) . '</a></p></div>';
 }
 add_action( 'admin_notices', 'kingdom_plugin_notice' );
 

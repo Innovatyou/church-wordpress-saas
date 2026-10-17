@@ -1,4 +1,4 @@
-# Kingdom Cloud — Caddy web server with automatic HTTPS for the platform,
+# Ministry OS Cloud — Caddy web server with automatic HTTPS for the platform,
 # every church subdomain and every custom domain churches connect.
 #
 # 1. Point DNS for yourplatform.com AND *.yourplatform.com at this server.

@@ -1,6 +1,6 @@
 <?php
 /**
- * Appearance → Kingdom Setup: one-click starter pages, menus and front page.
+ * Appearance → Ministry OS Setup: one-click starter pages, menus and front page.
  *
  * @package Kingdom
  */
@@ -39,7 +39,7 @@ function kingdom_starter_pages() {
  * Admin page.
  */
 function kingdom_setup_menu() {
-	add_theme_page( __( 'Kingdom Setup', 'kingdom' ), __( 'Kingdom Setup', 'kingdom' ), 'edit_theme_options', 'kingdom-setup', 'kingdom_setup_page' );
+	add_theme_page( __( 'Ministry OS Setup', 'kingdom' ), __( 'Ministry OS Setup', 'kingdom' ), 'edit_theme_options', 'kingdom-setup', 'kingdom_setup_page' );
 }
 add_action( 'admin_menu', 'kingdom_setup_menu' );
 
@@ -50,13 +50,13 @@ function kingdom_setup_page() {
 	$templates = wp_get_theme()->get_page_templates();
 	?>
 	<div class="wrap">
-		<h1><?php esc_html_e( 'Kingdom Church — Setup', 'kingdom' ); ?></h1>
+		<h1><?php esc_html_e( 'Ministry OS — Setup', 'kingdom' ); ?></h1>
 		<?php if ( isset( $_GET['done'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
-			<div class="notice notice-success"><p><?php esc_html_e( 'Starter site created! Visit your homepage, then customise everything under Appearance → Customize → Kingdom Church Theme.', 'kingdom' ); ?> <a href="<?php echo esc_url( home_url( '/' ) ); ?>"><?php esc_html_e( 'View site →', 'kingdom' ); ?></a></p></div>
+			<div class="notice notice-success"><p><?php esc_html_e( 'Starter site created! Visit your homepage, then customise everything under Appearance → Customize → Ministry OS Theme.', 'kingdom' ); ?> <a href="<?php echo esc_url( home_url( '/' ) ); ?>"><?php esc_html_e( 'View site →', 'kingdom' ); ?></a></p></div>
 		<?php endif; ?>
 		<div class="card" style="max-width:780px">
 			<h2><?php esc_html_e( '1. Install the companion plugin', 'kingdom' ); ?></h2>
-			<p><?php echo kingdom_plugin_active() ? '✅ ' . esc_html__( 'Kingdom Church Suite is active.', 'kingdom' ) : '⚠️ ' . esc_html__( 'Upload and activate the Kingdom Church Suite plugin for partnerships, giving, live streaming, sermons, events, newsletter and SEO.', 'kingdom' ); ?></p>
+			<p><?php echo kingdom_plugin_active() ? '✅ ' . esc_html__( 'Ministry OS Church Suite is active.', 'kingdom' ) : '⚠️ ' . esc_html__( 'Upload and activate the Ministry OS Church Suite plugin for partnerships, giving, live streaming, sermons, events, newsletter and SEO.', 'kingdom' ); ?></p>
 			<h2><?php esc_html_e( '2. Create the starter site', 'kingdom' ); ?></h2>
 			<p><?php esc_html_e( 'Creates (or reuses) all key church pages with their templates, builds the main and footer menus, and sets the homepage and blog page. Existing content is never deleted.', 'kingdom' ); ?></p>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -223,6 +223,6 @@ function kingdom_activation_notice() {
 		return;
 	}
 	delete_transient( 'kingdom_activated' );
-	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Thanks for choosing Kingdom Church!', 'kingdom' ) . ' <a class="button button-primary" href="' . esc_url( admin_url( 'themes.php?page=kingdom-setup' ) ) . '">' . esc_html__( 'Run the one-click setup', 'kingdom' ) . '</a></p></div>';
+	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Thanks for choosing Ministry OS!', 'kingdom' ) . ' <a class="button button-primary" href="' . esc_url( admin_url( 'themes.php?page=kingdom-setup' ) ) . '">' . esc_html__( 'Run the one-click setup', 'kingdom' ) . '</a></p></div>';
 }
 add_action( 'admin_notices', 'kingdom_activation_notice' );

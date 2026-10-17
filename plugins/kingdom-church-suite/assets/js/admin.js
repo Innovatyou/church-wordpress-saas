@@ -1,5 +1,5 @@
 /**
- * Kingdom Church Suite — admin helpers: colour pickers, reveal secrets,
+ * Ministry OS Church Suite — admin helpers: colour pickers, reveal secrets,
  * collapsible gateway sections and the live SEO preview/analysis.
  */
 (function () {

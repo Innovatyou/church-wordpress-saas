@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
  * @param WP_Customize_Manager $wp Manager.
  */
 function kingdom_customize_register( $wp ) {
-	$wp->add_panel( 'kingdom', array( 'title' => __( 'Kingdom Church Theme', 'kingdom' ), 'priority' => 20 ) );
+	$wp->add_panel( 'kingdom', array( 'title' => __( 'Ministry OS Theme', 'kingdom' ), 'priority' => 20 ) );
 
 	$add = function ( $section, $id, $label, $type = 'text', $default = '', $choices = array(), $desc = '' ) use ( $wp ) {
 		$sanitize = array(
@@ -190,7 +190,7 @@ function kingdom_customize_register( $wp ) {
 	$add( 'kingdom_welcome', 'kingdom_welcome_btn_url', __( 'Button URL', 'kingdom' ), 'url', '' );
 
 	// Services.
-	$add( 'kingdom_services', 'kingdom_service_times', __( 'Service times (fallback)', 'kingdom' ), 'textarea', "Sunday|8:00 AM|First Service\nSunday|10:30 AM|Celebration Service\nWednesday|6:00 PM|Bible Study", array(), __( 'One per line: Day|Time|Name. When the Kingdom Church Suite plugin is active its service schedule is used instead.', 'kingdom' ) );
+	$add( 'kingdom_services', 'kingdom_service_times', __( 'Service times (fallback)', 'kingdom' ), 'textarea', "Sunday|8:00 AM|First Service\nSunday|10:30 AM|Celebration Service\nWednesday|6:00 PM|Bible Study", array(), __( 'One per line: Day|Time|Name. When the Ministry OS Church Suite plugin is active its service schedule is used instead.', 'kingdom' ) );
 
 	// Stats.
 	$add( 'kingdom_stats', 'kingdom_stats', __( 'Stats', 'kingdom' ), 'textarea', "25|Years of ministry\n3000|Members\n40|Ministries\n12|Nations reached", array(), __( 'One per line: number|label', 'kingdom' ) );
@@ -207,7 +207,7 @@ function kingdom_customize_register( $wp ) {
 		$add( 'kingdom_social', 'kingdom_social_' . $k, $l, 'url', '' );
 	}
 	$add( 'kingdom_social', 'kingdom_social_telegram', 'Telegram', 'url', '' );
-	$add( 'kingdom_social', 'kingdom_whatsapp_float', __( 'Show the "Chat with us on WhatsApp" button', 'kingdom' ), 'checkbox', true, array(), __( 'With the Kingdom Church Suite plugin, manage contacts, greeting and hours in Church Admin → Pastors & WhatsApp.', 'kingdom' ) );
+	$add( 'kingdom_social', 'kingdom_whatsapp_float', __( 'Show the "Chat with us on WhatsApp" button', 'kingdom' ), 'checkbox', true, array(), __( 'With the Ministry OS Church Suite plugin, manage contacts, greeting and hours in Church Admin → Pastors & WhatsApp.', 'kingdom' ) );
 	$add( 'kingdom_social', 'kingdom_social_title', __( 'Social section title', 'kingdom' ), 'text', __( 'Connect with us online', 'kingdom' ) );
 	$add( 'kingdom_social', 'kingdom_social_hashtag', __( 'Church hashtag', 'kingdom' ), 'text', '' );
 

@@ -1,5 +1,5 @@
 /**
- * Kingdom Church Suite — front-end behaviour (no dependencies).
+ * Ministry OS Church Suite — front-end behaviour (no dependencies).
  */
 (function () {
 	'use strict';

@@ -1,4 +1,4 @@
-/* Kingdom Cloud — Subscription & Custom domain screens inside Church Admin. */
+/* Ministry OS Cloud — Subscription & Custom domain screens inside Church Admin. */
 .ks-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; padding: .9rem 1.1rem; margin-bottom: 1rem; border-radius: var(--kcs-radius, 14px); background: color-mix(in srgb, var(--kcs-primary) 10%, var(--kcs-surface)); border: 1px solid color-mix(in srgb, var(--kcs-primary) 30%, transparent); font-weight: 600; }
 .ks-banner--past_due { background: color-mix(in srgb, #b45309 12%, var(--kcs-surface)); border-color: color-mix(in srgb, #b45309 35%, transparent); }
 .ks-banner--suspended { background: color-mix(in srgb, #b91c1c 10%, var(--kcs-surface)); border-color: color-mix(in srgb, #b91c1c 35%, transparent); }

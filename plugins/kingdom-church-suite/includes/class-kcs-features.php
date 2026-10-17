@@ -124,7 +124,7 @@ class KCS_Features {
 		$lines = array(
 			'BEGIN:VCALENDAR',
 			'VERSION:2.0',
-			'PRODID:-//Kingdom Church Suite//EN',
+			'PRODID:-//Ministry OS Church Suite//EN',
 			'CALSCALE:GREGORIAN',
 			'BEGIN:VEVENT',
 			'UID:' . $post->ID . '@' . wp_parse_url( home_url(), PHP_URL_HOST ),
