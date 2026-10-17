@@ -12,6 +12,8 @@ The theme works on its own. The plugin holds all data and business logic, so you
 
 **Two ways to use it:** install the theme and Church Suite on one church's WordPress site (below), or run **Kingdom Cloud** on a Multisite network and sell church websites as a service, where each church signs up, gets its own site and pays you monthly or yearly.
 
+**Selling to many churches (Kingdom Cloud)?** Install a fresh WordPress, upload all three zips, activate Kingdom Cloud and click **Set up my platform** — it switches on Multisite for you (no editing wp-config.php or .htaccess). Full steps: [plugins/kingdom-saas/README.md](plugins/kingdom-saas/README.md#going-live).
+
 ---
 
 ## Installation

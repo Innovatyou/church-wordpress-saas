@@ -29,17 +29,27 @@ Churches still receive their own **tithes, offerings and partnership payments** 
 
 ## Going live
 
+### The easy way (shared hosting such as Hostinger, cPanel, Plesk)
+
+1. **Fresh WordPress** on your platform domain (e.g. `yourplatform.com`), installed at the root of the domain. Turn on SSL for the domain.
+2. **Upload the three zips** from [`dist/`](../../dist): *Plugins → Add New → Upload Plugin* for `kingdom-church-suite.zip` and `kingdom-saas.zip`, and *Appearance → Themes → Add New → Upload Theme* for `kingdom-theme.zip`. Activate Kingdom Cloud.
+3. **One click**: a yellow "Kingdom Cloud is almost ready" message appears. Click **Set up my platform** (or go to *Tools → Kingdom Cloud setup*) and **Set up my platform now**. This backs up and writes `wp-config.php` and `.htaccess`, switches on Multisite with subdomains, installs `sunrise.php`, network-activates both plugins and enables the theme. No code to copy. (If a file cannot be written, the page shows the exact text to paste.)
+4. **Log in again.** You land on *Network Admin → Kingdom Cloud*, a setup check that lists anything still missing with the fix next to it.
+5. **Church subdomains** (in your hosting panel): a DNS **A record** for `*` (i.e. `*.yourplatform.com`) pointing to your server IP, and on shared hosting a subdomain named `*` pointing to the WordPress folder. SSL must cover the subdomains too (put the domain on Cloudflare if your host's free SSL does not).
+6. **Purge caches** (LiteSpeed Cache → Purge All, and your host's cache) and open your domain: you should see the sales landing page.
+7. **Platform settings**: *Open platform dashboard → Settings* (`/platform/?tab=settings`): platform name, brand colour, support email, Paystack/Stripe keys or bank details; add Cloudflare Turnstile keys; turn **test mode off**.
+8. **Webhooks** in Paystack and Stripe (URLs on the Settings tab), and a **real cron job** (see [`deploy/wp-config-snippet.php`](deploy/wp-config-snippet.php)).
+9. Edit **Plans & pricing**, then sign up a test church from your landing page.
+
+After setup, plugins and themes are uploaded in **My Sites → Network Admin → Plugins / Themes** (the normal dashboard no longer has "Add New" — that is how WordPress Multisite works).
+
+### On your own server (VPS)
+
 1. **Server**: PHP 8.1+ with PHP-FPM, MySQL 8 or MariaDB 10.6+, and Caddy (recommended) or nginx. Use [`deploy/Caddyfile`](deploy/Caddyfile) or [`deploy/nginx.conf`](deploy/nginx.conf).
 2. **DNS**: point `yourplatform.com` **and** `*.yourplatform.com` at the server.
-3. **WordPress**: install WordPress, then enable Multisite with subdomains (Tools → Network Setup). Add the lines from [`deploy/wp-config-snippet.php`](deploy/wp-config-snippet.php).
-4. **Custom domains**: copy [`deploy/sunrise.php`](deploy/sunrise.php) to `wp-content/sunrise.php` (with `define( 'SUNRISE', true );`).
-5. **Activate**: upload `themes/kingdom`, `plugins/kingdom-church-suite` and `plugins/kingdom-saas`. In Network Admin: **Network Enable** the Kingdom theme and **Network Activate** both plugins.
-6. **Check your setup**: Network Admin → **Kingdom Cloud** shows a setup check (plugins, theme, sunrise.php, wildcard DNS, landing page, payments, HTTPS) and links to the platform dashboard.
-7. **Settings**: visit `https://yourplatform.com/platform/?tab=settings`. Set your platform name, brand colour, support email, CNAME target or server IP, Paystack and Stripe keys, and bank details. Turn **test mode off**. Recommended: add free [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/) keys to protect sign-up from bots.
-   Behind Cloudflare or a load balancer, add `define( 'KCS_TRUSTED_PROXY_HEADER', 'HTTP_CF_CONNECTING_IP' );` to wp-config.php so rate limits see each visitor's own address.
-8. **Webhooks**: add them in Paystack (Settings → API Keys & Webhooks) and in Stripe (event `checkout.session.completed`). The URLs are shown on the Settings tab.
-9. **Cron**: add a real cron job that runs WP-Cron for every site (see the snippet) so trials, reminders, suspensions, church emails and notifications run on time.
-10. Edit **Plans & pricing**, then sign up a test church from your landing page.
+3. Then follow steps 1–4 and 6–9 above (the one-click setup works on any server; on nginx it skips `.htaccess`). Prefer the command line? `wp core multisite-convert --subdomains`, then copy `deploy/sunrise.php` to `wp-content/` and add the lines from `deploy/wp-config-snippet.php`.
+
+Behind Cloudflare or a load balancer, add `define( 'KCS_TRUSTED_PROXY_HEADER', 'HTTP_CF_CONNECTING_IP' );` to wp-config.php so rate limits see each visitor's own address.
 
 **Billing rules**: paying ahead on the same plan adds a period after the current one; paying for a different plan starts it now and credits unused paid time; paying during the free trial keeps the remaining trial days; a church suspended by the platform owner stays suspended after paying until it is reactivated.
 

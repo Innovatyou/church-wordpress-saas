@@ -217,6 +217,9 @@ class KS_Billing {
 	 */
 	public static function mark_paid( $inv, $gref = '' ) {
 		global $wpdb;
+		if ( ! $inv ) {
+			return false;
+		}
 		// Claim the invoice atomically so a webhook and the return page can't both extend the period.
 		$claimed = $wpdb->query( $wpdb->prepare( 'UPDATE ' . ks_table( 'invoices' ) . " SET status = 'paid', paid_at = %s, gateway_ref = IF(%s = '', gateway_ref, %s) WHERE id = %d AND status <> 'paid'", current_time( 'mysql', true ), $gref, $gref, $inv->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		if ( ! $claimed ) {

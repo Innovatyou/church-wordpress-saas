@@ -107,9 +107,15 @@ class KS_Network_Admin {
 		if ( ks_test_mode() ) {
 			$out[] = array( 'warn', __( 'Test mode is on', 'kingdom-saas' ), __( 'Churches can "pay" with a fake test payment. Turn it off in Platform → Settings before going live.', 'kingdom-saas' ) );
 		}
-		$out[] = is_ssl() || '1' === (string) ks_get( 'https' )
-			? array( 'ok', __( 'HTTPS is on', 'kingdom-saas' ), '' )
-			: array( 'warn', __( 'HTTPS is off', 'kingdom-saas' ), __( 'Payments and the church app need HTTPS on the platform and every church subdomain.', 'kingdom-saas' ) );
+		$https = 'https' === wp_parse_url( network_home_url(), PHP_URL_SCHEME );
+		if ( $https ) {
+			$out[] = array( 'ok', __( 'HTTPS is on', 'kingdom-saas' ), '' );
+		} else {
+			$out[] = array( 'warn', __( 'HTTPS is off', 'kingdom-saas' ), __( 'Payments and the church app need HTTPS. Turn on SSL in your hosting panel (also for *.yourdomain), then change the site address to https:// in Network Admin → Sites → main site → Settings.', 'kingdom-saas' ) );
+			if ( '1' === (string) ks_get( 'https' ) ) {
+				$out[] = array( 'warn', __( 'New church sites are set to open with https://', 'kingdom-saas' ), __( 'Until SSL works for church subdomains, untick "HTTPS" in Platform → Settings, or new church sites will not open.', 'kingdom-saas' ) );
+			}
+		}
 		return $out;
 	}
 
