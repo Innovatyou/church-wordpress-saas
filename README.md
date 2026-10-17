@@ -8,6 +8,8 @@ A complete church website kit:
 | **Kingdom Church Suite** plugin | `plugins/kingdom-church-suite/` | Partnerships, partner login and dashboard, admin partner/payment management, payment gateways, REST API, email notifications, newsletter, YouTube live, sermons, events, prayer and advanced SEO |
 | **Kingdom Cloud** (SaaS) plugin | `plugins/kingdom-saas/` | Sell the theme + plugin to many churches on WordPress Multisite: sign-up with free trial, a site per church, custom domains, subscription billing (Paystack, Flutterwave, Stripe, bank transfer), plan limits, automatic suspension and a platform dashboard. See [its README](plugins/kingdom-saas/README.md). |
 
+> **Theme name clash:** WordPress.org has an unrelated free theme called "Kingdom" (by BestWebLayout) that uses the same `kingdom` folder. Older copies of this theme could be "updated" to it by WordPress, which makes church sites look broken. From theme 1.2.0 and plugins 1.2.1 / 1.5.3 an `Update URI` header stops this. If Network Admin → Kingdom Cloud says *"The wrong theme is installed in the kingdom folder"*, delete that theme and upload `dist/kingdom-theme.zip` again.
+
 The theme works on its own. The plugin holds all data and business logic, so your content and partners survive a theme change.
 
 **Two ways to use it:** install the theme and Church Suite on one church's WordPress site (below), or run **Kingdom Cloud** on a Multisite network and sell church websites as a service, where each church signs up, gets its own site and pays you monthly or yearly.

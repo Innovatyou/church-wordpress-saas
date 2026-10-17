@@ -164,7 +164,7 @@ class KS_Provisioner {
 		update_option( 'permalink_structure', '/%postname%/' );
 		update_option( 'blogdescription', __( 'Welcome home', 'kingdom-saas' ) );
 		update_option( 'admin_email', $email );
-		if ( wp_get_theme( 'kingdom' )->exists() ) {
+		if ( ks_theme_ok() ) {
 			switch_theme( 'kingdom' );
 		}
 		if ( file_exists( WP_PLUGIN_DIR . '/' . self::KCS ) ) {

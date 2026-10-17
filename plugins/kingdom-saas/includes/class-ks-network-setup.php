@@ -112,7 +112,7 @@ class KS_Network_Setup {
 			$out[] = ( file_exists( $ht ) ? wp_is_writable( $ht ) : wp_is_writable( ABSPATH ) ) ? array( 'ok', __( '.htaccess can be updated automatically', 'kingdom-saas' ) ) : array( 'warn', __( '.htaccess cannot be written: you will be shown the rules to paste.', 'kingdom-saas' ) );
 		}
 		$out[] = file_exists( WP_PLUGIN_DIR . '/kingdom-church-suite/kingdom-church-suite.php' ) ? array( 'ok', __( 'Kingdom Church Suite plugin is uploaded', 'kingdom-saas' ) ) : array( 'warn', __( 'Upload the Kingdom Church Suite plugin too (Plugins → Add New → Upload). You can do it after setup in Network Admin → Plugins.', 'kingdom-saas' ) );
-		$out[] = wp_get_theme( 'kingdom' )->exists() ? array( 'ok', __( 'Kingdom Church theme is uploaded', 'kingdom-saas' ) ) : array( 'warn', __( 'Upload the Kingdom Church theme too (Appearance → Themes → Add New → Upload). You can do it after setup in Network Admin → Themes.', 'kingdom-saas' ) );
+		$out[] = self::theme_ok() ? array( 'ok', __( 'Kingdom Church theme is uploaded', 'kingdom-saas' ) ) : array( 'warn', __( 'Upload the Kingdom Church theme too (Appearance → Themes → Add New → Upload). You can do it after setup in Network Admin → Themes.', 'kingdom-saas' ) );
 		return $out;
 	}
 
@@ -222,6 +222,16 @@ class KS_Network_Setup {
 		}
 		$ht = rtrim( preg_replace( "/\n{3,}/", "\n\n", $ht ) );
 		return ( '' !== $ht ? $ht . "\n\n" : '' ) . "# BEGIN WordPress\n" . implode( "\n", self::htaccess_rules( $subdomain ) ) . "\n# END WordPress\n";
+	}
+
+	/**
+	 * Is our Kingdom Church theme installed (not another theme that uses the same "kingdom" folder)?
+	 *
+	 * @return bool
+	 */
+	public static function theme_ok() {
+		$theme = wp_get_theme( 'kingdom' );
+		return $theme->exists() && 'Kingdom Church' === $theme->get( 'Name' );
 	}
 
 	/**
@@ -364,7 +374,7 @@ class KS_Network_Setup {
 		};
 		$set( 'active_sitewide_plugins', array_merge( (array) $meta( 'active_sitewide_plugins' ), $plugins ) );
 		$themes = (array) $meta( 'allowedthemes' );
-		if ( wp_get_theme( 'kingdom' )->exists() ) {
+		if ( self::theme_ok() ) {
 			$themes['kingdom'] = true;
 		}
 		$set( 'allowedthemes', $themes );

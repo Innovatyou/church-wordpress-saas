@@ -54,6 +54,15 @@ function ks_default_settings() {
 }
 
 /**
+ * Is the Kingdom Church theme (ours, not another theme that uses the same "kingdom" folder) installed?
+ *
+ * @return bool
+ */
+function ks_theme_ok() {
+	return KS_Network_Setup::theme_ok();
+}
+
+/**
  * Read a platform setting.
  *
  * @param string $key Key.

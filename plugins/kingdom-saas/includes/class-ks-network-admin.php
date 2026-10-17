@@ -32,7 +32,7 @@ class KS_Network_Admin {
 	 * @param WP_Site $site Site.
 	 */
 	public static function theme_for_new_site( $site ) {
-		if ( is_main_site( $site->blog_id ) || ! wp_get_theme( 'kingdom' )->exists() ) {
+		if ( is_main_site( $site->blog_id ) || ! ks_theme_ok() ) {
 			return;
 		}
 		switch_to_blog( $site->blog_id );
@@ -66,7 +66,7 @@ class KS_Network_Admin {
 			wp_die( esc_html__( 'You are not allowed to do that.', 'kingdom-saas' ), 403 );
 		}
 		$done = 0;
-		if ( wp_get_theme( 'kingdom' )->exists() ) {
+		if ( ks_theme_ok() ) {
 			foreach ( array_keys( self::sites_without_theme() ) as $id ) {
 				switch_to_blog( $id );
 				switch_theme( 'kingdom' );
@@ -196,13 +196,18 @@ class KS_Network_Admin {
 			? array( 'ok', __( 'Kingdom Church Suite is network-activated', 'kingdom-saas' ), '' )
 			: array( 'fail', __( 'Kingdom Church Suite is not network-activated', 'kingdom-saas' ), __( 'Network Admin → Plugins → Kingdom Church Suite → Network Activate, so every church gets partnerships, giving and Church Admin.', 'kingdom-saas' ) );
 
+		$theme = wp_get_theme( 'kingdom' );
+		if ( $theme->exists() && ! ks_theme_ok() ) {
+			/* translators: 1: theme name, 2: theme author */
+			$out[] = array( 'fail', __( 'The wrong theme is installed in the "kingdom" folder', 'kingdom-saas' ), sprintf( __( 'Your themes folder has "%1$s" by %2$s, a different theme from WordPress.org that uses the same folder name, instead of Kingdom Church. Church sites look broken until you fix it: Network Admin → Themes → Network Disable and Delete "%1$s", then Add New → Upload Theme → kingdom-theme.zip → Network Enable.', 'kingdom-saas' ), $theme->get( 'Name' ), wp_strip_all_tags( $theme->get( 'Author' ) ) ) );
+		}
 		$allowed = array_keys( (array) WP_Theme::get_allowed_on_network() );
 		$out[]   = in_array( 'kingdom', $allowed, true )
 			? array( 'ok', __( 'Kingdom Church theme is enabled for the network', 'kingdom-saas' ), '' )
 			: array( 'fail', __( 'Kingdom Church theme is not enabled for the network', 'kingdom-saas' ), __( 'Network Admin → Themes → Kingdom Church → Network Enable. New church sites use it automatically.', 'kingdom-saas' ) );
 		$wrong    = self::sites_without_theme();
 		$churches = self::church_count();
-		if ( ! $wrong && $churches ) {
+		if ( ! $wrong && $churches && ks_theme_ok() ) {
 			/* translators: %d: number of church sites */
 			$out[] = array( 'ok', sprintf( _n( 'The church site uses the Kingdom Church theme', 'All %d church sites use the Kingdom Church theme', $churches, 'kingdom-saas' ), $churches ), '' );
 		}
@@ -345,7 +350,7 @@ class KS_Network_Admin {
 				<?php delete_site_transient( 'ks_theme_result' ); ?>
 				<div class="notice notice-success inline"><p><?php /* translators: %d: number of sites */ echo esc_html( sprintf( _n( 'Done: %d church site now uses the Kingdom Church theme.', 'Done: %d church sites now use the Kingdom Church theme.', (int) $theme_done, 'kingdom-saas' ), (int) $theme_done ) ); ?></p></div>
 			<?php endif; ?>
-			<?php if ( self::sites_without_theme() && wp_get_theme( 'kingdom' )->exists() ) : ?>
+			<?php if ( self::sites_without_theme() && ks_theme_ok() ) : ?>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:12px 0">
 					<input type="hidden" name="action" value="ks_apply_theme">
 					<?php wp_nonce_field( 'ks_apply_theme' ); ?>
