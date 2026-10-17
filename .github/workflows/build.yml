@@ -1,0 +1,42 @@
+name: Build install zips
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: none
+
+      - name: PHP syntax check
+        run: find themes plugins -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+
+      - name: Build zips
+        run: bin/build-zips.sh
+
+      - name: Upload zips
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-zips
+          path: dist/*.zip
+
+      - name: Attach zips to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true
