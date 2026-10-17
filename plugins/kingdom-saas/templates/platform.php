@@ -130,7 +130,7 @@ $old    = $flash[2] ?? array();
 			<p class="ks-muted"><?php esc_html_e( 'Create a church for a customer you signed up yourself (for example after a sales call). They get an email with a link to set their password.', 'kingdom-saas' ); ?></p>
 			<div class="ks-grid ks-grid--2">
 				<label><?php esc_html_e( 'Church name', 'kingdom-saas' ); ?><input name="church_name" required value="<?php echo esc_attr( $old['church_name'] ?? '' ); ?>"></label>
-				<label><?php esc_html_e( 'Subdomain', 'kingdom-saas' ); ?><span class="ks-domain"><input name="subdomain" required value="<?php echo esc_attr( $old['subdomain'] ?? '' ); ?>" data-ks-subdomain><span>.<?php echo esc_html( ks_get( 'base_domain' ) ); ?></span></span></label>
+				<label><?php esc_html_e( 'Website address', 'kingdom-saas' ); ?><span class="ks-domain"><?php if ( ks_subfolder_mode() ) : ?><span><?php echo esc_html( ks_get( 'base_domain' ) ); ?>/</span><?php endif; ?><input name="subdomain" required value="<?php echo esc_attr( $old['subdomain'] ?? '' ); ?>" data-ks-subdomain><?php if ( ! ks_subfolder_mode() ) : ?><span>.<?php echo esc_html( ks_get( 'base_domain' ) ); ?></span><?php endif; ?></span></label>
 				<label><?php esc_html_e( 'Contact name', 'kingdom-saas' ); ?><input name="name" value="<?php echo esc_attr( $old['name'] ?? '' ); ?>"></label>
 				<label><?php esc_html_e( 'Contact email', 'kingdom-saas' ); ?><input type="email" name="email" required value="<?php echo esc_attr( $old['email'] ?? '' ); ?>"></label>
 				<label><?php esc_html_e( 'Plan', 'kingdom-saas' ); ?><select name="plan"><?php foreach ( $plans as $id => $p ) : ?><option value="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $p['name'] ); ?></option><?php endforeach; ?></select></label>
@@ -227,7 +227,7 @@ $old    = $flash[2] ?? array();
 					<label><?php esc_html_e( 'CNAME target for custom domains', 'kingdom-saas' ); ?><input name="cname_target" value="<?php echo esc_attr( ks_get( 'cname_target' ) ); ?>" placeholder="<?php echo esc_attr( ks_get( 'base_domain' ) ); ?>"></label>
 					<label><?php esc_html_e( 'Server IP (for A records)', 'kingdom-saas' ); ?><input name="server_ip" value="<?php echo esc_attr( ks_get( 'server_ip' ) ); ?>" placeholder="203.0.113.10"></label>
 					<label class="ks-check"><input type="checkbox" name="https" value="1" <?php checked( '1', ks_get( 'https' ) ); ?>> <?php esc_html_e( 'Church sites use https', 'kingdom-saas' ); ?></label>
-					<label><?php esc_html_e( 'Reserved subdomains', 'kingdom-saas' ); ?><input name="reserved" value="<?php echo esc_attr( ks_get( 'reserved' ) ); ?>"></label>
+					<label><?php esc_html_e( 'Reserved church addresses', 'kingdom-saas' ); ?><input name="reserved" value="<?php echo esc_attr( ks_get( 'reserved' ) ); ?>"></label>
 				</fieldset>
 				<fieldset class="ks-card ks-form">
 					<legend><?php esc_html_e( 'Trials & renewals', 'kingdom-saas' ); ?></legend>

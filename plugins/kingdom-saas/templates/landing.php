@@ -43,7 +43,7 @@ $trial = (int) ks_get( 'trial_days' );
 				array( '₦', __( 'Tithe, offering & giving', 'kingdom-saas' ), __( 'Paystack, Flutterwave, Stripe, PayPal and bank transfer — in US dollars or your local currency.', 'kingdom-saas' ) ),
 				array( '◎', __( 'Church Admin dashboard', 'kingdom-saas' ), __( 'Manage partners, payments, prayers, visits and notifications from a simple dashboard — no WordPress skills needed.', 'kingdom-saas' ) ),
 				array( '✆', __( 'WhatsApp built in', 'kingdom-saas' ), __( 'Visitors chat with your team, and partners reach their pastors on WhatsApp straight from their dashboard.', 'kingdom-saas' ) ),
-				array( '⌘', __( 'Your own domain', 'kingdom-saas' ), __( 'Start on yourchurch.', 'kingdom-saas' ) . ks_get( 'base_domain' ) . __( ' and connect yourchurch.org whenever you are ready, with free https.', 'kingdom-saas' ) ),
+				array( '⌘', __( 'Your own domain', 'kingdom-saas' ), sprintf( /* translators: %s: example church address */ __( 'Start on %s and connect yourchurch.org whenever you are ready, with free https.', 'kingdom-saas' ), ks_address( 'yourchurch' ) ) ),
 			);
 			foreach ( $features as $f ) :
 				?>

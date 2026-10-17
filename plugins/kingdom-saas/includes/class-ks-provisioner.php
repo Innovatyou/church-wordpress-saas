@@ -24,10 +24,10 @@ class KS_Provisioner {
 	}
 
 	/**
-	 * Check a requested subdomain.
+	 * Check a requested church address name.
 	 *
 	 * @param string $name Requested name.
-	 * @return string|WP_Error Full domain.
+	 * @return string|WP_Error Full address ("name.platform.com" or "platform.com/name").
 	 */
 	public static function validate_subdomain( $name ) {
 		$name = strtolower( trim( (string) $name ) );
@@ -40,8 +40,12 @@ class KS_Provisioner {
 		if ( 0 === strpos( $name, 'xn--' ) || in_array( $name, $reserved, true ) ) {
 			return new WP_Error( 'ks_subdomain', __( 'That address is reserved. Please choose another.', 'kingdom-saas' ) );
 		}
-		$domain = $name . '.' . ks_get( 'base_domain' );
-		if ( domain_exists( $domain, '/', get_current_network_id() ) ) {
+		if ( ks_subfolder_mode() && self::path_taken( $name ) ) {
+			return new WP_Error( 'ks_subdomain', __( 'That address is reserved. Please choose another.', 'kingdom-saas' ) );
+		}
+		$domain               = ks_address( $name );
+		list( $host, $path ) = ks_address_parts( $domain );
+		if ( domain_exists( $host, $path, get_current_network_id() ) ) {
 			return new WP_Error( 'ks_subdomain', __( 'That address is already taken.', 'kingdom-saas' ) );
 		}
 		global $wpdb;
@@ -49,6 +53,24 @@ class KS_Provisioner {
 			return new WP_Error( 'ks_subdomain', __( 'That address is already taken.', 'kingdom-saas' ) );
 		}
 		return $domain;
+	}
+
+	/**
+	 * Subfolder networks: names WordPress or the main site already use (blog, wp-admin, signup,
+	 * the main site's pages…) cannot become church addresses.
+	 *
+	 * @param string $name Name.
+	 * @return bool
+	 */
+	private static function path_taken( $name ) {
+		$reserved = array_merge( function_exists( 'get_subdirectory_reserved_names' ) ? get_subdirectory_reserved_names() : array( 'page', 'comments', 'blog', 'files', 'feed', 'wp-admin', 'wp-content', 'wp-includes', 'wp-json', 'embed' ), array( 'signup', 'platform', 'billing', 'test-checkout', 'church-admin', 'partner-dashboard', 'partner-login', 'give', 'well-known', 'category', 'tag', 'author', 'search', 'sitemap', 'robots', 'xmlrpc' ) );
+		if ( in_array( $name, $reserved, true ) ) {
+			return true;
+		}
+		switch_to_blog( get_main_site_id() );
+		$used = get_page_by_path( $name ) || get_posts( array( 'name' => $name, 'post_type' => 'any', 'post_status' => 'publish', 'numberposts' => 1, 'fields' => 'ids' ) );
+		restore_current_blog();
+		return (bool) $used;
 	}
 
 	/**
@@ -126,7 +148,8 @@ class KS_Provisioner {
 		// wpmu_create_blog() switches WordPress into "installing" mode and leaves it on, which makes the rest of
 		// this request keep transients (such as the login link) in memory only. Put it back afterwards.
 		$installing = wp_installing();
-		$blog_id    = wpmu_create_blog( $domain, '/', $church, $user_id, array( 'public' => 1 ), get_current_network_id() );
+		list( $site_host, $site_path ) = ks_address_parts( $domain );
+		$blog_id                       = wpmu_create_blog( $site_host, $site_path, $church, $user_id, array( 'public' => 1 ), get_current_network_id() );
 		wp_installing( $installing );
 		if ( is_wp_error( $blog_id ) ) {
 			// Don't leave an account behind that would block trying again with the same email.

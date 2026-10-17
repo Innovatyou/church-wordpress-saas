@@ -20,6 +20,58 @@ class KS_Network_Admin {
 		add_action( 'network_admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_bar_menu', array( __CLASS__, 'admin_bar' ), 35 );
 		add_action( 'admin_init', array( __CLASS__, 'refresh_sunrise' ) );
+		add_action( 'admin_post_ks_switch_mode', array( __CLASS__, 'switch_mode' ) );
+	}
+
+	/**
+	 * Number of church sites (everything except the main platform site).
+	 *
+	 * @return int
+	 */
+	public static function church_count() {
+		return max( 0, (int) get_sites( array( 'count' => true, 'network_id' => get_current_network_id() ) ) - 1 );
+	}
+
+	/**
+	 * Switch church addresses between subdomains and subfolders (only before any church exists).
+	 */
+	public static function switch_mode() {
+		if ( ! current_user_can( 'manage_network' ) || ! check_admin_referer( 'ks_switch_mode' ) ) {
+			wp_die( esc_html__( 'You are not allowed to do that.', 'kingdom-saas' ), 403 );
+		}
+		$back = network_admin_url( 'admin.php?page=kingdom-cloud' );
+		if ( self::church_count() > 0 ) {
+			set_site_transient( 'ks_switch_result', array( 'error' => __( 'Churches have already signed up, so the address style can no longer be switched here.', 'kingdom-saas' ) ), 600 );
+			wp_safe_redirect( $back );
+			exit;
+		}
+		$subdomain = 'subdomain' === sanitize_key( wp_unslash( $_POST['ks_mode'] ?? '' ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$config    = KS_Network_Setup::config_path();
+		$stamp     = gmdate( 'Ymd-His' );
+		$manual    = array();
+		@copy( $config, $config . '.kc-backup-' . $stamp ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		$current = (string) file_get_contents( $config ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		$patched = KS_Network_Setup::patch_config( $current, $subdomain );
+		if ( false === $patched || ! wp_is_writable( $config ) || false === file_put_contents( $config, $patched ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			$manual['wp-config.php — replace the Kingdom Cloud / MULTISITE lines with'] = KS_Network_Setup::config_block( $subdomain );
+		}
+		if ( ! KS_Network_Setup::is_nginx() ) {
+			$ht = ABSPATH . '.htaccess';
+			if ( file_exists( $ht ) ) {
+				@copy( $ht, $ht . '.kc-backup-' . $stamp ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			}
+			$ht_new = KS_Network_Setup::patch_htaccess( file_exists( $ht ) ? (string) file_get_contents( $ht ) : '', $subdomain ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			if ( ! ( file_exists( $ht ) ? wp_is_writable( $ht ) : wp_is_writable( ABSPATH ) ) || false === file_put_contents( $ht, $ht_new ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+				$manual['.htaccess — replace the whole file with'] = $ht_new;
+			}
+		}
+		update_site_option( 'subdomain_install', $subdomain ? 1 : 0 );
+		if ( function_exists( 'opcache_invalidate' ) ) {
+			@opcache_invalidate( $config, true ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		}
+		set_site_transient( 'ks_switch_result', $manual ? array( 'manual' => $manual ) : array( 'done' => $subdomain ? 'subdomain' : 'subfolder' ), 600 );
+		wp_safe_redirect( $back );
+		exit;
 	}
 
 	/**
@@ -77,8 +129,8 @@ class KS_Network_Admin {
 		$base = strtolower( (string) ks_get( 'base_domain' ) );
 
 		$out[] = is_subdomain_install()
-			? array( 'ok', __( 'Multisite with subdomains is on', 'kingdom-saas' ), '' )
-			: array( 'fail', __( 'Multisite must use subdomains', 'kingdom-saas' ), __( 'In wp-config.php, SUBDOMAIN_INSTALL must be true.', 'kingdom-saas' ) );
+			? array( 'ok', sprintf( /* translators: %s: example address */ __( 'Multisite is on — church addresses like %s', 'kingdom-saas' ), ks_address( 'gracechapel' ) ), '' )
+			: array( 'ok', sprintf( /* translators: %s: example address */ __( 'Multisite is on — church addresses like %s (subfolders, no wildcard DNS needed)', 'kingdom-saas' ), ks_address( 'gracechapel' ) ), '' );
 
 		$out[] = is_plugin_active_for_network( plugin_basename( KS_FILE ) )
 			? array( 'ok', __( 'Kingdom Cloud is network-activated', 'kingdom-saas' ), '' )
@@ -98,7 +150,7 @@ class KS_Network_Admin {
 			: array( 'warn', __( 'Custom domains are not set up yet', 'kingdom-saas' ), __( 'Copy wp-content/plugins/kingdom-saas/deploy/sunrise.php to wp-content/sunrise.php and add define( \'SUNRISE\', true ); to wp-config.php.', 'kingdom-saas' ) );
 
 		// Church subdomains: DNS, then whether the host really sends them to WordPress, then HTTPS.
-		if ( $base && ! preg_match( '/(^|\.)localhost$/', $base ) ) {
+		if ( $base && is_subdomain_install() && ! preg_match( '/(^|\.)localhost$/', $base ) ) {
 			$probe = 'ks-check-' . strtolower( wp_generate_password( 8, false, false ) ) . '.' . $base;
 			$dns   = function_exists( 'gethostbyname' ) && gethostbyname( $probe ) !== $probe;
 			$http  = wp_remote_get( 'http://' . $probe . '/.well-known/ks-probe', array( 'timeout' => 10, 'sslverify' => false, 'redirection' => 3 ) );
@@ -110,7 +162,7 @@ class KS_Network_Admin {
 					? array( 'ok', __( 'Church subdomains have a valid HTTPS certificate', 'kingdom-saas' ), '' )
 					: array( 'warn', __( 'Church subdomains have no valid HTTPS certificate yet', 'kingdom-saas' ), sprintf( /* translators: %s: domain */ __( 'Your SSL covers %s and www only. Use a certificate that also covers *.%s, for example free Cloudflare (proxied "*" DNS record, SSL mode "Full"), or untick HTTPS in Platform → Settings until then.', 'kingdom-saas' ), $base, $base ) );
 			} elseif ( $dns ) {
-				$out[] = array( 'fail', __( 'Church subdomains reach your server, but not this WordPress', 'kingdom-saas' ), sprintf( /* translators: %s: domain */ __( 'DNS is correct. Your hosting must also send every subdomain (*.%s) to this WordPress folder (a "wildcard subdomain" or server alias). If the hosting panel does not accept "*", ask your host\'s support to add it. If the host cannot, use a VPS.', 'kingdom-saas' ), $base ) );
+				$out[] = array( 'fail', __( 'Church subdomains reach your server, but not this WordPress', 'kingdom-saas' ), sprintf( /* translators: %s: domain */ __( 'DNS is correct, but your hosting does not send every subdomain (*.%s) to this WordPress. Shared hosting often cannot. Switch church addresses to subfolders below (no wildcard needed), or ask your host for a wildcard subdomain, or use a VPS.', 'kingdom-saas' ), $base ) );
 			} else {
 				$out[] = array( 'fail', __( 'Church subdomains do not reach this server yet', 'kingdom-saas' ), sprintf( /* translators: %s: domain */ __( 'Add a DNS A record named "*" (for *.%s) pointing to your server IP. DNS can take a few hours.', 'kingdom-saas' ), $base ) );
 			}
@@ -147,6 +199,38 @@ class KS_Network_Admin {
 	}
 
 	/**
+	 * "Church website addresses" box with the switch button.
+	 */
+	private static function render_switch() {
+		$sub     = is_subdomain_install();
+		$base    = strtolower( (string) ks_get( 'base_domain' ) );
+		$churches = self::church_count();
+		?>
+		<h2><?php esc_html_e( 'Church website addresses', 'kingdom-saas' ); ?></h2>
+		<div class="card" style="max-width:860px">
+			<p><?php echo esc_html( sprintf( /* translators: %s: example address */ __( 'New churches get addresses like %s.', 'kingdom-saas' ), ks_address( 'gracechapel' ) ) ); ?></p>
+			<?php if ( $churches ) : ?>
+				<p class="description"><?php echo esc_html( sprintf( /* translators: %d: number of churches */ _n( '%d church has signed up, so the address style is fixed. Churches can still connect their own domains.', '%d churches have signed up, so the address style is fixed. Churches can still connect their own domains.', $churches, 'kingdom-saas' ), $churches ) ); ?></p>
+			<?php else : ?>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<input type="hidden" name="action" value="ks_switch_mode">
+					<input type="hidden" name="ks_mode" value="<?php echo $sub ? 'subfolder' : 'subdomain'; ?>">
+					<?php wp_nonce_field( 'ks_switch_mode' ); ?>
+					<?php if ( $sub ) : ?>
+						<p><?php echo esc_html( sprintf( /* translators: %s: example address */ __( 'Shared hosting (Hostinger, cPanel, Plesk) usually cannot send every subdomain to WordPress. Subfolder addresses like %s work on any hosting, need no extra DNS and are covered by your existing SSL.', 'kingdom-saas' ), $base . '/gracechapel' ) ); ?></p>
+						<p><button class="button button-primary"><?php echo esc_html( sprintf( /* translators: %s: example address */ __( 'Switch to subfolder addresses (%s)', 'kingdom-saas' ), $base . '/gracechapel' ) ); ?></button></p>
+					<?php else : ?>
+						<p><?php esc_html_e( 'Subdomain addresses need a server that sends every *.yourdomain to WordPress (a VPS, or hosting with wildcard subdomains), a "*" DNS record and SSL for *.yourdomain.', 'kingdom-saas' ); ?></p>
+						<p><button class="button"><?php echo esc_html( sprintf( /* translators: %s: example address */ __( 'Switch to subdomain addresses (%s)', 'kingdom-saas' ), 'gracechapel.' . $base ) ); ?></button></p>
+					<?php endif; ?>
+					<p class="description"><?php esc_html_e( 'wp-config.php and .htaccess are backed up and updated for you.', 'kingdom-saas' ); ?></p>
+				</form>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Page.
 	 */
 	public static function render() {
@@ -156,9 +240,22 @@ class KS_Network_Admin {
 			'warn' => array( 'dashicons-warning', '#dba617', __( 'Check', 'kingdom-saas' ) ),
 			'fail' => array( 'dashicons-dismiss', '#d63638', __( 'Needs fixing', 'kingdom-saas' ) ),
 		);
+		$switched = get_site_transient( 'ks_switch_result' );
+		delete_site_transient( 'ks_switch_result' );
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Kingdom Cloud', 'kingdom-saas' ); ?></h1>
+			<?php if ( ! empty( $switched['done'] ) ) : ?>
+				<div class="notice notice-success"><p><?php echo esc_html( sprintf( /* translators: %s: example address */ __( 'Done. New churches now get addresses like %s.', 'kingdom-saas' ), ks_address( 'gracechapel' ) ) ); ?></p></div>
+			<?php elseif ( ! empty( $switched['error'] ) ) : ?>
+				<div class="notice notice-error"><p><?php echo esc_html( $switched['error'] ); ?></p></div>
+			<?php elseif ( ! empty( $switched['manual'] ) ) : ?>
+				<div class="notice notice-warning"><p><?php esc_html_e( 'Almost done: these files could not be written. Paste the text below and save.', 'kingdom-saas' ); ?></p></div>
+				<?php foreach ( $switched['manual'] as $file => $text ) : ?>
+					<h2><?php echo esc_html( $file ); ?></h2>
+					<textarea class="large-text code" rows="<?php echo (int) min( 22, substr_count( $text, "\n" ) + 2 ); ?>" readonly onclick="this.select()"><?php echo esc_textarea( $text ); ?></textarea>
+				<?php endforeach; ?>
+			<?php endif; ?>
 			<p><?php esc_html_e( 'Your platform is managed from its own dashboard on the website (not inside wp-admin): churches, plans and prices, payments and settings.', 'kingdom-saas' ); ?></p>
 			<p>
 				<a class="button button-primary button-hero" href="<?php echo esc_url( ks_platform_url( 'platform/' ) ); ?>"><?php esc_html_e( 'Open platform dashboard', 'kingdom-saas' ); ?></a>
@@ -177,6 +274,7 @@ class KS_Network_Admin {
 				</tbody>
 			</table>
 			<p class="description"><?php esc_html_e( 'Reload this page after each change to check again.', 'kingdom-saas' ); ?></p>
+			<?php self::render_switch(); ?>
 		</div>
 		<?php
 	}

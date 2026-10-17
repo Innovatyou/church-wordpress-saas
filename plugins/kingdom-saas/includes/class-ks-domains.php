@@ -255,7 +255,7 @@ class KS_Domains {
 	}
 
 	/**
-	 * Remove a domain (the church goes back to its platform subdomain).
+	 * Remove a domain (the church goes back to its platform address).
 	 *
 	 * @param int $id Domain ID.
 	 */
@@ -272,7 +272,7 @@ class KS_Domains {
 	}
 
 	/**
-	 * Point a site back at its subdomain.
+	 * Point a site back at its platform address (subdomain or subfolder).
 	 *
 	 * @param int $blog_id Site.
 	 */
@@ -308,8 +308,10 @@ class KS_Domains {
 	 * @param string $domain  Domain.
 	 */
 	private static function set_site_domain( $blog_id, $domain ) {
-		wp_update_site( $blog_id, array( 'domain' => $domain, 'path' => '/' ) );
-		$url = ks_scheme() . '://' . $domain;
+		// A custom domain, or the church's platform address ("church.platform.com" or "platform.com/church").
+		list( $host, $path ) = ks_address_parts( $domain );
+		wp_update_site( $blog_id, array( 'domain' => $host, 'path' => $path ) );
+		$url = ks_scheme() . '://' . $host . rtrim( $path, '/' );
 		update_blog_option( $blog_id, 'home', $url );
 		update_blog_option( $blog_id, 'siteurl', $url );
 		clean_blog_cache( $blog_id );

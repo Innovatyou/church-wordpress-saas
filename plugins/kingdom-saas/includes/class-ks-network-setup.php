@@ -2,7 +2,7 @@
 /**
  * One-click platform setup on a normal (single) WordPress site.
  *
- * Kingdom Cloud needs WordPress Multisite with subdomains. Instead of editing wp-config.php and
+ * Kingdom Cloud needs WordPress Multisite (church subfolders or subdomains). Instead of editing wp-config.php and
  * .htaccess by hand, Tools → Kingdom Cloud setup does it all, the same way WordPress's own
  * Network Setup and `wp core multisite-convert` do:
  *
@@ -119,14 +119,15 @@ class KS_Network_Setup {
 	/**
 	 * The lines for wp-config.php.
 	 *
+	 * @param bool $subdomain Church subdomains (true) or subfolders (false).
 	 * @return string
 	 */
-	public static function config_block() {
+	public static function config_block( $subdomain = true ) {
 		$domain = self::domain();
 		return "/* Kingdom Cloud network (added by Tools → Kingdom Cloud setup) */\n"
 			. "define( 'WP_ALLOW_MULTISITE', true );\n"
 			. "define( 'MULTISITE', true );\n"
-			. "define( 'SUBDOMAIN_INSTALL', true );\n"
+			. "define( 'SUBDOMAIN_INSTALL', " . ( $subdomain ? 'true' : 'false' ) . " );\n"
 			. "define( 'DOMAIN_CURRENT_SITE', '" . addslashes( $domain ) . "' );\n"
 			. "define( 'PATH_CURRENT_SITE', '/' );\n"
 			. "define( 'SITE_ID_CURRENT_SITE', 1 );\n"
@@ -136,11 +137,33 @@ class KS_Network_Setup {
 	}
 
 	/**
-	 * The WordPress rewrite rules for a subdomain network.
+	 * The WordPress rewrite rules for a network.
 	 *
+	 * @param bool $subdomain Church subdomains (true) or subfolders (false).
 	 * @return string[]
 	 */
-	public static function htaccess_rules() {
+	public static function htaccess_rules( $subdomain = true ) {
+		if ( ! $subdomain ) {
+			// Subfolder networks: /church/wp-admin, /church/wp-content… are the main WordPress files.
+			return array(
+				'<IfModule mod_rewrite.c>',
+				'RewriteEngine On',
+				'RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]',
+				'RewriteBase /',
+				'RewriteRule ^index\.php$ - [L]',
+				'',
+				'# add a trailing slash to /wp-admin',
+				'RewriteRule ^([_0-9a-zA-Z-]+/)?wp-admin$ $1wp-admin/ [R=301,L]',
+				'',
+				'RewriteCond %{REQUEST_FILENAME} -f [OR]',
+				'RewriteCond %{REQUEST_FILENAME} -d',
+				'RewriteRule ^ - [L]',
+				'RewriteRule ^([_0-9a-zA-Z-]+/)?(wp-(content|admin|includes).*) $2 [L]',
+				'RewriteRule ^([_0-9a-zA-Z-]+/)?(.*\.php)$ $2 [L]',
+				'RewriteRule . index.php [L]',
+				'</IfModule>',
+			);
+		}
 		return array(
 			'<IfModule mod_rewrite.c>',
 			'RewriteEngine On',
@@ -164,16 +187,17 @@ class KS_Network_Setup {
 	/**
 	 * wp-config.php text with the network block (old copies of the same constants removed).
 	 *
-	 * @param string $config Current file.
+	 * @param string $config    Current file.
+	 * @param bool   $subdomain Church subdomains (true) or subfolders (false).
 	 * @return string|false New file, or false when there is nowhere safe to insert.
 	 */
-	public static function patch_config( $config ) {
+	public static function patch_config( $config, $subdomain = true ) {
 		// Remove an earlier block and any hand-added copies of the constants.
 		$config = preg_replace( "#/\* Kingdom Cloud network.*?/\* End Kingdom Cloud network \*/\R?(\R)?#s", "", $config );
 		foreach ( self::CONSTANTS as $c ) {
 			$config = preg_replace( '/^[ \t]*define\(\s*[\'"]' . $c . '[\'"]\s*,[^;]*\);[^\r\n]*\R?/m', '', $config );
 		}
-		$block = self::config_block() . "\n";
+		$block = self::config_block( $subdomain ) . "\n";
 		if ( preg_match( '#^[ \t]*/\*.*That.s all, stop editing.*\*/#mi', $config, $m, PREG_OFFSET_CAPTURE ) || preg_match( '#^[ \t]*/\*.*stop editing.*\*/#mi', $config, $m, PREG_OFFSET_CAPTURE ) ) {
 			return substr( $config, 0, $m[0][1] ) . $block . substr( $config, $m[0][1] );
 		}
@@ -186,17 +210,18 @@ class KS_Network_Setup {
 	/**
 	 * .htaccess text with one clean WordPress block (stray or duplicated markers removed).
 	 *
-	 * @param string $ht Current file ('' when missing).
+	 * @param string $ht        Current file ('' when missing).
+	 * @param bool   $subdomain Church subdomains (true) or subfolders (false).
 	 * @return string
 	 */
-	public static function patch_htaccess( $ht ) {
+	public static function patch_htaccess( $ht, $subdomain = true ) {
 		$start = strpos( $ht, '# BEGIN WordPress' );
 		$end   = strrpos( $ht, '# END WordPress' );
 		if ( false !== $start && false !== $end && $end > $start ) {
 			$ht = substr( $ht, 0, $start ) . substr( $ht, $end + strlen( '# END WordPress' ) );
 		}
 		$ht = rtrim( preg_replace( "/\n{3,}/", "\n\n", $ht ) );
-		return ( '' !== $ht ? $ht . "\n\n" : '' ) . "# BEGIN WordPress\n" . implode( "\n", self::htaccess_rules() ) . "\n# END WordPress\n";
+		return ( '' !== $ht ? $ht . "\n\n" : '' ) . "# BEGIN WordPress\n" . implode( "\n", self::htaccess_rules( $subdomain ) ) . "\n# END WordPress\n";
 	}
 
 	/**
@@ -225,7 +250,7 @@ class KS_Network_Setup {
 				<div class="notice notice-error"><p><?php echo esc_html( $result['error'] ); ?></p></div>
 			<?php endif; ?>
 
-			<p style="max-width:760px;font-size:15px"><?php esc_html_e( 'This turns this WordPress site into your church-website platform: your sales page and platform dashboard on the main address, and a website for every church that signs up on its own subdomain (for example gracechapel.yourdomain.com).', 'kingdom-saas' ); ?></p>
+			<p style="max-width:760px;font-size:15px"><?php esc_html_e( 'This turns this WordPress site into your church-website platform: your sales page and platform dashboard on the main address, and a website for every church that signs up.', 'kingdom-saas' ); ?></p>
 			<h2><?php esc_html_e( 'Before we start', 'kingdom-saas' ); ?></h2>
 			<table class="widefat striped" style="max-width:820px"><tbody>
 				<?php foreach ( $checks as $c ) : ?>
@@ -235,13 +260,19 @@ class KS_Network_Setup {
 			<h2><?php esc_html_e( 'What happens when you click the button', 'kingdom-saas' ); ?></h2>
 			<ol style="max-width:760px">
 				<li><?php esc_html_e( 'wp-config.php and .htaccess are backed up next to the originals (names ending in .kc-backup).', 'kingdom-saas' ); ?></li>
-				<li><?php esc_html_e( 'WordPress Multisite is switched on with subdomains, exactly as Tools → Network Setup would — no copying code.', 'kingdom-saas' ); ?></li>
+				<li><?php esc_html_e( 'WordPress Multisite is switched on, exactly as Tools → Network Setup would — no copying code.', 'kingdom-saas' ); ?></li>
 				<li><?php esc_html_e( 'Custom domains are prepared (sunrise.php), Kingdom Cloud and Kingdom Church Suite are activated for every church, and the Kingdom Church theme is enabled.', 'kingdom-saas' ); ?></li>
-				<li><?php esc_html_e( 'You log in again and land on Network Admin → Kingdom Cloud, which checks the rest (subdomain DNS, payments, HTTPS).', 'kingdom-saas' ); ?></li>
+				<li><?php esc_html_e( 'You log in again and land on Network Admin → Kingdom Cloud, which checks the rest (addresses, payments, HTTPS).', 'kingdom-saas' ); ?></li>
 			</ol>
-			<p class="description" style="max-width:760px"><?php esc_html_e( 'Also needed (in your hosting panel, not here): a DNS "A" record for *.yourdomain pointing to your server, and on shared hosting a "*" subdomain pointing to this WordPress folder.', 'kingdom-saas' ); ?></p>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Turn this site into your Kingdom Cloud platform now?', 'kingdom-saas' ) ); ?>');">
 				<input type="hidden" name="action" value="ks_convert">
+				<h2><?php esc_html_e( 'Church website addresses', 'kingdom-saas' ); ?></h2>
+				<?php $kc_domain = self::domain(); ?>
+				<fieldset style="max-width:760px">
+					<label style="display:block;margin:.4rem 0 .8rem"><input type="radio" name="ks_mode" value="subfolder" checked> <strong><?php echo esc_html( $kc_domain . '/gracechapel' ); ?></strong> — <?php esc_html_e( 'subfolder (recommended for shared hosting such as Hostinger, cPanel or Plesk: works everywhere, no extra DNS, your SSL already covers it)', 'kingdom-saas' ); ?></label>
+					<label style="display:block;margin:.4rem 0"><input type="radio" name="ks_mode" value="subdomain"> <strong><?php echo esc_html( 'gracechapel.' . $kc_domain ); ?></strong> — <?php esc_html_e( 'subdomain (needs a server that accepts every *.yourdomain: a VPS, or hosting with wildcard subdomains, plus a "*" DNS record and SSL for *.yourdomain)', 'kingdom-saas' ); ?></label>
+				</fieldset>
+				<p class="description" style="max-width:760px"><?php esc_html_e( 'Either way, churches can connect their own domain (gracechapel.org) later. You can switch style later while no churches have signed up.', 'kingdom-saas' ); ?></p>
 				<?php wp_nonce_field( 'ks_convert' ); ?>
 				<p><button class="button button-primary button-hero" <?php disabled( $fail ); ?>><?php esc_html_e( 'Set up my platform now', 'kingdom-saas' ); ?></button></p>
 				<?php if ( $fail ) : ?><p class="description" style="color:#d63638"><?php esc_html_e( 'Fix the red items above first.', 'kingdom-saas' ); ?></p><?php endif; ?>
@@ -265,8 +296,9 @@ class KS_Network_Setup {
 			exit;
 		}
 		global $wpdb;
-		$domain = self::domain();
-		$scheme = is_ssl() || 'https' === wp_parse_url( home_url(), PHP_URL_SCHEME ) ? 'https' : 'http';
+		$domain    = self::domain();
+		$subdomain = 'subdomain' === sanitize_key( wp_unslash( $_POST['ks_mode'] ?? 'subfolder' ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$scheme    = is_ssl() || 'https' === wp_parse_url( home_url(), PHP_URL_SCHEME ) ? 'https' : 'http';
 
 		// 1. Use the bare domain (no www.), with pretty links.
 		update_option( 'home', $scheme . '://' . $domain );
@@ -297,9 +329,11 @@ class KS_Network_Setup {
 			// A network from an earlier attempt: point it at this domain instead of failing.
 			$wpdb->update( $wpdb->site, array( 'domain' => $domain, 'path' => '/' ), array( 'id' => 1 ) );
 			$wpdb->update( $wpdb->blogs, array( 'domain' => $domain, 'path' => '/' ), array( 'blog_id' => 1 ) );
+			$wpdb->delete( $wpdb->sitemeta, array( 'site_id' => 1, 'meta_key' => 'subdomain_install' ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+			$wpdb->insert( $wpdb->sitemeta, array( 'site_id' => 1, 'meta_key' => 'subdomain_install', 'meta_value' => $subdomain ? 1 : 0 ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 		} else {
 			install_network();
-			$result = populate_network( 1, $domain, get_option( 'admin_email' ), get_option( 'blogname' ), '/', true );
+			$result = populate_network( 1, $domain, get_option( 'admin_email' ), get_option( 'blogname' ), '/', $subdomain );
 			if ( is_wp_error( $result ) && ! in_array( $result->get_error_code(), array( 'no_wildcard_dns', 'siteid_exists' ), true ) ) {
 				set_transient( 'ks_convert_result', array( 'error' => $result->get_error_message() ), 600 );
 				wp_safe_redirect( $back );
@@ -344,13 +378,13 @@ class KS_Network_Setup {
 		// 6. wp-config.php and .htaccess (or show the text to paste).
 		$manual  = array();
 		$current = file_exists( $config ) ? (string) file_get_contents( $config ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-		$patched = $current ? self::patch_config( $current ) : false;
+		$patched = $current ? self::patch_config( $current, $subdomain ) : false;
 		if ( false === $patched || ! wp_is_writable( $config ) || false === file_put_contents( $config, $patched ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			$manual['wp-config.php — add above "That\'s all, stop editing!" (remove any older MULTISITE lines)'] = self::config_block();
+			$manual['wp-config.php — add above "That\'s all, stop editing!" (remove any older MULTISITE lines)'] = self::config_block( $subdomain );
 		}
 		if ( ! self::is_nginx() ) {
 			$ht_now = file_exists( $ht ) ? (string) file_get_contents( $ht ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-			$ht_new = self::patch_htaccess( $ht_now );
+			$ht_new = self::patch_htaccess( $ht_now, $subdomain );
 			$ok     = ( file_exists( $ht ) ? wp_is_writable( $ht ) : wp_is_writable( ABSPATH ) ) && false !== file_put_contents( $ht, $ht_new ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 			if ( ! $ok ) {
 				$manual['.htaccess — replace the whole file with'] = $ht_new;

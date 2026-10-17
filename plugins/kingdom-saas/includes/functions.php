@@ -84,6 +84,42 @@ function ks_test_mode() {
 }
 
 /**
+ * Is the network using subfolder addresses (platform.com/church) instead of subdomains?
+ *
+ * @return bool
+ */
+function ks_subfolder_mode() {
+	return is_multisite() && ! is_subdomain_install();
+}
+
+/**
+ * A church's platform address for a chosen name: "name.platform.com" (subdomain networks) or
+ * "platform.com/name" (subfolder networks, for hosting without wildcard subdomains).
+ *
+ * @param string $name Church name part.
+ * @return string
+ */
+function ks_address( $name ) {
+	$base = strtolower( (string) ks_get( 'base_domain' ) );
+	return ks_subfolder_mode() ? $base . '/' . $name : $name . '.' . $base;
+}
+
+/**
+ * Split an address into the WordPress site domain and path.
+ *
+ * @param string $address "name.platform.com" or "platform.com/name".
+ * @return array{0: string, 1: string} domain, path ("/" or "/name/").
+ */
+function ks_address_parts( $address ) {
+	$address = trim( (string) $address, '/' );
+	$slash   = strpos( $address, '/' );
+	if ( false === $slash ) {
+		return array( $address, '/' );
+	}
+	return array( substr( $address, 0, $slash ), '/' . trim( substr( $address, $slash + 1 ), '/' ) . '/' );
+}
+
+/**
  * Scheme used for church sites.
  *
  * @return string

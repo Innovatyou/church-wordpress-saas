@@ -48,6 +48,11 @@ class KCS_PWA {
 	 * @return bool
 	 */
 	public static function enabled() {
+		// The platform's own site on a subfolder network sits at "/" and would otherwise control
+		// every church's /church/ pages; churches get their own app instead.
+		if ( is_multisite() && ! is_subdomain_install() && is_main_site() && class_exists( 'KS_Platform' ) ) {
+			return false;
+		}
 		return '1' === (string) kcs_get_option( 'pwa_enabled', '1' );
 	}
 

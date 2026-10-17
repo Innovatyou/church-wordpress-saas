@@ -67,7 +67,7 @@ class KS_REST {
 		return rest_ensure_response(
 			array(
 				'available' => ! is_wp_error( $domain ),
-				'domain'    => is_wp_error( $domain ) ? $name . '.' . ks_get( 'base_domain' ) : $domain,
+				'domain'    => is_wp_error( $domain ) ? ks_address( $name ) : $domain,
 				'message'   => is_wp_error( $domain ) ? $domain->get_error_message() : __( 'Available', 'kingdom-saas' ),
 			)
 		);

@@ -39,7 +39,7 @@ $pals  = array( 'royal' => array( __( 'Royal', 'kingdom-saas' ), '#5b2a86' ), 'o
 				<legend><?php esc_html_e( '1. Your church', 'kingdom-saas' ); ?></legend>
 				<label><?php esc_html_e( 'Church name', 'kingdom-saas' ); ?><input name="church_name" required maxlength="120" value="<?php echo esc_attr( $v( 'church_name' ) ); ?>" placeholder="Grace Chapel International" data-ks-church></label>
 				<label><?php esc_html_e( 'Website address', 'kingdom-saas' ); ?>
-					<span class="ks-domain"><input name="subdomain" required maxlength="40" pattern="[a-z0-9-]{3,40}" value="<?php echo esc_attr( $v( 'subdomain' ) ); ?>" placeholder="gracechapel" autocapitalize="none" autocomplete="off" spellcheck="false" data-ks-subdomain><span>.<?php echo esc_html( ks_get( 'base_domain' ) ); ?></span></span>
+					<span class="ks-domain"><?php if ( ks_subfolder_mode() ) : ?><span><?php echo esc_html( ks_get( 'base_domain' ) ); ?>/</span><?php endif; ?><input name="subdomain" required maxlength="40" pattern="[a-z0-9-]{3,40}" value="<?php echo esc_attr( $v( 'subdomain' ) ); ?>" placeholder="gracechapel" autocapitalize="none" autocomplete="off" spellcheck="false" data-ks-subdomain><?php if ( ! ks_subfolder_mode() ) : ?><span>.<?php echo esc_html( ks_get( 'base_domain' ) ); ?></span><?php endif; ?></span>
 				</label>
 				<p class="ks-hint" data-ks-subdomain-msg aria-live="polite"><?php esc_html_e( 'You can connect your own domain later.', 'kingdom-saas' ); ?></p>
 				<fieldset class="ks-palettes">

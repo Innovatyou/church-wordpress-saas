@@ -11,8 +11,9 @@
  * 1. answers /.well-known/ks-domain-check on any host with that domain's token (used to verify DNS),
  *    and /.well-known/ks-probe (used by the setup check to test church subdomains);
  * 2. redirects www.<domain> ↔ <domain> to the address the church connected;
- * 3. redirects a church's original platform subdomain to its custom domain, and a disconnected
- *    custom domain back to the church's platform subdomain;
+ * 3. redirects a church's original platform address (church.platform.com, or platform.com/church on
+ *    subfolder networks) to its custom domain, and a disconnected custom domain back to the church's
+ *    platform address;
  * 4. keeps log-in cookies on the church's own domain.
  *
  * @package KingdomSaaS
@@ -55,22 +56,37 @@ defined( 'ABSPATH' ) || exit;
 		exit;
 	}
 
+	$https  = ( ! empty( $_SERVER['HTTPS'] ) && 'off' !== $_SERVER['HTTPS'] ) || ( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && 'https' === $_SERVER['HTTP_X_FORWARDED_PROTO'] );
+	$scheme = $https ? 'https' : 'http';
+
+	// Subfolder networks (platform.com/church): a church that moved to its own domain is
+	// redirected there from its old platform.com/church/... address.
+	if ( defined( 'SUBDOMAIN_INSTALL' ) && ! SUBDOMAIN_INSTALL && $host === $network && preg_match( '#^/([a-z0-9-]+)(/.*)?$#', $path, $seg ) ) {
+		$moved = $wpdb->get_row( $wpdb->prepare( "SELECT b.domain, b.path FROM $subs s JOIN {$wpdb->blogs} b ON b.blog_id = s.blog_id WHERE s.subdomain = %s LIMIT 1", $network . '/' . $seg[1] ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( $moved && $moved->domain !== $network ) {
+			$rest = substr( $uri, strlen( '/' . $seg[1] ) );
+			$wpdb->suppress_errors( $quiet );
+			header( 'Location: ' . $scheme . '://' . $moved->domain . ( '' === $rest ? '/' : $rest ), true, 301 );
+			exit;
+		}
+	}
+
 	if ( $wpdb->get_var( $wpdb->prepare( "SELECT blog_id FROM {$wpdb->blogs} WHERE domain = %s LIMIT 1", $host ) ) ) {
 		$wpdb->suppress_errors( $quiet );
 		return;
 	}
-	$target = $wpdb->get_var( $wpdb->prepare( "SELECT domain FROM {$wpdb->blogs} WHERE domain IN (%s, %s) LIMIT 1", $bare, 'www.' . $bare ) );
+	$target = $wpdb->get_row( $wpdb->prepare( "SELECT domain, path FROM {$wpdb->blogs} WHERE domain IN (%s, %s) LIMIT 1", $bare, 'www.' . $bare ) );
 	if ( ! $target ) {
-		$target = $wpdb->get_var( $wpdb->prepare( "SELECT b.domain FROM $subs s JOIN {$wpdb->blogs} b ON b.blog_id = s.blog_id WHERE s.subdomain = %s LIMIT 1", $host ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$target = $wpdb->get_row( $wpdb->prepare( "SELECT b.domain, b.path FROM $subs s JOIN {$wpdb->blogs} b ON b.blog_id = s.blog_id WHERE s.subdomain = %s LIMIT 1", $host ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 	if ( ! $target ) {
 		// A custom domain that is not (or no longer) connected: send visitors to the church's current address.
-		$target = $wpdb->get_var( $wpdb->prepare( "SELECT b.domain FROM $domains d JOIN {$wpdb->blogs} b ON b.blog_id = d.blog_id WHERE d.domain IN (%s, %s, %s) LIMIT 1", $host, $bare, 'www.' . $bare ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$target = $wpdb->get_row( $wpdb->prepare( "SELECT b.domain, b.path FROM $domains d JOIN {$wpdb->blogs} b ON b.blog_id = d.blog_id WHERE d.domain IN (%s, %s, %s) LIMIT 1", $host, $bare, 'www.' . $bare ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 	$wpdb->suppress_errors( $quiet );
-	if ( $target && $target !== $host ) {
-		$https = ( ! empty( $_SERVER['HTTPS'] ) && 'off' !== $_SERVER['HTTPS'] ) || ( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && 'https' === $_SERVER['HTTP_X_FORWARDED_PROTO'] );
-		header( 'Location: ' . ( $https ? 'https' : 'http' ) . '://' . $target . $uri, true, 301 );
+	if ( $target && ( $target->domain !== $host || '/' !== $target->path ) ) {
+		// Keep the visitor's page: /about/ on the old address → /church/about/ (or /about/) on the new one.
+		header( 'Location: ' . $scheme . '://' . $target->domain . rtrim( $target->path, '/' ) . $uri, true, 301 );
 		exit;
 	}
 } )();

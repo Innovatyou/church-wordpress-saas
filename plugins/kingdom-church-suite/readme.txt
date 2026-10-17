@@ -4,7 +4,7 @@ Tags: church, donations, partnership, livestream, newsletter
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 
 Partnerships, partner portal, Flutterwave/Paystack/PayPal/Stripe/Razorpay/custom API payments, REST API, email notifications, newsletter, YouTube live streaming, sermons, events, prayer requests and advanced SEO for churches.
@@ -13,6 +13,9 @@ Partnerships, partner portal, Flutterwave/Paystack/PayPal/Stripe/Razorpay/custom
 See README.md in the repository for full documentation, shortcodes and REST API reference.
 
 == Changelog ==
+= 1.1.2 =
+* The church app stays off on the platform's own site on subfolder networks.
+
 = 1.1.1 =
 * Admin pages (Dashboard, Payments, Plans, Newsletter) fit phone screens.
 

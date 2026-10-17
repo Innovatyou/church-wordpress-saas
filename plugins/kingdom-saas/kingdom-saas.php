@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Kingdom Cloud (SaaS)
  * Plugin URI:        https://example.com/kingdom-cloud
- * Description:       Sell Kingdom Church websites as a service: church sign-up with free trial, a site per church on its own subdomain, custom domains, subscription billing (Paystack, Stripe, bank transfer), plan limits, automatic suspension and a platform dashboard. Requires WordPress Multisite (subdomain install).
- * Version:           1.2.1
+ * Description:       Sell Kingdom Church websites as a service: church sign-up with free trial, a site per church (yourplatform.com/church or church.yourplatform.com), custom domains, subscription billing (Paystack, Stripe, bank transfer), plan limits, automatic suspension and a platform dashboard. Sets up WordPress Multisite for you (Tools → Kingdom Cloud setup).
+ * Version:           1.3.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Network:           true
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'KS_VERSION', '1.2.1' );
+define( 'KS_VERSION', '1.3.0' );
 define( 'KS_DB_VERSION', '1.0.0' );
 define( 'KS_FILE', __FILE__ );
 define( 'KS_PATH', plugin_dir_path( __FILE__ ) );
@@ -44,6 +44,7 @@ require_once KS_PATH . 'includes/class-ks-rest.php';
 require_once KS_PATH . 'includes/class-ks-church-admin.php';
 require_once KS_PATH . 'includes/class-ks-platform.php';
 require_once KS_PATH . 'includes/class-ks-network-admin.php';
+require_once KS_PATH . 'includes/class-ks-network-setup.php';
 
 register_activation_hook( __FILE__, array( 'KS_Install', 'activate' ) );
 
