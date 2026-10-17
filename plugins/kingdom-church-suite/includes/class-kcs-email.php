@@ -64,6 +64,24 @@ class KCS_Email {
 					'body'    => '<p><strong>{name}</strong> ({email}) gave <strong>{amount}</strong> via {gateway}.</p><p>Purpose: {purpose}<br>Reference: {reference}</p><p><a class="btn" href="{admin_url}">View payments</a></p>',
 					'vars'    => array( '{name}', '{email}', '{amount}', '{gateway}', '{purpose}', '{reference}', '{admin_url}' ),
 				),
+				'admin_transfer_notice' => array(
+					'label'   => __( 'Admin: bank transfer to confirm', 'kingdom-church-suite' ),
+					'subject' => 'Please confirm a bank transfer: {amount} from {name}',
+					'body'    => '<p><strong>{name}</strong> ({email}) says they sent <strong>{amount}</strong> by bank transfer for {purpose}.</p><table class="details"><tr><td>Reference</td><td>{reference}</td></tr><tr><td>Sent by</td><td>{payer}</td></tr><tr><td>From bank</td><td>{payer_bank}</td></tr><tr><td>Date sent</td><td>{transfer_date}</td></tr></table><p>Check your bank account, then confirm or reject it. The giver gets their receipt as soon as you confirm.</p><p><a class="btn" href="{review_url}">Review bank transfers</a></p>',
+					'vars'    => array( '{name}', '{email}', '{amount}', '{purpose}', '{reference}', '{payer}', '{payer_bank}', '{transfer_date}', '{review_url}' ),
+				),
+				'transfer_received'     => array(
+					'label'   => __( 'Bank transfer: notice received', 'kingdom-church-suite' ),
+					'subject' => 'We are checking your transfer {reference}',
+					'body'    => '<p>Dear {name},</p><p>Thank you! You told us you sent <strong>{amount}</strong> for {purpose} by bank transfer. We will check our account and email your receipt as soon as it is confirmed.</p><table class="details"><tr><td>Reference</td><td>{reference}</td></tr><tr><td>Date sent</td><td>{transfer_date}</td></tr></table>',
+					'vars'    => array( '{name}', '{amount}', '{purpose}', '{reference}', '{transfer_date}', '{church_name}' ),
+				),
+				'transfer_rejected'     => array(
+					'label'   => __( 'Bank transfer: not confirmed', 'kingdom-church-suite' ),
+					'subject' => 'We could not confirm your transfer {reference}',
+					'body'    => '<p>Dear {name},</p><p>We could not confirm your bank transfer of <strong>{amount}</strong> for {purpose}.</p><p><strong>Reason:</strong> {reason}</p><p>If you have already sent the money, simply reply to this email with your transfer receipt and we will sort it out. You can also give again here:</p><p><a class="btn" href="{give_url}">Give again</a></p>',
+					'vars'    => array( '{name}', '{amount}', '{purpose}', '{reference}', '{reason}', '{give_url}', '{church_name}' ),
+				),
 				'subscribe_confirm' => array(
 					'label'   => __( 'Newsletter confirmation', 'kingdom-church-suite' ),
 					'subject' => 'Please confirm your subscription to {church_name}',

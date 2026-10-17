@@ -42,6 +42,7 @@ function ks_default_settings() {
 		'stripe_secret'   => '',
 		'stripe_webhook'  => '',
 		'bank_details'    => '',
+		'bank_accounts'   => array(),
 		'test_mode'       => '0',
 		'turnstile_site'  => '',
 		'turnstile_secret' => '',
@@ -254,6 +255,7 @@ function ks_badge( $status ) {
 		'pending'   => __( 'Pending', 'kingdom-saas' ),
 		'paid'      => __( 'Paid', 'kingdom-saas' ),
 		'failed'    => __( 'Failed', 'kingdom-saas' ),
+		'review'    => __( 'Awaiting confirmation', 'kingdom-saas' ),
 		'verified'  => __( 'Connected', 'kingdom-saas' ),
 	);
 	return '<span class="ks-badge ks-badge--' . esc_attr( $status ) . '">' . esc_html( $labels[ $status ] ?? ucfirst( $status ) ) . '</span>';

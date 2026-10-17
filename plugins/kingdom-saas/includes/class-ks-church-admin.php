@@ -103,6 +103,16 @@ class KS_Church_Admin {
 				$msg  = $url->get_error_message();
 				$type = 'error';
 				break;
+			case 'bank_notice':
+				$inv = KS_Billing::invoice( sanitize_text_field( (string) ( $d['reference'] ?? '' ) ) );
+				$r   = KS_Bank::notice( $sub, $inv, $d, $_FILES['proof'] ?? array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+				if ( is_wp_error( $r ) ) {
+					$msg  = $r->get_error_message();
+					$type = 'error';
+				} else {
+					$msg = __( 'Thank you! We are checking your transfer and will email you once it is confirmed.', 'kingdom-saas' );
+				}
+				break;
 			case 'cancel':
 				KS_Tenants::update( $sub->blog_id, array( 'cancel_at_period_end' => 1 ) );
 				$msg = __( 'Your subscription will end at the close of the current period. You can resume any time before then.', 'kingdom-saas' );

@@ -172,6 +172,10 @@ class KCS_Payments {
 			/* translators: 1: gateway, 2: currency */
 			return new WP_Error( 'kcs_currency', sprintf( __( '%1$s does not support %2$s.', 'kingdom-church-suite' ), $gateway->display_title(), $currency ), array( 'status' => 400 ) );
 		}
+		if ( ! $gateway->allows_purpose( sanitize_key( $args['purpose'] ?? 'donation' ) ) ) {
+			/* translators: %s: payment method */
+			return new WP_Error( 'kcs_gateway', sprintf( __( '%s is not available for this kind of gift. Please choose another payment method.', 'kingdom-church-suite' ), $gateway->display_title() ), array( 'status' => 400 ) );
+		}
 		$email = sanitize_email( $args['email'] ?? '' );
 		if ( ! is_email( $email ) ) {
 			return new WP_Error( 'kcs_email', __( 'Please enter a valid email address.', 'kingdom-church-suite' ), array( 'status' => 400 ) );

@@ -51,6 +51,7 @@ class KCS_Church_Admin {
 			'partners'    => array( __( 'Partners', 'kingdom-church-suite' ), '♥' ),
 			'plans'       => array( __( 'Plans & currency', 'kingdom-church-suite' ), '◈' ),
 			'payments'    => array( __( 'Payments', 'kingdom-church-suite' ), '₦' ),
+			'transfers'   => array( __( 'Bank transfers', 'kingdom-church-suite' ), '⇄' ),
 			'prayers'     => array( __( 'Prayer requests', 'kingdom-church-suite' ), '✦' ),
 			'visits'      => array( __( 'Visits', 'kingdom-church-suite' ), '⌂' ),
 			'testimonies' => array( __( 'Testimonies', 'kingdom-church-suite' ), '❝' ),
@@ -190,9 +191,59 @@ class KCS_Church_Admin {
 			case 'payment_complete':
 				$p = KCS_Payments::get( $id );
 				if ( $p ) {
-					KCS_Payments::complete( $p, sanitize_text_field( $d['txn'] ?? '' ), (float) $p->amount, $p->currency, true );
-					$msg = __( 'Payment marked as received. Receipt sent and partner unlocked.', 'kingdom-church-suite' );
+					$result = KCS_Transfers::confirm( $p );
+					if ( is_wp_error( $result ) ) {
+						$msg  = $result->get_error_message();
+						$type = 'error';
+					} elseif ( 'completed' === $result ) {
+						$msg = __( 'Payment marked as received. Receipt sent and partner unlocked.', 'kingdom-church-suite' );
+					} else {
+						$msg  = __( 'This payment was already handled.', 'kingdom-church-suite' );
+						$type = 'error';
+					}
 				}
+				break;
+
+			case 'payment_reject':
+				$p = KCS_Payments::get( $id );
+				if ( $p ) {
+					$result = KCS_Transfers::reject( $p, $d['reason'] ?? '' );
+					if ( is_wp_error( $result ) ) {
+						$msg  = $result->get_error_message();
+						$type = 'error';
+					} else {
+						$msg = __( 'Transfer rejected. The giver has been emailed.', 'kingdom-church-suite' );
+					}
+				}
+				break;
+
+			case 'transfer_settings_save':
+				if ( ! current_user_can( 'manage_options' ) ) {
+					$msg  = __( 'Only church administrators can change bank transfer settings.', 'kingdom-church-suite' );
+					$type = 'error';
+					break;
+				}
+				$accounts = KCS_Gateway_Bank_Transfer::sanitize_accounts( $d['accounts'] ?? array() );
+				$enable   = ! empty( $d['enabled'] );
+				$settings = get_option( 'kcs_settings', array() );
+				$settings['bank_transfer_accounts']        = $accounts;
+				$settings['bank_transfer_enabled']         = $enable && $accounts ? '1' : '0';
+				$settings['bank_transfer_for_partnership'] = ! empty( $d['for_partnership'] ) ? '1' : '0';
+				$settings['bank_transfer_for_giving']      = ! empty( $d['for_giving'] ) ? '1' : '0';
+				$settings['bank_transfer_confirm_by']      = 'staff' === ( $d['confirm_by'] ?? '' ) ? 'staff' : 'admins';
+				$settings['bank_transfer_note']            = sanitize_textarea_field( (string) ( $d['note'] ?? '' ) );
+				$settings['bank_transfer_display_title']   = sanitize_text_field( (string) ( $d['display_title'] ?? '' ) );
+				update_option( 'kcs_settings', $settings );
+				if ( $enable && ! $accounts ) {
+					$msg  = __( 'Add at least one bank account to turn on bank transfers.', 'kingdom-church-suite' );
+					$type = 'error';
+				} elseif ( $enable && '0' === $settings['bank_transfer_for_partnership'] && '0' === $settings['bank_transfer_for_giving'] ) {
+					$msg  = __( 'Saved, but bank transfer is not offered for anything yet. Tick partnership and/or giving.', 'kingdom-church-suite' );
+					$type = 'error';
+				} else {
+					$msg = $enable ? __( 'Bank transfers are on. Givers will see your account details.', 'kingdom-church-suite' ) : __( 'Bank transfer settings saved (turned off).', 'kingdom-church-suite' );
+				}
+				$view = 'transfers';
 				break;
 
 			case 'payment_verify':
@@ -508,7 +559,8 @@ class KCS_Church_Admin {
 		return array(
 			'prayers'     => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'prayer_requests' ) . " WHERE status = 'new'" ),
 			'visits'      => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'visits' ) . " WHERE status = 'new'" ),
-			'payments'    => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'payments' ) . " WHERE status IN ('pending','review') AND gateway = 'bank_transfer'" ),
+			'payments'    => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'payments' ) . " WHERE status = 'review' AND gateway <> 'bank_transfer'" ),
+			'transfers'   => KCS_Transfers::count_waiting(),
 			'testimonies' => (int) wp_count_posts( 'kcs_testimony' )->pending,
 			'partners'    => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'partners' ) . " WHERE status = 'overdue'" ),
 		);
@@ -534,7 +586,11 @@ class KCS_Church_Admin {
 		foreach ( $by_plan as $r ) {
 			$max = max( $max, (int) $r->c );
 		}
+		$waiting = KCS_Transfers::count_waiting();
 		?>
+		<?php if ( $waiting ) : ?>
+			<div class="kcs-alert kcs-alert--info"><a href="<?php echo esc_url( self::url( 'transfers' ) ); ?>"><?php /* translators: %d: number of transfers */ echo esc_html( sprintf( _n( '%d bank transfer is waiting for you to confirm.', '%d bank transfers are waiting for you to confirm.', $waiting, 'kingdom-church-suite' ), $waiting ) ); ?> <?php esc_html_e( 'Review now →', 'kingdom-church-suite' ); ?></a></div>
+		<?php endif; ?>
 		<div class="kca-kpis">
 			<a class="kca-kpi" href="<?php echo esc_url( self::url( 'partners', array( 'status' => 'active' ) ) ); ?>"><span><?php esc_html_e( 'Active partners', 'kingdom-church-suite' ); ?></span><strong><?php echo (int) $stats['partners_by_status']['active']; ?></strong><small><?php echo (int) $stats['partners_total']; ?> <?php esc_html_e( 'total', 'kingdom-church-suite' ); ?></small></a>
 			<a class="kca-kpi kca-kpi--warn" href="<?php echo esc_url( self::url( 'partners', array( 'status' => 'overdue' ) ) ); ?>"><span><?php esc_html_e( 'Overdue (locked)', 'kingdom-church-suite' ); ?></span><strong><?php echo (int) $stats['partners_by_status']['overdue']; ?></strong><small><?php echo (int) $stats['partners_by_status']['pending']; ?> <?php esc_html_e( 'awaiting first payment', 'kingdom-church-suite' ); ?></small></a>
@@ -696,7 +752,7 @@ class KCS_Church_Admin {
 						<td data-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>"><?php echo kcs_status_badge( $pay->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
 						<td class="kca-actions">
 							<?php if ( in_array( $pay->status, array( 'pending', 'review', 'failed' ), true ) ) : ?>
-								<form method="post" class="kca-inline"><?php echo self::fields( 'payment_complete', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn"><?php esc_html_e( 'Mark received', 'kingdom-church-suite' ); ?></button></form>
+								<?php if ( KCS_Transfers::can_confirm() ) : ?><form method="post" class="kca-inline" onsubmit="return confirm('<?php echo esc_js( __( 'Mark this payment as received? The giver gets a receipt.', 'kingdom-church-suite' ) ); ?>')"><?php echo self::fields( 'payment_complete', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn"><?php esc_html_e( 'Mark received', 'kingdom-church-suite' ); ?></button></form><?php endif; ?>
 								<?php if ( 'bank_transfer' !== $pay->gateway ) : ?><form method="post" class="kca-inline"><?php echo self::fields( 'payment_verify', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Check gateway', 'kingdom-church-suite' ); ?></button></form><?php endif; ?>
 							<?php endif; ?>
 						</td>
@@ -708,6 +764,147 @@ class KCS_Church_Admin {
 		</div>
 		<?php
 		self::pager( $result['total'], 25, $page, array( 'view' => 'payments', 's' => $search, 'status' => $status, 'purpose' => $purpose ) );
+	}
+
+	/**
+	 * Bank transfers: account details, and transfers waiting to be confirmed.
+	 */
+	private static function view_transfers() {
+		$gw = KCS_Transfers::gateway();
+		if ( ! $gw ) {
+			echo '<p class="kcs-muted">' . esc_html__( 'Bank transfer is not available on this site.', 'kingdom-church-suite' ) . '</p>';
+			return;
+		}
+		$can_confirm = KCS_Transfers::can_confirm();
+		$can_setup   = current_user_can( 'manage_options' );
+		$purposes    = kcs_all_purposes();
+		$waiting     = KCS_Payments::query( array( 'gateway' => 'bank_transfer', 'status' => 'review', 'per_page' => 50 ) )['items'];
+		$started     = KCS_Payments::query( array( 'gateway' => 'bank_transfer', 'status' => 'pending', 'date_from' => gmdate( 'Y-m-d', strtotime( current_time( 'Y-m-d' ) . ' -30 days' ) ), 'per_page' => 20 ) )['items'];
+		$label       = function ( $pay ) use ( $purposes ) {
+			return $purposes[ $pay->purpose ] ?? ucwords( str_replace( array( '-', '_' ), ' ', $pay->purpose ) );
+		};
+		$confirm_btn = function ( $pay ) {
+			return '<form method="post" class="kca-inline" onsubmit="return confirm(\'' . esc_js( __( 'Confirm this money is in your account? The giver gets their receipt straight away.', 'kingdom-church-suite' ) ) . '\')">' . self::fields( 'payment_complete', 'transfers', $pay->id ) . '<button class="kcs-btn">' . esc_html__( 'Confirm received', 'kingdom-church-suite' ) . '</button></form>';
+		};
+		$reject_btn  = function ( $pay ) {
+			return '<details class="kca-reject"><summary class="kcs-btn kcs-btn--ghost">' . esc_html__( 'Reject', 'kingdom-church-suite' ) . '</summary><form method="post" class="kcs-form">' . self::fields( 'payment_reject', 'transfers', $pay->id ) . '<label>' . esc_html__( 'Reason (emailed to the giver)', 'kingdom-church-suite' ) . '<input name="reason" maxlength="500" placeholder="' . esc_attr__( 'We could not find this transfer in our account.', 'kingdom-church-suite' ) . '"></label><button class="kcs-btn kcs-btn--danger">' . esc_html__( 'Reject transfer', 'kingdom-church-suite' ) . '</button></form></details>';
+		};
+		?>
+		<?php if ( ! $gw->is_enabled() ) : ?>
+			<div class="kcs-alert kcs-alert--info"><?php esc_html_e( 'Bank transfer is off. Add your account details below and tick "Accept bank transfers" so givers can pay straight into your account.', 'kingdom-church-suite' ); ?></div>
+		<?php endif; ?>
+		<?php if ( ! $can_confirm ) : ?>
+			<div class="kcs-alert kcs-alert--info"><?php esc_html_e( 'Only church administrators can confirm or reject transfers. You can see what is waiting here.', 'kingdom-church-suite' ); ?></div>
+		<?php endif; ?>
+
+		<section class="kca-card">
+			<h3><?php esc_html_e( 'Waiting for you to confirm', 'kingdom-church-suite' ); ?> <?php if ( $waiting ) : ?><span class="kcs-badge kcs-badge--review"><?php echo count( $waiting ); ?></span><?php endif; ?></h3>
+			<?php if ( ! $waiting ) : ?><p class="kcs-muted"><?php esc_html_e( 'Nothing to confirm. When a giver says they have paid, it appears here and you get an email.', 'kingdom-church-suite' ); ?></p><?php endif; ?>
+			<div class="kca-transfers">
+				<?php foreach ( $waiting as $pay ) : ?>
+					<?php
+					$t     = KCS_Transfers::meta( $pay )['transfer'] ?? array();
+					$proof = $can_confirm ? KCS_Transfers::proof_url( $pay ) : '';
+					?>
+					<article class="kca-transfer">
+						<header>
+							<strong class="kca-transfer__amt"><?php echo esc_html( kcs_format_money( $pay->amount, $pay->currency ) ); ?></strong>
+							<span><?php echo esc_html( $label( $pay ) ); ?></span>
+						</header>
+						<dl>
+							<div><dt><?php esc_html_e( 'Giver', 'kingdom-church-suite' ); ?></dt><dd><?php echo esc_html( $pay->name ? $pay->name : $pay->email ); ?><small><?php echo esc_html( $pay->email ); ?></small></dd></div>
+							<div><dt><?php esc_html_e( 'Reference', 'kingdom-church-suite' ); ?></dt><dd><code><?php echo esc_html( $pay->reference ); ?></code></dd></div>
+							<?php if ( ! empty( $t['payer'] ) ) : ?><div><dt><?php esc_html_e( 'Sent by', 'kingdom-church-suite' ); ?></dt><dd><?php echo esc_html( $t['payer'] . ( $t['bank'] ? ' · ' . $t['bank'] : '' ) ); ?></dd></div><?php endif; ?>
+							<?php if ( ! empty( $t['date'] ) ) : ?><div><dt><?php esc_html_e( 'Date sent', 'kingdom-church-suite' ); ?></dt><dd><?php echo esc_html( mysql2date( get_option( 'date_format' ), $t['date'] ) ); ?></dd></div><?php endif; ?>
+							<?php if ( ! empty( $t['note'] ) ) : ?><div><dt><?php esc_html_e( 'Note', 'kingdom-church-suite' ); ?></dt><dd><?php echo esc_html( $t['note'] ); ?></dd></div><?php endif; ?>
+						</dl>
+						<div class="kca-actions">
+							<?php if ( $proof ) : ?><a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( $proof ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View proof', 'kingdom-church-suite' ); ?></a><?php endif; ?>
+							<?php
+							if ( $can_confirm ) {
+								echo $confirm_btn( $pay ) . $reject_btn( $pay ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+							}
+							?>
+						</div>
+					</article>
+				<?php endforeach; ?>
+			</div>
+		</section>
+
+		<?php if ( $started ) : ?>
+			<details class="kca-card">
+				<summary><h3><?php esc_html_e( 'Started, giver has not said they paid', 'kingdom-church-suite' ); ?> <span class="kcs-badge"><?php echo count( $started ); ?></span></h3></summary>
+				<p class="kcs-muted"><?php esc_html_e( 'Givers who chose bank transfer in the last 30 days but did not press "I have made this transfer". If the money is in your account, you can still confirm it.', 'kingdom-church-suite' ); ?></p>
+				<div class="kca-table">
+					<table>
+						<thead><tr><th><?php esc_html_e( 'Giver', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Amount', 'kingdom-church-suite' ); ?></th><th></th></tr></thead>
+						<tbody>
+						<?php foreach ( $started as $pay ) : ?>
+							<tr>
+								<td data-label="<?php esc_attr_e( 'Giver', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( $pay->name ? $pay->name : $pay->email ); ?></strong><small><?php echo esc_html( $pay->reference . ' · ' . mysql2date( get_option( 'date_format' ), $pay->created_at ) ); ?></small></td>
+								<td data-label="<?php esc_attr_e( 'Amount', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( kcs_format_money( $pay->amount, $pay->currency ) ); ?></strong><small><?php echo esc_html( $label( $pay ) ); ?></small></td>
+								<td class="kca-actions"><?php echo $can_confirm ? $confirm_btn( $pay ) . $reject_btn( $pay ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+			</details>
+		<?php endif; ?>
+
+		<?php
+		if ( ! $can_setup ) {
+			return;
+		}
+		$accounts = $gw->accounts();
+		$currs    = KCS_Payments::allowed_currencies();
+		foreach ( $accounts as $a ) {
+			if ( $a['currency'] && ! isset( $currs[ $a['currency'] ] ) ) {
+				$currs[ $a['currency'] ] = $a['currency'];
+			}
+		}
+		?>
+		<form method="post" class="kca-card kcs-form" id="transfer-settings">
+			<?php echo self::fields( 'transfer_settings_save', 'transfers' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<h3><?php esc_html_e( 'Your bank accounts', 'kingdom-church-suite' ); ?></h3>
+			<label class="kcs-check"><input type="checkbox" name="enabled" value="1" <?php checked( $gw->is_enabled() ); ?>> <strong><?php esc_html_e( 'Accept bank transfers', 'kingdom-church-suite' ); ?></strong></label>
+			<p class="kcs-muted"><?php esc_html_e( 'Givers see these details after choosing bank transfer. Add up to 3 accounts, for example one for Naira and one for Dollars. An account with no currency is shown for every currency.', 'kingdom-church-suite' ); ?></p>
+			<?php for ( $i = 0; $i < KCS_Gateway_Bank_Transfer::MAX_ACCOUNTS; $i++ ) : ?>
+				<?php $a = $accounts[ $i ] ?? array_fill_keys( array( 'bank', 'name', 'number', 'currency', 'sort_code', 'iban', 'swift' ), '' ); ?>
+				<fieldset class="kca-account">
+					<legend><?php /* translators: %d: account number */ printf( esc_html__( 'Account %d', 'kingdom-church-suite' ), (int) $i + 1 ); ?><?php echo $i ? ' ' . esc_html__( '(optional)', 'kingdom-church-suite' ) : ''; ?></legend>
+					<div class="kcs-grid-2">
+						<label><?php esc_html_e( 'Bank name', 'kingdom-church-suite' ); ?><input name="accounts[<?php echo (int) $i; ?>][bank]" value="<?php echo esc_attr( $a['bank'] ); ?>" placeholder="<?php esc_attr_e( 'e.g. GTBank', 'kingdom-church-suite' ); ?>"></label>
+						<label><?php esc_html_e( 'Account name', 'kingdom-church-suite' ); ?><input name="accounts[<?php echo (int) $i; ?>][name]" value="<?php echo esc_attr( $a['name'] ); ?>"></label>
+						<label><?php esc_html_e( 'Account number', 'kingdom-church-suite' ); ?><input name="accounts[<?php echo (int) $i; ?>][number]" value="<?php echo esc_attr( $a['number'] ); ?>" inputmode="numeric" autocomplete="off"></label>
+						<label><?php esc_html_e( 'Currency', 'kingdom-church-suite' ); ?><select name="accounts[<?php echo (int) $i; ?>][currency]"><option value=""><?php esc_html_e( 'Any currency', 'kingdom-church-suite' ); ?></option><?php foreach ( $currs as $code => $name ) : ?><option value="<?php echo esc_attr( $code ); ?>" <?php selected( $a['currency'], $code ); ?>><?php echo esc_html( $code ); ?></option><?php endforeach; ?></select></label>
+					</div>
+					<details<?php echo $a['sort_code'] || $a['iban'] || $a['swift'] ? ' open' : ''; ?>>
+						<summary><?php esc_html_e( 'International details (optional)', 'kingdom-church-suite' ); ?></summary>
+						<div class="kcs-grid-2">
+							<label><?php esc_html_e( 'Sort code / routing number', 'kingdom-church-suite' ); ?><input name="accounts[<?php echo (int) $i; ?>][sort_code]" value="<?php echo esc_attr( $a['sort_code'] ); ?>"></label>
+							<label>IBAN<input name="accounts[<?php echo (int) $i; ?>][iban]" value="<?php echo esc_attr( $a['iban'] ); ?>"></label>
+							<label>SWIFT / BIC<input name="accounts[<?php echo (int) $i; ?>][swift]" value="<?php echo esc_attr( $a['swift'] ); ?>"></label>
+						</div>
+					</details>
+				</fieldset>
+			<?php endfor; ?>
+
+			<h3><?php esc_html_e( 'Use bank transfer for', 'kingdom-church-suite' ); ?></h3>
+			<label class="kcs-check"><input type="checkbox" name="for_partnership" value="1" <?php checked( $gw->allows_purpose( 'partnership' ) ); ?>> <?php esc_html_e( 'Partnership', 'kingdom-church-suite' ); ?></label>
+			<label class="kcs-check"><input type="checkbox" name="for_giving" value="1" <?php checked( $gw->allows_purpose( 'offering' ) ); ?>> <?php esc_html_e( 'Tithes, offerings and other giving', 'kingdom-church-suite' ); ?></label>
+
+			<h3><?php esc_html_e( 'Who can confirm transfers', 'kingdom-church-suite' ); ?></h3>
+			<label class="kcs-check"><input type="radio" name="confirm_by" value="admins" <?php checked( 'staff' !== $gw->opt( 'confirm_by', 'admins' ) ); ?>> <?php esc_html_e( 'Church administrators only (recommended)', 'kingdom-church-suite' ); ?></label>
+			<label class="kcs-check"><input type="radio" name="confirm_by" value="staff" <?php checked( 'staff', $gw->opt( 'confirm_by', 'admins' ) ); ?>> <?php esc_html_e( 'All church staff who can open Church Admin', 'kingdom-church-suite' ); ?></label>
+
+			<div class="kcs-grid-2">
+				<label><?php esc_html_e( 'Name shown to givers', 'kingdom-church-suite' ); ?><input name="display_title" value="<?php echo esc_attr( $gw->display_title() ); ?>"></label>
+			</div>
+			<label><?php esc_html_e( 'Extra note for givers (optional)', 'kingdom-church-suite' ); ?><textarea name="note" rows="2" placeholder="<?php esc_attr_e( 'e.g. Transfers are confirmed within 24 hours on working days.', 'kingdom-church-suite' ); ?>"><?php echo esc_textarea( $gw->opt( 'note' ) ); ?></textarea></label>
+			<button class="kcs-btn"><?php esc_html_e( 'Save bank transfer settings', 'kingdom-church-suite' ); ?></button>
+		</form>
+		<?php
 	}
 
 	/**

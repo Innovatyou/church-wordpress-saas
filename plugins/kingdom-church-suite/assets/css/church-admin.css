@@ -101,3 +101,27 @@
 .kca-font-preview strong { font-size: 1.7rem; line-height: 1.15; font-weight: 700; overflow-wrap: anywhere; }
 .kca-font-preview p { margin: 0; font-size: 1rem; line-height: 1.55; }
 .kca-font-preview small { color: var(--kcs-muted); font-size: .8rem; }
+
+/* Bank transfers */
+.kca__main > .kca-card + .kca-card, .kca__main > .kca-card + details.kca-card, .kca__main > details.kca-card + .kca-card { margin-top: 1rem; }
+details.kca-card > summary { cursor: pointer; list-style: none; }
+details.kca-card > summary h3 { display: inline; }
+details.kca-card > summary::-webkit-details-marker { display: none; }
+.kca-transfers { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.kca-transfer { display: grid; gap: .6rem; padding: 1rem; border-radius: var(--kcs-radius); border: 1px solid var(--kcs-border); background: var(--kcs-surface); }
+.kca-transfer header { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+.kca-transfer__amt { font-size: 1.35rem; }
+.kca-transfer dl { margin: 0; display: grid; gap: .35rem; font-size: .9rem; }
+.kca-transfer dl div { display: grid; grid-template-columns: 6.5rem 1fr; gap: .5rem; }
+.kca-transfer dt { color: var(--kcs-muted); }
+.kca-transfer dd { margin: 0; overflow-wrap: anywhere; }
+.kca-transfer dd small { display: block; color: var(--kcs-muted); }
+.kca-reject { display: inline-block; }
+.kca-reject > summary { list-style: none; cursor: pointer; padding: .55em 1em; font-size: .88rem; }
+.kca-reject > summary::-webkit-details-marker { display: none; }
+.kca-reject[open] { display: block; width: 100%; }
+.kca-reject form { margin-top: .5rem; }
+.kcs-btn--danger { background: var(--kcs-error) !important; border-color: var(--kcs-error) !important; color: #fff !important; }
+.kca-account { margin: 0 0 1rem; padding: 1rem; border-radius: 12px; border: 1px solid var(--kcs-border); }
+.kca-account legend { padding: 0 .4rem; font-weight: 700; }
+.kca-account details summary { cursor: pointer; color: var(--kcs-primary); font-size: .9rem; margin: .25rem 0 .5rem; }

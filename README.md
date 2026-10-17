@@ -125,7 +125,8 @@ Other theme features: three header styles (classic, centered, transparent over h
 A full church-management dashboard on the **Church Admin** page (`[kcs_church_admin]`), built for church staff with the **Church Admin** role. That role never sees WordPress: logging in goes straight to the dashboard, and wp-admin redirects back to it.
 - **Overview**: active vs overdue (locked) partners, money received, payments due this week, partners by plan
 - **Partners**: search, filter, edit details, plan, amount, status and due date; WhatsApp a partner
-- **Payments**: mark bank transfers received (unlocks the partner and sends the receipt), re-check gateway payments
+- **Payments**: mark payments received (unlocks the partner and sends the receipt), re-check gateway payments
+- **Bank transfers**: turn on offline giving by adding up to 3 bank accounts (bank, account name, number, currency, optional sort code/IBAN/SWIFT), choose whether it is offered for partnership and/or tithes, offerings and other giving, and choose who can confirm (church administrators only by default, or all staff). Givers see the account for their currency and the reference to use (with copy buttons), then press **I have made this transfer** and can attach a receipt (JPG, PNG or PDF, kept private). The church is emailed, the transfer waits under *Bank transfers* until someone allowed confirms it (receipt sent, partner renewed) or rejects it with a reason (the giver is emailed)
 - **Prayer requests**, **Visits** ("Plan your visit" bookings with WhatsApp follow-up) and **Testimonies** (publish or remove)
 - **Notify partners**: by plan and status, by email and/or as an update on their dashboard (announcement, event or resource with a link)
 - **Website WhatsApp chat**: turn the floating "Chat with us" button on or off, and set the greeting, office hours and contacts (e.g. General enquiries, Prayer line, First-time visitors), each with its own number and pre-filled message (`{church}` and `{page}` are filled in automatically)
@@ -156,7 +157,7 @@ A full church-management dashboard on the **Church Admin** page (`[kcs_church_ad
 | **PayPal** | Orders v2, capture on return | PayPal verify-webhook-signature API |
 | **Stripe** | Checkout Sessions (cards, Apple Pay, Google Pay) | `Stripe-Signature` HMAC-SHA256 with timestamp tolerance |
 | **Razorpay** | Payment Links | HMAC-SHA256 (`x-razorpay-signature`) |
-| **Bank transfer / offline** | Instructions plus manual confirmation | — |
+| **Bank transfer / offline** | The church's bank accounts; the giver says when they have paid (optional receipt) and the church confirms | — |
 | **Custom API gateway** | Any provider with a hosted checkout (Monnify, Interswitch, Remita, Squad, Chapa, PesaPal…), configured entirely in settings: endpoints, headers, JSON body templates with placeholders, response paths, success values, minor units | HMAC SHA-256/512/1 or shared secret |
 
 Security model:

@@ -45,6 +45,7 @@ final class KCS_Plugin {
 		KCS_Email::init();
 		KCS_Partners::init();
 		KCS_Payments::init();
+		KCS_Transfers::init();
 		KCS_Newsletter::init();
 		KCS_Livestream::init();
 		KCS_Prayer::init();

@@ -29,7 +29,7 @@ class KS_Billing {
 		if ( ks_get( 'stripe_secret' ) ) {
 			$out['stripe'] = __( 'Stripe — card, Apple Pay, Google Pay', 'kingdom-saas' );
 		}
-		if ( ks_get( 'bank_details' ) ) {
+		if ( KS_Bank::available( $currency ) ) {
 			$out['bank'] = __( 'Bank transfer', 'kingdom-saas' );
 		}
 		if ( ks_test_mode() ) {

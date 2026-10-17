@@ -178,7 +178,7 @@ body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-syste
 .ks-badge { display: inline-block; padding: .2rem .65rem; border-radius: 999px; font-size: .75rem; font-weight: 800; vertical-align: middle; background: var(--ks-surface-2); color: var(--ks-muted); }
 .ks-badge--active, .ks-badge--paid, .ks-badge--verified { background: color-mix(in srgb, var(--ks-ok) 15%, transparent); color: var(--ks-ok); }
 .ks-badge--trialing { background: color-mix(in srgb, var(--ks-brand) 14%, transparent); color: var(--ks-brand); }
-.ks-badge--past_due, .ks-badge--pending { background: color-mix(in srgb, var(--ks-warn) 16%, transparent); color: var(--ks-warn); }
+.ks-badge--past_due, .ks-badge--pending, .ks-badge--review { background: color-mix(in srgb, var(--ks-warn) 16%, transparent); color: var(--ks-warn); }
 .ks-badge--suspended, .ks-badge--cancelled, .ks-badge--failed { background: color-mix(in srgb, var(--ks-bad) 14%, transparent); color: var(--ks-bad); }
 @media (prefers-color-scheme: dark) { .ks-badge--trialing { color: color-mix(in srgb, var(--ks-brand) 40%, #fff); } }
 
@@ -246,3 +246,26 @@ body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-syste
 .ks-plan-edit > .ks-grid, .ks-settings > .ks-grid { width: 100%; }
 .ks-plan-edit legend code { font-weight: 500; color: var(--ks-muted); }
 .ks code { font-size: .85em; background: var(--ks-surface-2); padding: .1em .4em; border-radius: 6px; overflow-wrap: anywhere; }
+
+/* Bank transfers */
+.ks-count { margin-left: auto; min-width: 1.4rem; padding: 0 .4rem; border-radius: 999px; background: var(--ks-bad); color: #fff; font-style: normal; font-size: .75rem; line-height: 1.4rem; text-align: center; }
+.ks-alert a { color: inherit; font-weight: 600; }
+.ks-transfers { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.ks-transfer { display: grid; gap: .6rem; padding: 1rem; border-radius: 12px; border: 1px solid var(--ks-border); background: var(--ks-surface); }
+.ks-transfer header { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+.ks-transfer header strong { font-size: 1.3rem; }
+.ks-transfer dl { margin: 0; display: grid; gap: .35rem; font-size: .9rem; }
+.ks-transfer dl div { display: grid; grid-template-columns: 6.5rem 1fr; gap: .5rem; }
+.ks-transfer dt { color: var(--ks-muted); }
+.ks-transfer dd { margin: 0; overflow-wrap: anywhere; }
+.ks-transfer dd small { display: block; color: var(--ks-muted); }
+.ks-actions { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.ks-reject > summary { list-style: none; cursor: pointer; }
+.ks-reject > summary::-webkit-details-marker { display: none; }
+.ks-reject[open] { width: 100%; }
+.ks-reject form { margin-top: .5rem; }
+.ks-btn--danger { background: var(--ks-bad) !important; border-color: var(--ks-bad) !important; color: #fff !important; }
+.ks-span-2 { grid-column: 1 / -1; }
+.ks-grid--4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: .6rem; }
+.ks-account { padding: .8rem 0; border-top: 1px solid var(--ks-border); display: grid; gap: .5rem; }
+.ks-card + .ks-table { margin-top: 1.2rem; }

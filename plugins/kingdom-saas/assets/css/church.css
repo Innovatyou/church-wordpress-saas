@@ -5,7 +5,7 @@
 .ks-badge { display: inline-block; padding: .15rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 800; background: var(--kcs-surface-2); }
 .ks-badge--active, .ks-badge--paid, .ks-badge--verified { background: color-mix(in srgb, #15803d 15%, transparent); color: #15803d; }
 .ks-badge--trialing { background: color-mix(in srgb, var(--kcs-primary) 14%, transparent); color: var(--kcs-primary); }
-.ks-badge--past_due, .ks-badge--pending { background: color-mix(in srgb, #b45309 16%, transparent); color: #b45309; }
+.ks-badge--past_due, .ks-badge--pending, .ks-badge--review { background: color-mix(in srgb, #b45309 16%, transparent); color: #b45309; }
 .ks-badge--suspended, .ks-badge--cancelled, .ks-badge--failed { background: color-mix(in srgb, #b91c1c 14%, transparent); color: #b91c1c; }
 .ks-meter { display: block; height: 6px; margin-top: .3rem; border-radius: 999px; background: var(--kcs-surface-2); overflow: hidden; }
 .ks-meter b { display: block; height: 100%; background: var(--kcs-primary); }

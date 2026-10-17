@@ -44,13 +44,14 @@ $sums   = function ( $map ) {
 	return implode( ' + ', $out );
 };
 $old    = $flash[2] ?? array();
+$badges = array( 'invoices' => KS_Bank::count_waiting() );
 ?>
 <div class="ks-app">
 	<aside class="ks-side">
 		<a class="ks-logo" href="<?php echo esc_url( ks_platform_url() ); ?>"><span class="ks-logo__mark" aria-hidden="true">✚</span><?php echo esc_html( ks_get( 'platform_name' ) ); ?></a>
 		<nav aria-label="<?php esc_attr_e( 'Platform', 'kingdom-saas' ); ?>">
 			<?php foreach ( $tabs as $k => $t ) : ?>
-				<a href="<?php echo esc_url( add_query_arg( 'tab', $k, ks_platform_url( 'platform/' ) ) ); ?>"<?php echo $k === $tab ? ' aria-current="page"' : ''; ?>><span aria-hidden="true"><?php echo esc_html( $t[1] ); ?></span><?php echo esc_html( $t[0] ); ?></a>
+				<a href="<?php echo esc_url( add_query_arg( 'tab', $k, ks_platform_url( 'platform/' ) ) ); ?>"<?php echo $k === $tab ? ' aria-current="page"' : ''; ?>><span aria-hidden="true"><?php echo esc_html( $t[1] ); ?></span><?php echo esc_html( $t[0] ); ?><?php if ( ! empty( $badges[ $k ] ) ) : ?><em class="ks-count"><?php echo (int) $badges[ $k ]; ?></em><?php endif; ?></a>
 			<?php endforeach; ?>
 		</nav>
 		<a class="ks-side__out" href="<?php echo esc_url( wp_logout_url( ks_platform_url() ) ); ?>"><?php esc_html_e( 'Log out', 'kingdom-saas' ); ?></a>
@@ -64,6 +65,9 @@ $old    = $flash[2] ?? array();
 
 <?php if ( 'overview' === $tab ) : ?>
 		<?php $st = KS_Platform::stats(); ?>
+		<?php if ( $badges['invoices'] ) : ?>
+			<div class="ks-alert ks-alert--info"><a href="<?php echo esc_url( add_query_arg( 'tab', 'invoices', ks_platform_url( 'platform/' ) ) ); ?>"><?php /* translators: %d: count */ echo esc_html( sprintf( _n( '%d bank transfer is waiting for you to confirm.', '%d bank transfers are waiting for you to confirm.', $badges['invoices'], 'kingdom-saas' ), $badges['invoices'] ) ); ?> <?php esc_html_e( 'Review now →', 'kingdom-saas' ); ?></a></div>
+		<?php endif; ?>
 		<div class="ks-kpis">
 			<div class="ks-kpi"><span><?php esc_html_e( 'Churches', 'kingdom-saas' ); ?></span><strong><?php echo (int) $st['total']; ?></strong><small><?php echo (int) $st['by_status']['active']; ?> <?php esc_html_e( 'paying', 'kingdom-saas' ); ?> · <?php echo (int) $st['by_status']['trialing']; ?> <?php esc_html_e( 'on trial', 'kingdom-saas' ); ?></small></div>
 			<div class="ks-kpi"><span><?php esc_html_e( 'Monthly recurring revenue', 'kingdom-saas' ); ?></span><strong><?php echo esc_html( $sums( $st['mrr'] ) ); ?></strong><small><?php esc_html_e( 'from active plans', 'kingdom-saas' ); ?></small></div>
@@ -143,6 +147,41 @@ $old    = $flash[2] ?? array();
 		</form>
 
 <?php elseif ( 'invoices' === $tab ) : ?>
+		<?php
+		global $wpdb;
+		$waiting = $wpdb->get_results( 'SELECT * FROM ' . ks_table( 'invoices' ) . " WHERE status = 'review' ORDER BY id ASC LIMIT 50" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$reject  = function ( $inv ) use ( $f ) {
+			return '<details class="ks-reject"><summary class="ks-btn ks-btn--ghost ks-btn--sm">' . esc_html__( 'Reject', 'kingdom-saas' ) . '</summary><form method="post" class="ks-form">' . $f( 'invoice_reject', array( 'reference' => $inv->reference ) ) . '<label>' . esc_html__( 'Reason (emailed to the church)', 'kingdom-saas' ) . '<input name="reason" maxlength="500" placeholder="' . esc_attr__( 'We could not find this transfer in our account.', 'kingdom-saas' ) . '"></label><button class="ks-btn ks-btn--danger ks-btn--sm">' . esc_html__( 'Reject transfer', 'kingdom-saas' ) . '</button></form></details>';
+		};
+		?>
+		<div class="ks-card">
+			<h2><?php esc_html_e( 'Bank transfers waiting for you', 'kingdom-saas' ); ?></h2>
+			<?php if ( ! $waiting ) : ?><p class="ks-muted"><?php esc_html_e( 'Nothing to confirm. When a church says it has paid by bank transfer, it appears here and you get an email.', 'kingdom-saas' ); ?></p><?php endif; ?>
+			<div class="ks-transfers">
+				<?php foreach ( $waiting as $inv ) : ?>
+					<?php
+					$s     = KS_Tenants::get( $inv->blog_id );
+					$t     = KS_Bank::meta( $inv )['transfer'] ?? array();
+					$proof = KS_Bank::proof_url( $inv );
+					?>
+					<article class="ks-transfer">
+						<header><strong><?php echo esc_html( ks_money( $inv->amount, $inv->currency ) ); ?></strong><span><?php echo esc_html( ( $plans[ $inv->plan ]['name'] ?? $inv->plan ) . ' · ' . ( 'year' === $inv->billing_interval ? __( 'yearly', 'kingdom-saas' ) : __( 'monthly', 'kingdom-saas' ) ) ); ?></span></header>
+						<dl>
+							<div><dt><?php esc_html_e( 'Church', 'kingdom-saas' ); ?></dt><dd><?php echo esc_html( $s ? $s->church_name : '#' . $inv->blog_id ); ?><?php if ( $s ) : ?><small><?php echo esc_html( $s->owner_email ); ?></small><?php endif; ?></dd></div>
+							<div><dt><?php esc_html_e( 'Reference', 'kingdom-saas' ); ?></dt><dd><code><?php echo esc_html( $inv->reference ); ?></code></dd></div>
+							<?php if ( ! empty( $t['payer'] ) ) : ?><div><dt><?php esc_html_e( 'Sent by', 'kingdom-saas' ); ?></dt><dd><?php echo esc_html( $t['payer'] . ( $t['bank'] ? ' · ' . $t['bank'] : '' ) ); ?></dd></div><?php endif; ?>
+							<?php if ( ! empty( $t['date'] ) ) : ?><div><dt><?php esc_html_e( 'Date sent', 'kingdom-saas' ); ?></dt><dd><?php echo esc_html( date_i18n( 'j M Y', strtotime( $t['date'] ) ) ); ?></dd></div><?php endif; ?>
+							<?php if ( ! empty( $t['note'] ) ) : ?><div><dt><?php esc_html_e( 'Note', 'kingdom-saas' ); ?></dt><dd><?php echo esc_html( $t['note'] ); ?></dd></div><?php endif; ?>
+						</dl>
+						<div class="ks-actions">
+							<?php if ( $proof ) : ?><a class="ks-btn ks-btn--ghost ks-btn--sm" href="<?php echo esc_url( $proof ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View receipt', 'kingdom-saas' ); ?></a><?php endif; ?>
+							<form method="post" class="ks-inline" onsubmit="return confirm('<?php echo esc_js( __( 'Confirm this money is in your account? The church plan starts straight away.', 'kingdom-saas' ) ); ?>')"><?php echo $f( 'invoice_paid', array( 'reference' => $inv->reference ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="ks-btn ks-btn--sm"><?php esc_html_e( 'Confirm received', 'kingdom-saas' ); ?></button></form>
+							<?php echo $reject( $inv ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						</div>
+					</article>
+				<?php endforeach; ?>
+			</div>
+		</div>
 		<div class="ks-table">
 			<table>
 				<thead><tr><th><?php esc_html_e( 'Church', 'kingdom-saas' ); ?></th><th><?php esc_html_e( 'Plan', 'kingdom-saas' ); ?></th><th><?php esc_html_e( 'Amount', 'kingdom-saas' ); ?></th><th><?php esc_html_e( 'Status', 'kingdom-saas' ); ?></th><th></th></tr></thead>
@@ -154,7 +193,7 @@ $old    = $flash[2] ?? array();
 						<td data-label="<?php esc_attr_e( 'Plan', 'kingdom-saas' ); ?>"><?php echo esc_html( ( $plans[ $inv->plan ]['name'] ?? $inv->plan ) . ' · ' . $inv->billing_interval ); ?></td>
 						<td data-label="<?php esc_attr_e( 'Amount', 'kingdom-saas' ); ?>"><strong><?php echo esc_html( ks_money( $inv->amount, $inv->currency ) ); ?></strong><small><?php echo esc_html( $inv->gateway ); ?></small></td>
 						<td data-label="<?php esc_attr_e( 'Status', 'kingdom-saas' ); ?>"><?php echo wp_kses_post( ks_badge( $inv->status ) ); ?></td>
-						<td><?php if ( 'pending' === $inv->status ) : ?><form method="post" class="ks-inline"><?php echo $f( 'invoice_paid', array( 'reference' => $inv->reference ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="ks-btn ks-btn--sm"><?php esc_html_e( 'Mark paid', 'kingdom-saas' ); ?></button></form><?php endif; ?></td>
+						<td><?php if ( in_array( $inv->status, array( 'pending', 'review' ), true ) ) : ?><form method="post" class="ks-inline" onsubmit="return confirm('<?php echo esc_js( __( 'Mark this invoice as paid? The church plan starts straight away.', 'kingdom-saas' ) ); ?>')"><?php echo $f( 'invoice_paid', array( 'reference' => $inv->reference ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="ks-btn ks-btn--sm"><?php esc_html_e( 'Mark paid', 'kingdom-saas' ); ?></button></form><?php endif; ?></td>
 					</tr>
 				<?php endforeach; ?>
 				</tbody>
@@ -242,11 +281,31 @@ $old    = $flash[2] ?? array();
 					<label><?php esc_html_e( 'Paystack secret key', 'kingdom-saas' ); ?><input type="password" name="paystack_secret" value="<?php echo esc_attr( ks_get( 'paystack_secret' ) ); ?>" autocomplete="off"></label>
 					<label><?php esc_html_e( 'Stripe secret key', 'kingdom-saas' ); ?><input type="password" name="stripe_secret" value="<?php echo esc_attr( ks_get( 'stripe_secret' ) ); ?>" autocomplete="off"></label>
 					<label><?php esc_html_e( 'Stripe webhook signing secret', 'kingdom-saas' ); ?><input type="password" name="stripe_webhook" value="<?php echo esc_attr( ks_get( 'stripe_webhook' ) ); ?>" autocomplete="off"></label>
-					<label><?php esc_html_e( 'Bank transfer details (shown to churches)', 'kingdom-saas' ); ?><textarea name="bank_details" rows="3"><?php echo esc_textarea( ks_get( 'bank_details' ) ); ?></textarea></label>
 					<label><?php esc_html_e( 'Cloudflare Turnstile site key (bot protection on sign-up, optional)', 'kingdom-saas' ); ?><input name="turnstile_site" value="<?php echo esc_attr( ks_get( 'turnstile_site' ) ); ?>" autocomplete="off"></label>
 					<label><?php esc_html_e( 'Cloudflare Turnstile secret key', 'kingdom-saas' ); ?><input type="password" name="turnstile_secret" value="<?php echo esc_attr( ks_get( 'turnstile_secret' ) ); ?>" autocomplete="off"></label>
 					<label class="ks-check"><input type="checkbox" name="test_mode" value="1" <?php checked( '1', ks_get( 'test_mode' ) ); ?>> <?php esc_html_e( 'Test mode (adds a simulated “Test payment” option)', 'kingdom-saas' ); ?></label>
 					<p class="ks-small"><?php esc_html_e( 'Webhooks:', 'kingdom-saas' ); ?> <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/paystack' ) ); ?></code> · <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/stripe' ) ); ?></code></p>
+				</fieldset>
+				<fieldset class="ks-card ks-form ks-span-2">
+					<legend><?php esc_html_e( 'Bank transfer', 'kingdom-saas' ); ?></legend>
+					<p class="ks-small"><?php esc_html_e( 'Churches that choose bank transfer see these accounts and their invoice reference, then press “I have made this transfer”. You get an email and confirm it in Payments. Add up to 3 accounts; leave all empty to turn bank transfer off. An account with no currency is shown for every currency.', 'kingdom-saas' ); ?></p>
+					<?php $ks_accounts = KS_Bank::accounts(); ?>
+					<?php for ( $i = 0; $i < KS_Bank::MAX_ACCOUNTS; $i++ ) : ?>
+						<?php $a = $ks_accounts[ $i ] ?? array_fill_keys( array( 'bank', 'name', 'number', 'currency', 'sort_code', 'iban', 'swift' ), '' ); ?>
+						<div class="ks-account">
+							<strong><?php /* translators: %d: number */ printf( esc_html__( 'Account %d', 'kingdom-saas' ), (int) $i + 1 ); ?></strong>
+							<div class="ks-grid ks-grid--4">
+								<label><?php esc_html_e( 'Bank name', 'kingdom-saas' ); ?><input name="bank_accounts[<?php echo (int) $i; ?>][bank]" value="<?php echo esc_attr( $a['bank'] ); ?>"></label>
+								<label><?php esc_html_e( 'Account name', 'kingdom-saas' ); ?><input name="bank_accounts[<?php echo (int) $i; ?>][name]" value="<?php echo esc_attr( $a['name'] ); ?>"></label>
+								<label><?php esc_html_e( 'Account number', 'kingdom-saas' ); ?><input name="bank_accounts[<?php echo (int) $i; ?>][number]" value="<?php echo esc_attr( $a['number'] ); ?>" autocomplete="off"></label>
+								<label><?php esc_html_e( 'Currency', 'kingdom-saas' ); ?><select name="bank_accounts[<?php echo (int) $i; ?>][currency]"><option value=""><?php esc_html_e( 'Any', 'kingdom-saas' ); ?></option><?php foreach ( array_unique( array_filter( array( 'USD', strtoupper( (string) ks_get( 'local_currency' ) ), $a['currency'] ) ) ) as $c ) : ?><option value="<?php echo esc_attr( $c ); ?>" <?php selected( $a['currency'], $c ); ?>><?php echo esc_html( $c ); ?></option><?php endforeach; ?></select></label>
+								<label><?php esc_html_e( 'Sort code / routing (optional)', 'kingdom-saas' ); ?><input name="bank_accounts[<?php echo (int) $i; ?>][sort_code]" value="<?php echo esc_attr( $a['sort_code'] ); ?>"></label>
+								<label><?php esc_html_e( 'IBAN (optional)', 'kingdom-saas' ); ?><input name="bank_accounts[<?php echo (int) $i; ?>][iban]" value="<?php echo esc_attr( $a['iban'] ); ?>"></label>
+								<label><?php esc_html_e( 'SWIFT / BIC (optional)', 'kingdom-saas' ); ?><input name="bank_accounts[<?php echo (int) $i; ?>][swift]" value="<?php echo esc_attr( $a['swift'] ); ?>"></label>
+							</div>
+						</div>
+					<?php endfor; ?>
+					<label><?php esc_html_e( 'Extra note for churches (optional)', 'kingdom-saas' ); ?><textarea name="bank_details" rows="2" placeholder="<?php esc_attr_e( 'e.g. Transfers are confirmed within one working day.', 'kingdom-saas' ); ?>"><?php echo esc_textarea( ks_get( 'bank_details' ) ); ?></textarea></label>
 				</fieldset>
 			</div>
 			<button class="ks-btn"><?php esc_html_e( 'Save settings', 'kingdom-saas' ); ?></button>

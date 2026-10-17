@@ -192,6 +192,14 @@ class KS_Platform {
 					$msg = __( 'Payment confirmed and the church notified.', 'kingdom-saas' );
 				}
 				break;
+			case 'invoice_reject':
+				$inv = KS_Billing::invoice( sanitize_text_field( $d['reference'] ?? '' ) );
+				if ( $inv && KS_Bank::reject( $inv, (string) ( $d['reason'] ?? '' ) ) ) {
+					$msg = __( 'Transfer rejected. The church has been emailed.', 'kingdom-saas' );
+				} else {
+					self::back( __( 'This payment was already handled.', 'kingdom-saas' ), 'error', $to );
+				}
+				break;
 			case 'domain_verify':
 				$r   = KS_Domains::verify( absint( $d['id'] ?? 0 ) );
 				$msg = is_wp_error( $r ) ? $r->get_error_message() : __( 'Domain connected.', 'kingdom-saas' );
@@ -235,6 +243,7 @@ class KS_Platform {
 				if ( isset( $vals['brand_color'] ) ) {
 					$vals['brand_color'] = sanitize_hex_color( $vals['brand_color'] ) ? sanitize_hex_color( $vals['brand_color'] ) : '#5b2a86';
 				}
+				$vals['bank_accounts'] = KS_Bank::sanitize_accounts( $d['bank_accounts'] ?? array() );
 				ks_set( $vals );
 				$msg = __( 'Settings saved.', 'kingdom-saas' );
 				break;

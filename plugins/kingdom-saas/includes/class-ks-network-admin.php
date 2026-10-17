@@ -179,7 +179,7 @@ class KS_Network_Admin {
 			$out[] = array( 'fail', __( 'Your home page is not showing the platform landing page', 'kingdom-saas' ), __( 'Usually an old cached copy: purge your cache (LiteSpeed Cache → Purge All, and your host\'s cache, e.g. hPanel → Cache Manager). Also check Kingdom Cloud is network-activated above.', 'kingdom-saas' ) );
 		}
 
-		$keys  = ks_get( 'paystack_secret' ) || ks_get( 'stripe_secret' ) || ks_get( 'bank_details' );
+		$keys  = ks_get( 'paystack_secret' ) || ks_get( 'stripe_secret' ) || KS_Bank::available();
 		$out[] = $keys
 			? array( 'ok', __( 'A payment method is set up', 'kingdom-saas' ), '' )
 			: array( 'warn', __( 'No payment method yet', 'kingdom-saas' ), __( 'Add Paystack or Stripe keys, or bank details, in Platform → Settings.', 'kingdom-saas' ) );

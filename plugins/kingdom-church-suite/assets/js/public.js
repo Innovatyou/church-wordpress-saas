@@ -225,6 +225,23 @@
 		setInterval(poll, 120000);
 	}
 
+	/* Copy buttons (bank details, references) --------------------------- */
+	document.addEventListener('click', function (e) {
+		var btn = e.target.closest && e.target.closest('[data-kcs-copy]');
+		if (!btn) { return; }
+		var text = btn.dataset.kcsCopy, label = btn.textContent;
+		var done = function () { btn.textContent = btn.dataset.done || 'Copied'; btn.classList.add('is-done'); setTimeout(function () { btn.textContent = label; btn.classList.remove('is-done'); }, 1600); };
+		if (navigator.clipboard && window.isSecureContext) {
+			navigator.clipboard.writeText(text).then(done).catch(function () {});
+		} else {
+			var ta = document.createElement('textarea');
+			ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+			document.body.appendChild(ta); ta.select();
+			try { document.execCommand('copy'); done(); } catch (err) {}
+			document.body.removeChild(ta);
+		}
+	});
+
 	/* Payment status auto-refresh --------------------------------------- */
 	var status = document.querySelector('[data-kcs-payment-status]');
 	if (status && (status.dataset.status === 'pending' || status.dataset.status === 'review') && !/kcs_offline/.test(location.search)) {

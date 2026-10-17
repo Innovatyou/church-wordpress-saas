@@ -161,6 +161,16 @@ abstract class KCS_Gateway {
 	}
 
 	/**
+	 * Is this method offered for a purpose (partnership, tithe, offering…)?
+	 *
+	 * @param string $purpose Purpose.
+	 * @return bool
+	 */
+	public function allows_purpose( $purpose ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+		return true;
+	}
+
+	/**
 	 * Amount in the smallest currency unit.
 	 *
 	 * @param float  $amount   Amount.

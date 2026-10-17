@@ -16,7 +16,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$gateways = KCS_Payments::enabled_gateways();
+$gateways = array_filter( KCS_Payments::enabled_gateways(), function ( $g ) {
+	return $g->allows_purpose( 'tithe' );
+} );
 // The featured method (Paystack by default) is listed first and preselected.
 $featured = (string) kcs_get_option( 'tithe_gateway', 'paystack' );
 $star     = null;

@@ -32,12 +32,64 @@ $date     = function ( $gmt ) {
 	<div class="ks-banner ks-banner--suspended"><span><?php esc_html_e( 'Your website is paused for visitors. Choose a plan below and it comes straight back online.', 'kingdom-saas' ); ?></span></div>
 <?php endif; ?>
 
-<?php if ( $pending && 'pending' === $pending->status && 'bank' === $pending->gateway && (int) $pending->blog_id === (int) $sub->blog_id ) : ?>
+<?php
+if ( ! $pending || 'bank' !== $pending->gateway || (int) $pending->blog_id !== (int) $sub->blog_id || ! in_array( $pending->status, array( 'pending', 'review' ), true ) ) {
+	$pending = KS_Bank::open_invoice( $sub->blog_id );
+}
+?>
+<?php if ( $pending && 'review' === $pending->status ) : ?>
+	<?php $ks_t = KS_Bank::meta( $pending )['transfer'] ?? array(); ?>
+	<section class="kca-card ks-bank">
+		<h3><?php esc_html_e( 'We are checking your bank transfer', 'kingdom-saas' ); ?> <?php echo wp_kses_post( ks_badge( 'review' ) ); ?></h3>
+		<?php /* translators: 1: amount, 2: reference */ ?>
+		<p><?php printf( esc_html__( 'You told us you sent %1$s (reference %2$s). Your plan starts as soon as we confirm it — we will email you.', 'kingdom-saas' ), '<strong>' . esc_html( ks_money( $pending->amount, $pending->currency ) ) . '</strong>', '<code>' . esc_html( $pending->reference ) . '</code>' ); ?></p>
+		<?php if ( $ks_t ) : ?><p class="kcs-muted"><?php /* translators: 1: payer, 2: date */ printf( esc_html__( 'Sent by %1$s on %2$s.', 'kingdom-saas' ), esc_html( $ks_t['payer'] ), esc_html( date_i18n( get_option( 'date_format' ), strtotime( $ks_t['date'] ) ) ) ); ?></p><?php endif; ?>
+	</section>
+<?php elseif ( $pending ) : ?>
+	<?php
+	$ks_accounts = KS_Bank::accounts_for( $pending->currency );
+	$ks_copy     = function ( $value ) {
+		return '<button type="button" class="kcs-copy" data-kcs-copy="' . esc_attr( $value ) . '" data-done="' . esc_attr__( 'Copied', 'kingdom-saas' ) . '">' . esc_html__( 'Copy', 'kingdom-saas' ) . '</button>';
+	};
+	?>
 	<section class="kca-card ks-bank">
 		<h3><?php esc_html_e( 'Pay by bank transfer', 'kingdom-saas' ); ?></h3>
-		<?php /* translators: 1: amount, 2: reference */ ?>
-		<p><?php printf( esc_html__( 'Transfer %1$s and use %2$s as the payment reference. Your plan starts as soon as we confirm it.', 'kingdom-saas' ), '<strong>' . esc_html( ks_money( $pending->amount, $pending->currency ) ) . '</strong>', '<code>' . esc_html( $pending->reference ) . '</code>' ); ?></p>
-		<pre class="ks-pre"><?php echo esc_html( ks_get( 'bank_details' ) ); ?></pre>
+		<p><?php esc_html_e( 'Send the exact amount to the account below and use the reference as the transfer description. Then tell us below — your plan starts as soon as we confirm it.', 'kingdom-saas' ); ?></p>
+		<dl class="kcs-transfer__sum">
+			<div><dt><?php esc_html_e( 'Amount', 'kingdom-saas' ); ?></dt><dd><strong><?php echo esc_html( ks_money( $pending->amount, $pending->currency ) ); ?></strong> <?php echo $ks_copy( number_format( (float) $pending->amount, 2, '.', '' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></dd></div>
+			<div><dt><?php esc_html_e( 'Reference / description', 'kingdom-saas' ); ?></dt><dd><code><?php echo esc_html( $pending->reference ); ?></code> <?php echo $ks_copy( $pending->reference ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></dd></div>
+		</dl>
+		<?php if ( $ks_accounts ) : ?>
+			<div class="kcs-transfer__accounts">
+				<?php foreach ( $ks_accounts as $ks_a ) : ?>
+					<div class="kcs-transfer__account">
+						<p class="kcs-transfer__bank"><strong><?php echo esc_html( $ks_a['bank'] ); ?></strong><?php if ( $ks_a['currency'] ) : ?> <span class="kcs-badge"><?php echo esc_html( $ks_a['currency'] ); ?></span><?php endif; ?></p>
+						<dl>
+							<?php if ( $ks_a['name'] ) : ?><div><dt><?php esc_html_e( 'Account name', 'kingdom-saas' ); ?></dt><dd><?php echo esc_html( $ks_a['name'] ); ?></dd></div><?php endif; ?>
+							<div><dt><?php esc_html_e( 'Account number', 'kingdom-saas' ); ?></dt><dd><strong class="kcs-transfer__num"><?php echo esc_html( $ks_a['number'] ); ?></strong> <?php echo $ks_copy( $ks_a['number'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></dd></div>
+							<?php if ( $ks_a['sort_code'] ) : ?><div><dt><?php esc_html_e( 'Sort code / routing', 'kingdom-saas' ); ?></dt><dd><?php echo esc_html( $ks_a['sort_code'] ); ?></dd></div><?php endif; ?>
+							<?php if ( $ks_a['iban'] && $ks_a['iban'] !== $ks_a['number'] ) : ?><div><dt>IBAN</dt><dd><?php echo esc_html( $ks_a['iban'] ); ?> <?php echo $ks_copy( $ks_a['iban'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></dd></div><?php endif; ?>
+							<?php if ( $ks_a['swift'] ) : ?><div><dt>SWIFT / BIC</dt><dd><?php echo esc_html( $ks_a['swift'] ); ?></dd></div><?php endif; ?>
+						</dl>
+					</div>
+				<?php endforeach; ?>
+			</div>
+		<?php endif; ?>
+		<?php if ( ks_get( 'bank_details' ) ) : ?><pre class="ks-pre"><?php echo esc_html( ks_get( 'bank_details' ) ); ?></pre><?php endif; ?>
+
+		<form method="post" class="kcs-form kcs-transfer__form" enctype="multipart/form-data">
+			<?php echo call_user_func( $fields, 'bank_notice' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<input type="hidden" name="reference" value="<?php echo esc_attr( $pending->reference ); ?>">
+			<h3><?php esc_html_e( 'Done the transfer? Let us know', 'kingdom-saas' ); ?></h3>
+			<div class="kcs-grid-2">
+				<label><?php esc_html_e( 'Name on the sending account', 'kingdom-saas' ); ?><input name="payer" required maxlength="120" value="<?php echo esc_attr( $sub->church_name ); ?>"></label>
+				<label><?php esc_html_e( 'Your bank (optional)', 'kingdom-saas' ); ?><input name="payer_bank" maxlength="120"></label>
+				<label><?php esc_html_e( 'Date sent', 'kingdom-saas' ); ?><input type="date" name="paid_on" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>" max="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>"></label>
+				<label><?php esc_html_e( 'Receipt or screenshot (optional)', 'kingdom-saas' ); ?><input type="file" name="proof" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"><small class="kcs-muted"><?php esc_html_e( 'JPG, PNG or PDF, up to 5 MB.', 'kingdom-saas' ); ?></small></label>
+			</div>
+			<label><?php esc_html_e( 'Note (optional)', 'kingdom-saas' ); ?><textarea name="transfer_note" rows="2" maxlength="1000"></textarea></label>
+			<button class="kcs-btn kcs-btn--lg"><?php esc_html_e( 'I have made this transfer', 'kingdom-saas' ); ?></button>
+		</form>
 	</section>
 <?php endif; ?>
 

@@ -542,7 +542,12 @@ class KCS_Admin {
 								if ( 'bank_transfer' !== $p->gateway ) {
 									$links[] = $mk( 'verify', __( 'Re-verify', 'kingdom-church-suite' ) );
 								}
-								$links[] = $mk( 'complete', __( 'Mark paid', 'kingdom-church-suite' ), __( 'Mark this payment as received?', 'kingdom-church-suite' ) );
+								if ( KCS_Transfers::can_confirm() ) {
+									$links[] = $mk( 'complete', __( 'Mark paid', 'kingdom-church-suite' ), __( 'Mark this payment as received?', 'kingdom-church-suite' ) );
+								}
+								if ( 'bank_transfer' === $p->gateway && KCS_Transfers::proof_url( $p ) && KCS_Transfers::can_confirm() ) {
+									$links[] = '<a class="button button-small" target="_blank" rel="noopener" href="' . esc_url( KCS_Transfers::proof_url( $p ) ) . '">' . esc_html__( 'View proof', 'kingdom-church-suite' ) . '</a>';
+								}
 							}
 							if ( 'completed' === $p->status ) {
 								$links[] = $mk( 'refunded', __( 'Mark refunded', 'kingdom-church-suite' ), __( 'Mark as refunded? (Refund it in your gateway dashboard first.)', 'kingdom-church-suite' ) );
@@ -600,7 +605,10 @@ class KCS_Admin {
 				self::back( 'kcs-payments', sprintf( __( 'Payment status: %s', 'kingdom-church-suite' ), $status ) );
 				break;
 			case 'complete':
-				KCS_Payments::complete( $p, $p->gateway_txn_id, (float) $p->amount, $p->currency, true );
+				$result = KCS_Transfers::confirm( $p );
+				if ( is_wp_error( $result ) ) {
+					self::back( 'kcs-payments', $result->get_error_message(), array(), 'error' );
+				}
 				self::back( 'kcs-payments', __( 'Payment marked as completed. Receipt sent.', 'kingdom-church-suite' ) );
 				break;
 			case 'refunded':

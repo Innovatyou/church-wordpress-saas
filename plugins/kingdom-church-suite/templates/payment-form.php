@@ -19,6 +19,11 @@
 defined( 'ABSPATH' ) || exit;
 
 $gateways   = KCS_Payments::enabled_gateways();
+// Some methods (such as bank transfer) can be limited to partnership or to giving.
+$for        = 'partnership' === $context ? 'partnership' : ( $purpose ? $purpose : 'offering' );
+$gateways   = array_filter( $gateways, function ( $g ) use ( $for ) {
+	return $g->allows_purpose( $for );
+} );
 $currencies = KCS_Payments::allowed_currencies();
 $purposes   = kcs_giving_purposes();
 $uid        = 'kcs-pay-' . wp_rand( 1000, 99999 );

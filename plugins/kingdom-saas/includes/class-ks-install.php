@@ -88,6 +88,7 @@ class KS_Install {
 			created_at datetime NOT NULL,
 			paid_at datetime NULL,
 			period_end datetime NULL,
+			meta longtext NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY reference (reference),
 			KEY blog_id (blog_id),

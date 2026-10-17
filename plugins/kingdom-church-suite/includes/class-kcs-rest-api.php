@@ -207,7 +207,11 @@ class KCS_REST_API {
 	 */
 	public static function get_gateways( $req ) {
 		$out = array();
+		$purpose = sanitize_key( (string) $req['purpose'] );
 		foreach ( KCS_Payments::enabled_gateways( strtoupper( (string) $req['currency'] ) ) as $g ) {
+			if ( $purpose && ! $g->allows_purpose( $purpose ) ) {
+				continue;
+			}
 			$out[] = array( 'id' => $g->id, 'title' => $g->display_title() );
 		}
 		return rest_ensure_response( $out );
