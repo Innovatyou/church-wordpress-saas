@@ -8,7 +8,8 @@
  *     define( 'SUNRISE', true );
  *
  * It runs before WordPress picks a site and:
- * 1. answers /.well-known/ks-domain-check on any host with that domain's token (used to verify DNS);
+ * 1. answers /.well-known/ks-domain-check on any host with that domain's token (used to verify DNS),
+ *    and /.well-known/ks-probe (used by the setup check to test church subdomains);
  * 2. redirects www.<domain> ↔ <domain> to the address the church connected;
  * 3. redirects a church's original platform subdomain to its custom domain, and a disconnected
  *    custom domain back to the church's platform subdomain;
@@ -36,6 +37,14 @@ defined( 'ABSPATH' ) || exit;
 	$network = defined( 'DOMAIN_CURRENT_SITE' ) ? strtolower( DOMAIN_CURRENT_SITE ) : '';
 	if ( $network && ! defined( 'COOKIE_DOMAIN' ) && $host !== $network && substr( $host, -strlen( '.' . $network ) ) !== '.' . $network ) {
 		define( 'COOKIE_DOMAIN', '' );
+	}
+
+	// Setup check (Network Admin → Kingdom Cloud): proves a random subdomain reaches this WordPress.
+	if ( '/.well-known/ks-probe' === $path ) {
+		header( 'Content-Type: text/plain; charset=utf-8' );
+		header( 'Cache-Control: no-store' );
+		echo 'ks-probe-ok';
+		exit;
 	}
 
 	if ( '/.well-known/ks-domain-check' === $path ) {

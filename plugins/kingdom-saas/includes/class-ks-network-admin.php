@@ -19,6 +19,24 @@ class KS_Network_Admin {
 	public static function init() {
 		add_action( 'network_admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_bar_menu', array( __CLASS__, 'admin_bar' ), 35 );
+		add_action( 'admin_init', array( __CLASS__, 'refresh_sunrise' ) );
+	}
+
+	/**
+	 * Keep wp-content/sunrise.php in step with the plugin after updates (only our own file).
+	 */
+	public static function refresh_sunrise() {
+		if ( ! is_super_admin() ) {
+			return;
+		}
+		$live   = WP_CONTENT_DIR . '/sunrise.php';
+		$bundle = KS_PATH . 'deploy/sunrise.php';
+		if ( ! file_exists( $live ) || ! wp_is_writable( $live ) || md5_file( $live ) === md5_file( $bundle ) ) {
+			return;
+		}
+		if ( false !== strpos( (string) file_get_contents( $live, false, null, 0, 400 ), 'Kingdom Cloud — custom domain helper' ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			@copy( $bundle, $live ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		}
 	}
 
 	/**
@@ -79,14 +97,23 @@ class KS_Network_Admin {
 			? array( 'ok', __( 'Custom domains are set up (sunrise.php)', 'kingdom-saas' ), '' )
 			: array( 'warn', __( 'Custom domains are not set up yet', 'kingdom-saas' ), __( 'Copy wp-content/plugins/kingdom-saas/deploy/sunrise.php to wp-content/sunrise.php and add define( \'SUNRISE\', true ); to wp-config.php.', 'kingdom-saas' ) );
 
-		// Wildcard DNS: a random subdomain should resolve to the same server as the platform.
-		if ( $base && function_exists( 'gethostbyname' ) && ! preg_match( '/(^|\.)localhost$/', $base ) ) {
+		// Church subdomains: DNS, then whether the host really sends them to WordPress, then HTTPS.
+		if ( $base && ! preg_match( '/(^|\.)localhost$/', $base ) ) {
 			$probe = 'ks-check-' . strtolower( wp_generate_password( 8, false, false ) ) . '.' . $base;
-			$ip    = gethostbyname( $probe );
-			$main  = gethostbyname( $base );
-			$out[] = $ip !== $probe && $ip === $main
-				? array( 'ok', __( 'Church subdomains reach this server (wildcard DNS)', 'kingdom-saas' ), '' )
-				: array( 'fail', __( 'Church subdomains do not reach this server yet', 'kingdom-saas' ), sprintf( /* translators: %s: domain */ __( 'Add a DNS A record for *.%s pointing to your server IP, and on shared hosting a "*" subdomain pointing to your WordPress folder. DNS can take a few hours.', 'kingdom-saas' ), $base ) );
+			$dns   = function_exists( 'gethostbyname' ) && gethostbyname( $probe ) !== $probe;
+			$http  = wp_remote_get( 'http://' . $probe . '/.well-known/ks-probe', array( 'timeout' => 10, 'sslverify' => false, 'redirection' => 3 ) );
+			$works = ! is_wp_error( $http ) && false !== strpos( (string) wp_remote_retrieve_body( $http ), 'ks-probe-ok' );
+			if ( $works ) {
+				$out[] = array( 'ok', __( 'Church subdomains reach this WordPress', 'kingdom-saas' ), '' );
+				$tls   = wp_remote_get( 'https://' . $probe . '/.well-known/ks-probe', array( 'timeout' => 10, 'sslverify' => true, 'redirection' => 0 ) );
+				$out[] = ! is_wp_error( $tls ) && false !== strpos( (string) wp_remote_retrieve_body( $tls ), 'ks-probe-ok' )
+					? array( 'ok', __( 'Church subdomains have a valid HTTPS certificate', 'kingdom-saas' ), '' )
+					: array( 'warn', __( 'Church subdomains have no valid HTTPS certificate yet', 'kingdom-saas' ), sprintf( /* translators: %s: domain */ __( 'Your SSL covers %s and www only. Use a certificate that also covers *.%s, for example free Cloudflare (proxied "*" DNS record, SSL mode "Full"), or untick HTTPS in Platform → Settings until then.', 'kingdom-saas' ), $base, $base ) );
+			} elseif ( $dns ) {
+				$out[] = array( 'fail', __( 'Church subdomains reach your server, but not this WordPress', 'kingdom-saas' ), sprintf( /* translators: %s: domain */ __( 'DNS is correct. Your hosting must also send every subdomain (*.%s) to this WordPress folder (a "wildcard subdomain" or server alias). If the hosting panel does not accept "*", ask your host\'s support to add it. If the host cannot, use a VPS.', 'kingdom-saas' ), $base ) );
+			} else {
+				$out[] = array( 'fail', __( 'Church subdomains do not reach this server yet', 'kingdom-saas' ), sprintf( /* translators: %s: domain */ __( 'Add a DNS A record named "*" (for *.%s) pointing to your server IP. DNS can take a few hours.', 'kingdom-saas' ), $base ) );
+			}
 		}
 
 		// The platform home page should be the sales landing page (not a cached church page).
