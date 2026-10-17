@@ -67,7 +67,7 @@ class KCS_Prayer {
 				KCS_Email::admin_recipients(),
 				/* translators: %s: name */
 				sprintf( __( 'New prayer request from %s', 'kingdom-church-suite' ), $name ? $name : __( 'Anonymous', 'kingdom-church-suite' ) ),
-				'<p>' . nl2br( esc_html( $request ) ) . '</p><p>' . esc_html( $email ) . ' ' . esc_html( $data['phone'] ?? '' ) . '</p><p><a class="btn" href="' . esc_url( admin_url( 'admin.php?page=kcs-prayer' ) ) . '">' . esc_html__( 'View requests', 'kingdom-church-suite' ) . '</a></p>'
+				'<p>' . nl2br( esc_html( $request ) ) . '</p><p>' . esc_html( $email ) . ' ' . esc_html( $data['phone'] ?? '' ) . '</p><p><a class="btn" href="' . esc_url( KCS_Church_Admin::url( 'prayers' ) ) . '">' . esc_html__( 'View requests', 'kingdom-church-suite' ) . '</a></p>'
 			);
 		}
 		do_action( 'kcs_prayer_created', $id );

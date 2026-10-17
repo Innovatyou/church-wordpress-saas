@@ -28,6 +28,12 @@ function kingdom_customize_register( $wp ) {
 			'image'    => 'esc_url_raw',
 			'number'   => 'absint',
 		);
+		if ( in_array( $type, array( 'select', 'radio' ), true ) ) {
+			// Only the listed choices are accepted (values can end up in the page's CSS).
+			$sanitize[ $type ] = function ( $value ) use ( $choices, $default ) {
+				return array_key_exists( (string) $value, (array) $choices ) ? (string) $value : $default;
+			};
+		}
 		$wp->add_setting(
 			$id,
 			array(
@@ -104,14 +110,21 @@ function kingdom_customize_register( $wp ) {
 	$add( 'kingdom_images', 'kingdom_gallery_title', __( 'Gallery title', 'kingdom' ), 'text', __( 'Life at church', 'kingdom' ) );
 
 	// Colours & typography.
-	$fonts = array_combine( array_keys( kingdom_fonts() ), array_keys( kingdom_fonts() ) );
+	$pairs = array_map(
+		function ( $p ) {
+			return $p[0];
+		},
+		kingdom_font_pairs()
+	);
 	$add( 'kingdom_colors', 'kingdom_color_primary', __( 'Primary colour', 'kingdom' ), 'color', '#5b2a86' );
 	$add( 'kingdom_colors', 'kingdom_color_accent', __( 'Accent colour', 'kingdom' ), 'color', '#f4a62a' );
 	$add( 'kingdom_colors', 'kingdom_color_dark', __( 'Dark (footer) colour', 'kingdom' ), 'color', '#16121c' );
 	$add( 'kingdom_colors', 'kingdom_color_scheme', __( 'Default colour scheme', 'kingdom' ), 'select', 'light', array( 'light' => __( 'Light', 'kingdom' ), 'dark' => __( 'Dark', 'kingdom' ), 'auto' => __( 'Follow device', 'kingdom' ) ) );
 	$add( 'kingdom_colors', 'kingdom_dark_toggle', __( 'Show dark-mode toggle', 'kingdom' ), 'checkbox', true );
-	$add( 'kingdom_colors', 'kingdom_font_heading', __( 'Heading font', 'kingdom' ), 'select', 'Playfair Display', $fonts );
-	$add( 'kingdom_colors', 'kingdom_font_body', __( 'Body font', 'kingdom' ), 'select', 'Inter', $fonts );
+	$add( 'kingdom_colors', 'kingdom_font_pair', __( 'Church fonts (ready-made pairing)', 'kingdom' ), 'select', 'custom', $pairs );
+	$add( 'kingdom_colors', 'kingdom_font_heading', __( 'Heading font (Custom pairing)', 'kingdom' ), 'select', 'Playfair Display', kingdom_font_choices( true ) );
+	$add( 'kingdom_colors', 'kingdom_font_body', __( 'Body font (Custom pairing)', 'kingdom' ), 'select', 'Inter', kingdom_font_choices( false ) );
+	$add( 'kingdom_colors', 'kingdom_font_source', __( 'Load fonts from', 'kingdom' ), 'select', 'google', array( 'google' => __( 'Google Fonts (all fonts above)', 'kingdom' ), 'system' => __( 'Device fonts only (fastest, nothing loaded from Google)', 'kingdom' ) ) );
 	$add( 'kingdom_colors', 'kingdom_radius', __( 'Corner style', 'kingdom' ), 'select', 'rounded', array( 'sharp' => __( 'Sharp', 'kingdom' ), 'rounded' => __( 'Rounded', 'kingdom' ), 'pill' => __( 'Extra round', 'kingdom' ) ) );
 	$add( 'kingdom_colors', 'kingdom_container', __( 'Container width (px)', 'kingdom' ), 'number', 1200 );
 
@@ -235,6 +248,10 @@ function kingdom_url( $mod, $template = '', $fallback = '' ) {
 	if ( $url ) {
 		return $url;
 	}
+	static $found = array();
+	if ( $template && isset( $found[ $template ] ) ) {
+		return $found[ $template ] ? $found[ $template ] : ( $fallback ? $fallback : home_url( '/' ) );
+	}
 	if ( $template ) {
 		$pages = get_posts(
 			array(
@@ -245,8 +262,9 @@ function kingdom_url( $mod, $template = '', $fallback = '' ) {
 				'fields'         => 'ids',
 			)
 		);
-		if ( $pages ) {
-			return get_permalink( $pages[0] );
+		$found[ $template ] = $pages ? get_permalink( $pages[0] ) : '';
+		if ( $found[ $template ] ) {
+			return $found[ $template ];
 		}
 	}
 	return $fallback ? $fallback : home_url( '/' );

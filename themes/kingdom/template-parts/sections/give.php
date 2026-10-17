@@ -7,6 +7,11 @@
  * @package Kingdom
  */
 
+// Needs the Kingdom Church Suite plugin (plans, payments, prayer and live stream).
+if ( ! kingdom_plugin_active() ) {
+	return;
+}
+
 $kingdom_args = wp_parse_args( $args ?? array(), array( 'purpose' => '' ) );
 ?>
 <section class="k-section k-give">

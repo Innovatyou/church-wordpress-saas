@@ -13,7 +13,13 @@ kingdom_page_header();
 ?>
 <section class="k-section k-section--tight">
 	<div class="k-container">
-		<?php kingdom_feature( 'kcs_livestream', '[kcs_livestream chat="yes"]' ); ?>
+		<?php
+		if ( kingdom_plugin_active() ) {
+			kingdom_feature( 'kcs_livestream', '[kcs_livestream chat="yes"]' );
+		} else {
+			kingdom_section( 'youtube-live' ); // Theme-only sites: the theme's own YouTube live player.
+		}
+		?>
 		<?php kingdom_section( 'page-content', array( 'narrow' => false ) ); ?>
 	</div>
 </section>

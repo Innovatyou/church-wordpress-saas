@@ -45,6 +45,7 @@ class KCS_Features {
 			array(
 				'post_type'      => 'kcs_sermon',
 				'posts_per_page' => 100,
+				'has_password'   => false,
 				'meta_query'     => array( array( 'key' => '_kcs_audio_url', 'value' => '', 'compare' => '!=' ) ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 			)
 		);
@@ -111,8 +112,12 @@ class KCS_Features {
 			return;
 		}
 		$utc   = new DateTimeZone( 'UTC' );
-		$s     = ( new DateTimeImmutable( $start, $tz ) )->setTimezone( $utc );
-		$e     = $end ? ( new DateTimeImmutable( $end, $tz ) )->setTimezone( $utc ) : $s->modify( '+2 hours' );
+		try {
+			$s = ( new DateTimeImmutable( $start, $tz ) )->setTimezone( $utc );
+			$e = $end ? ( new DateTimeImmutable( $end, $tz ) )->setTimezone( $utc ) : $s->modify( '+2 hours' );
+		} catch ( Exception $ex ) {
+			return; // Malformed date: no calendar file rather than an error page.
+		}
 		$esc   = function ( $text ) {
 			return addcslashes( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $text ) ), ',;\\' );
 		};
@@ -154,8 +159,12 @@ class KCS_Features {
 		}
 		$end = get_post_meta( $post_id, '_kcs_end', true );
 		$utc = new DateTimeZone( 'UTC' );
-		$s   = ( new DateTimeImmutable( $start, $tz ) )->setTimezone( $utc );
-		$e   = $end ? ( new DateTimeImmutable( $end, $tz ) )->setTimezone( $utc ) : $s->modify( '+2 hours' );
+		try {
+			$s = ( new DateTimeImmutable( $start, $tz ) )->setTimezone( $utc );
+			$e = $end ? ( new DateTimeImmutable( $end, $tz ) )->setTimezone( $utc ) : $s->modify( '+2 hours' );
+		} catch ( Exception $ex ) {
+			return '';
+		}
 		return add_query_arg(
 			array(
 				'action'   => 'TEMPLATE',
@@ -212,7 +221,7 @@ class KCS_Features {
 			KCS_Email::admin_recipients(),
 			/* translators: %s: name */
 			sprintf( __( 'New testimony from %s awaiting review', 'kingdom-church-suite' ), $name ),
-			'<p>' . nl2br( esc_html( $story ) ) . '</p><p><a class="btn" href="' . esc_url( admin_url( 'post.php?action=edit&post=' . $id ) ) . '">' . esc_html__( 'Review & publish', 'kingdom-church-suite' ) . '</a></p>'
+			'<p>' . nl2br( esc_html( $story ) ) . '</p><p><a class="btn" href="' . esc_url( KCS_Church_Admin::url( 'testimonies' ) ) . '">' . esc_html__( 'Review & publish', 'kingdom-church-suite' ) . '</a></p>'
 		);
 		do_action( 'kcs_testimony_submitted', $id );
 		return (int) $id;

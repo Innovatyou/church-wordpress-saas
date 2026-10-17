@@ -52,7 +52,11 @@ There are also dedicated templates for single and archive views of sermons (vide
 **Sections** (`template-parts/sections/`) can be reordered on a plain front page via *Customize → Homepage Sections*:
 `hero` (6 variants), `service-times`, `welcome`, `live`, `countdown`, `sermons`, `events`, `ministries`, `stats`, `partnership`, `give`, `leadership`, `testimonies`, `verse`, `prayer`, `blog`, `newsletter`, `visit`, `contact`, `cta`.
 
-**Branding & colours**: 9 ready-made palettes (Royal Purple, Ocean Blue, Emerald Grace, Crimson Fire, Sunrise, Midnight, Rose of Sharon, River Jordan, Heritage Gold) or **custom brand colours** (pick any main, highlight and dark colour — also in *Church Admin → Website → Church colours*, no code). The optional visitor colour picker offers the palettes plus **Custom**, a free colour picker for main and highlight colours (text on buttons switches between white and dark automatically so it stays readable); light logo for dark mode and transparent headers; tagline, motto, button style (pill, rounded, square) and fonts. Set these in *Customize → Church Branding & Colour Palettes*.
+**Branding & colours**: 9 ready-made palettes (Royal Purple, Ocean Blue, Emerald Grace, Crimson Fire, Sunrise, Midnight, Rose of Sharon, River Jordan, Heritage Gold) or **custom brand colours** (pick any main, highlight and dark colour — also in *Church Admin → Website → Church colours*, no code). The optional visitor colour picker offers the palettes plus **Custom**, a free colour picker for main and highlight colours (text on buttons switches between white and dark automatically so it stays readable); light logo for dark mode and transparent headers; tagline, motto and button style (pill, rounded, square). Set these in *Customize → Church Branding & Colour Palettes*.
+
+**Church fonts**: 38 Google fonts (classic serif, modern sans and bold display) with 13 ready-made pairings — Classic, Traditional, Heritage, Elegant, Warm, Editorial, Modern, Friendly, Fresh, Youth, Bold, Grace and Simple — or any heading and body font you like. Change them in *Church Admin → Website → Church fonts* (with a live preview) or the Customizer. Choose "Device fonts only" to load nothing from Google.
+
+**Mobile menu**: a full-screen menu in the church colours with the church logo, large menu items with boxed arrows that slide open sub-menus (with Back), quick actions (Watch live, Partner login, Church admin for staff, Install app, Notifications) ending in a bold Give button, then Contact us (service times, phone, address with map link, email) and Follow us. It works with the keyboard and screen readers, and switches to a dark background in dark mode.
 
 **3D UI & mobile-first**: tilt-and-glare cards, layered 3D hero (floating cross, orbs, orbiting ring) with mouse and scroll parallax, pressable 3D buttons, glass panels, and an app-style bottom tab bar on phones (Home, Watch, Give, Prayer, Menu). Both can be toggled in *Customize → 3D Effects & Mobile*, and motion is reduced automatically for visitors who ask for it.
 
@@ -262,6 +266,9 @@ Templates: copy any file from `plugins/kingdom-church-suite/templates/` to `your
 - [ ] YouTube channel ID (and optionally an API key) added
 - [ ] Church address, geo coordinates and social links filled in (SEO tab)
 - [ ] Search Console verification and sitemap submitted (`/wp-sitemap.xml`)
+- [ ] Behind Cloudflare or a load balancer: `define( 'KCS_TRUSTED_PROXY_HEADER', 'HTTP_CF_CONNECTING_IP' );` in wp-config.php (so login and payment rate limits see each visitor, not the proxy)
+- [ ] Using the outgoing webhook? Set an API key (20+ characters) first: events are signed with it and are not sent without one
+- [ ] Church app: open the site on an Android phone and an iPhone, install it, turn on notifications and send a test from *Church Admin → Church app*
 
 ---
 

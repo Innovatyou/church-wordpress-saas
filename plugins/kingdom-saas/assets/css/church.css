@@ -14,7 +14,7 @@
 .ks-toggles { display: flex; flex-wrap: wrap; gap: .6rem; }
 .ks-seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 14px; background: var(--kcs-surface-2); border: 1px solid var(--kcs-border); max-width: 100%; }
 .ks-seg label { position: relative; display: block !important; margin: 0 !important; cursor: pointer; }
-.ks-seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.ks-seg input { position: absolute; opacity: 0; top: 0; right: 0; bottom: 0; left: 0; margin: 0; cursor: pointer; }
 .ks-seg span { display: inline-flex; gap: .35rem; align-items: center; padding: .5rem .9rem; border-radius: 10px; font-weight: 700; font-size: .9rem; }
 .ks-seg b { font-size: .72rem; opacity: .8; }
 .ks-seg input:checked + span { background: var(--kcs-primary); color: var(--kcs-primary-contrast, #fff); }

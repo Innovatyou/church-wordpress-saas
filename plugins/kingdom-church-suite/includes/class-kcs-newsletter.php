@@ -263,7 +263,8 @@ class KCS_Newsletter {
 			}
 		}
 		if ( 0 === strpos( $audience, 'partners' ) || 'everyone' === $audience ) {
-			$sql = 'SELECT email, first_name, last_name FROM ' . kcs_table( 'partners' ) . ' WHERE 1=1';
+			// Partners who opted out of email are never included.
+			$sql = 'SELECT email, first_name, last_name FROM ' . kcs_table( 'partners' ) . ' WHERE email_opt_in = 1';
 			if ( 'partners_active' === $audience ) {
 				$sql .= " AND status = 'active'";
 			} elseif ( 'partners_overdue' === $audience ) {
@@ -275,7 +276,15 @@ class KCS_Newsletter {
 			foreach ( $wpdb->get_results( $sql ) as $r ) {
 				$key = strtolower( $r->email );
 				if ( ! isset( $out[ $key ] ) ) {
-					$sub         = self::get_by_email( $r->email );
+					$sub = self::get_by_email( $r->email );
+					if ( $sub && 'unsubscribed' === $sub->status ) {
+						continue;
+					}
+					if ( ! $sub ) {
+						// Every email needs a working unsubscribe link.
+						self::subscribe( $r->email, trim( $r->first_name . ' ' . $r->last_name ), 'partner', true );
+						$sub = self::get_by_email( $r->email );
+					}
 					$out[ $key ] = array( trim( $r->first_name . ' ' . $r->last_name ), $sub ? self::link( 'unsubscribe', $sub->token ) : '' );
 				}
 			}

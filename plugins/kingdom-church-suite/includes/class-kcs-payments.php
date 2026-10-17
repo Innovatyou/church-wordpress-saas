@@ -157,8 +157,9 @@ class KCS_Payments {
 		if ( ! $gateway || ! $gateway->is_enabled() ) {
 			return new WP_Error( 'kcs_gateway', __( 'Please choose a valid payment method.', 'kingdom-church-suite' ), array( 'status' => 400 ) );
 		}
-		$amount   = round( (float) ( $args['amount'] ?? 0 ), 2 );
 		$currency = strtoupper( (string) ( $args['currency'] ?? kcs_get_option( 'currency', 'USD' ) ) );
+		// Currencies without cents (XOF, UGX, RWF…) are charged in whole units.
+		$amount   = round( (float) ( $args['amount'] ?? 0 ), in_array( $currency, kcs_zero_decimal_currencies(), true ) ? 0 : 2 );
 		$min      = (float) kcs_get_option( 'min_amount', 1 );
 		if ( $amount <= 0 || $amount < $min ) {
 			/* translators: %s: minimum amount */
@@ -225,8 +226,9 @@ class KCS_Payments {
 	 */
 	public static function verify_and_update( $payment, $params = array() ) {
 		global $wpdb;
-		if ( 'completed' === $payment->status ) {
-			return 'completed';
+		// Only open payments are checked: never charge or change cancelled, refunded or completed ones.
+		if ( ! in_array( $payment->status, array( 'pending', 'failed', 'review' ), true ) ) {
+			return $payment->status;
 		}
 		$gateway = self::gateway( $payment->gateway );
 		if ( ! $gateway ) {
@@ -261,17 +263,16 @@ class KCS_Payments {
 		$table = kcs_table( 'payments' );
 
 		if ( ! $manual && ( strtoupper( $currency ) !== strtoupper( $payment->currency ) || $amount + 0.01 < (float) $payment->amount ) ) {
-			$wpdb->update(
-				$table,
-				array(
-					'status'         => 'review',
-					'gateway_txn_id' => $txn_id,
-					/* translators: 1: paid amount, 2: expected amount */
-					'note'           => sprintf( __( 'Amount mismatch: received %1$s, expected %2$s.', 'kingdom-church-suite' ), $amount . ' ' . $currency, $payment->amount . ' ' . $payment->currency ),
-				),
-				array( 'id' => $payment->id )
+			// Keep gateway_txn_id as is (re-verifying needs the original checkout ID); note the provider's ID.
+			$wpdb->query(
+				$wpdb->prepare(
+					"UPDATE $table SET status = 'review', note = %s WHERE id = %d AND status IN ('pending','failed','review')", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					/* translators: 1: paid amount, 2: expected amount, 3: provider transaction ID */
+					sprintf( __( 'Amount mismatch: received %1$s, expected %2$s. Provider reference: %3$s', 'kingdom-church-suite' ), $amount . ' ' . $currency, $payment->amount . ' ' . $payment->currency, $txn_id ),
+					$payment->id
+				)
 			);
-			return 'review';
+			return self::get( $payment->id )->status;
 		}
 
 		// Atomic transition so callbacks and webhooks racing each other only complete once.

@@ -36,9 +36,9 @@ class KCS_Settings {
 	 *
 	 * @return array
 	 */
-	public static function schema() {
+	public static function schema( $with_pages = true ) {
 		$pages = array( 0 => __( '— Select page —', 'kingdom-church-suite' ) );
-		if ( did_action( 'init' ) ) {
+		if ( $with_pages && did_action( 'init' ) ) {
 			foreach ( get_pages( array( 'post_status' => 'publish' ) ) as $p ) {
 				$pages[ $p->ID ] = $p->post_title;
 			}
@@ -166,7 +166,7 @@ class KCS_Settings {
 				__( 'Authentication', 'kingdom-church-suite' ) => array(
 					'api_key'      => array( 'label' => __( 'API key', 'kingdom-church-suite' ), 'type' => 'password', 'desc' => __( 'Send as the X-KCS-API-Key header to call admin endpoints from external systems (CRM, mobile app, Zapier). Logged-in admins can also use cookies + nonce or Application Passwords.', 'kingdom-church-suite' ) ),
 					'api_cors'     => array( 'label' => __( 'Allowed CORS origins', 'kingdom-church-suite' ), 'type' => 'text', 'desc' => __( 'Comma separated, e.g. https://app.example.com', 'kingdom-church-suite' ) ),
-					'webhook_out_url' => array( 'label' => __( 'Outgoing webhook URL', 'kingdom-church-suite' ), 'type' => 'url', 'desc' => __( 'We POST JSON here on partner.created, payment.completed, subscriber.created, prayer.created (signed with X-KCS-Signature = HMAC-SHA256 of the body using the API key).', 'kingdom-church-suite' ) ),
+					'webhook_out_url' => array( 'label' => __( 'Outgoing webhook URL', 'kingdom-church-suite' ), 'type' => 'url', 'desc' => __( 'We POST JSON here on partner.created, payment.completed, subscriber.created, prayer.created (signed with X-KCS-Signature = HMAC-SHA256 of the body using the API key). Set an API key of at least 20 characters first: nothing is sent without one.', 'kingdom-church-suite' ) ),
 				),
 			),
 		);
@@ -199,7 +199,7 @@ class KCS_Settings {
 			return array(); // Guard against recursion while the schema is being built.
 		}
 		$building = true;
-		$schema   = self::schema();
+		$schema   = self::schema( false ); // Defaults don't need the page list (saves a query per request).
 		$defaults = array();
 		foreach ( $schema as $sections ) {
 			foreach ( $sections as $fields ) {

@@ -43,6 +43,8 @@ function ks_default_settings() {
 		'stripe_webhook'  => '',
 		'bank_details'    => '',
 		'test_mode'       => '0',
+		'turnstile_site'  => '',
+		'turnstile_secret' => '',
 		'reserved'        => 'www,mail,ftp,admin,administrator,api,app,platform,billing,support,help,docs,status,blog,static,assets,cdn,dev,staging,test,root,webmail,smtp,ns1,ns2',
 	);
 }
@@ -125,6 +127,40 @@ function ks_platform_url( $path = '' ) {
 }
 
 /**
+ * Visitor IP. Behind Cloudflare or a load balancer, name the header the proxy sets in wp-config.php:
+ * define( 'KCS_TRUSTED_PROXY_HEADER', 'HTTP_CF_CONNECTING_IP' );
+ *
+ * @return string
+ */
+function ks_client_ip() {
+	if ( function_exists( 'kcs_client_ip' ) ) {
+		return kcs_client_ip();
+	}
+	$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0';
+	if ( defined( 'KCS_TRUSTED_PROXY_HEADER' ) && ! empty( $_SERVER[ KCS_TRUSTED_PROXY_HEADER ] ) ) {
+		$first = trim( explode( ',', sanitize_text_field( wp_unslash( $_SERVER[ KCS_TRUSTED_PROXY_HEADER ] ) ) )[0] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated
+		$ip    = filter_var( $first, FILTER_VALIDATE_IP ) ? $first : $ip;
+	}
+	return $ip;
+}
+
+/**
+ * Add one month or year to a timestamp without spilling into the next month (31 Jan → 28/29 Feb).
+ *
+ * @param int    $ts       Timestamp (UTC).
+ * @param string $interval month|year.
+ * @return int
+ */
+function ks_add_interval( $ts, $interval ) {
+	$y = (int) gmdate( 'Y', $ts );
+	$m = (int) gmdate( 'n', $ts ) + ( 'year' === $interval ? 12 : 1 );
+	$y += (int) floor( ( $m - 1 ) / 12 );
+	$m  = ( ( $m - 1 ) % 12 ) + 1;
+	$d  = min( (int) gmdate( 'j', $ts ), (int) gmdate( 't', gmmktime( 0, 0, 0, $m, 1, $y ) ) );
+	return gmmktime( (int) gmdate( 'G', $ts ), (int) gmdate( 'i', $ts ), (int) gmdate( 's', $ts ), $m, $d, $y );
+}
+
+/**
  * Simple rate limit by IP.
  *
  * @param string $key    Bucket.
@@ -133,7 +169,7 @@ function ks_platform_url( $path = '' ) {
  * @return bool True when allowed.
  */
 function ks_rate_limit( $key, $limit, $window ) {
-	$ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0';
+	$ip   = ks_client_ip();
 	$name = 'ks_rl_' . md5( $key . $ip );
 	$hits = (int) get_site_transient( $name );
 	if ( $hits >= $limit ) {
@@ -151,6 +187,9 @@ function ks_rate_limit( $key, $limit, $window ) {
  * @return string
  */
 function ks_template( $name, $vars = array() ) {
+	if ( ! preg_match( '/^[a-z][a-z-]*$/', (string) $name ) ) {
+		return '';
+	}
 	$file = KS_PATH . 'templates/' . $name . '.php';
 	if ( ! file_exists( $file ) ) {
 		return '';

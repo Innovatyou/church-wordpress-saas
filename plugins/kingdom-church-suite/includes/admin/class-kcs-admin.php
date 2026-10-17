@@ -951,6 +951,10 @@ class KCS_Admin {
 			/* translators: %d: count */
 			self::back( 'kcs-newsletter', sprintf( __( 'Campaign queued for %d recipient(s).', 'kingdom-church-suite' ), $count ) );
 		}
+		// Saving as a draft cancels any schedule (it can be scheduled again with "Send / schedule").
+		global $wpdb;
+		wp_clear_scheduled_hook( 'kcs_send_scheduled_campaign', array( $id ) );
+		$wpdb->update( kcs_table( 'campaigns' ), array( 'status' => 'draft' ), array( 'id' => $id, 'status' => 'scheduled' ) );
 		self::back( 'kcs-newsletter', __( 'Draft saved.', 'kingdom-church-suite' ), array( 'action' => 'edit', 'id' => $id ) );
 	}
 

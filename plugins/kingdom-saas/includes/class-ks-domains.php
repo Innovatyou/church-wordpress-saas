@@ -89,9 +89,28 @@ class KS_Domains {
 		if ( $domain === $base || substr( $domain, -strlen( '.' . $base ) ) === '.' . $base ) {
 			return new WP_Error( 'ks_domain', __( 'That is a platform address. Please enter a domain you own.', 'kingdom-saas' ) );
 		}
-		$bare  = preg_replace( '/^www\./', '', $domain );
-		$taken = $wpdb->get_var( $wpdb->prepare( 'SELECT blog_id FROM ' . ks_table( 'domains' ) . ' WHERE domain IN (%s, %s)', $bare, 'www.' . $bare ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		if ( ( $taken && (int) $taken !== (int) $blog_id ) || ( ! $taken && domain_exists( $domain, '/' ) ) ) {
+		foreach ( array_filter( array_map( 'strtolower', array( ks_get( 'cname_target' ), defined( 'DOMAIN_CURRENT_SITE' ) ? DOMAIN_CURRENT_SITE : '' ) ) ) as $own ) {
+			if ( $domain === $own || preg_replace( '/^www\./', '', $domain ) === preg_replace( '/^www\./', '', $own ) ) {
+				return new WP_Error( 'ks_domain', __( 'That is a platform address. Please enter a domain you own.', 'kingdom-saas' ) );
+			}
+		}
+		if ( ! ks_rate_limit( 'domain_add_' . (int) $blog_id, 10, HOUR_IN_SECONDS ) ) {
+			return new WP_Error( 'ks_domain', __( 'Too many attempts. Please try again in an hour.', 'kingdom-saas' ) );
+		}
+		$bare = preg_replace( '/^www\./', '', $domain );
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, blog_id, status FROM ' . ks_table( 'domains' ) . ' WHERE domain IN (%s, %s)', $bare, 'www.' . $bare ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		foreach ( $rows as $row ) {
+			if ( (int) $row->blog_id === (int) $blog_id ) {
+				continue;
+			}
+			if ( 'verified' === $row->status ) {
+				return new WP_Error( 'ks_domain', __( 'That domain is already connected to another church.', 'kingdom-saas' ) );
+			}
+			// Someone else's unverified claim never blocks the real owner: verification needs the
+			// DNS TXT record, which only the domain's owner can publish.
+			$wpdb->delete( ks_table( 'domains' ), array( 'id' => (int) $row->id ) );
+		}
+		if ( ! $rows && domain_exists( $domain, '/' ) ) {
 			return new WP_Error( 'ks_domain', __( 'That domain is already connected to another church.', 'kingdom-saas' ) );
 		}
 		// One custom domain per church: replace any previous one.
@@ -149,10 +168,11 @@ class KS_Domains {
 		if ( ! KS_Tenants::feature( 'custom_domain', $d->blog_id ) ) {
 			return new WP_Error( 'ks_plan', __( 'Your plan does not include custom domains.', 'kingdom-saas' ) );
 		}
-		$ok = self::http_check( $d ) || ( self::txt_check( $d ) && self::points_here( $d->domain ) );
+		// Ownership (TXT token) is always required; HTTP or DNS only shows the domain reaches us.
+		$ok = self::txt_check( $d ) && ( self::http_check( $d ) || self::points_here( $d->domain ) );
 		$wpdb->update( ks_table( 'domains' ), array( 'checked_at' => current_time( 'mysql', true ) ), array( 'id' => $id ) );
 		if ( ! $ok ) {
-			$msg = __( 'We could not see your domain pointing to us yet. DNS changes can take up to 24 hours — we check again automatically.', 'kingdom-saas' );
+			$msg = __( 'We could not see both DNS records yet (the TXT record and the address pointing to us). DNS changes can take up to 24 hours — we check again automatically.', 'kingdom-saas' );
 			$wpdb->update( ks_table( 'domains' ), array( 'status' => 'pending', 'last_error' => $msg ), array( 'id' => $id ) );
 			return new WP_Error( 'ks_dns', $msg );
 		}
@@ -179,7 +199,7 @@ class KS_Domains {
 	 * @return bool
 	 */
 	private static function http_check( $d ) {
-		$res = wp_remote_get( 'http://' . $d->domain . '/.well-known/ks-domain-check', array( 'timeout' => 10, 'redirection' => 0, 'sslverify' => false ) );
+		$res = wp_safe_remote_get( 'http://' . $d->domain . '/.well-known/ks-domain-check', array( 'timeout' => 10, 'redirection' => 0, 'sslverify' => false ) );
 		return ! is_wp_error( $res ) && trim( wp_remote_retrieve_body( $res ) ) === $d->token;
 	}
 
@@ -299,8 +319,17 @@ class KS_Domains {
 	 * Daily: try pending domains again.
 	 */
 	public static function recheck_pending() {
+		global $wpdb;
 		foreach ( self::all() as $d ) {
-			if ( 'pending' === $d->status && KS_Tenants::feature( 'custom_domain', $d->blog_id ) ) {
+			if ( 'pending' !== $d->status ) {
+				continue;
+			}
+			// Claims never verified within 7 days are dropped.
+			if ( strtotime( $d->created_at . ' UTC' ) < time() - 7 * DAY_IN_SECONDS ) {
+				$wpdb->delete( ks_table( 'domains' ), array( 'id' => (int) $d->id ) );
+				continue;
+			}
+			if ( KS_Tenants::feature( 'custom_domain', $d->blog_id ) ) {
 				self::verify( $d->id );
 			}
 		}
@@ -319,7 +348,8 @@ class KS_Domains {
 			return false;
 		}
 		$bare = preg_replace( '/^www\./', '', $host );
-		if ( $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . ks_table( 'domains' ) . ' WHERE domain IN (%s, %s, %s)', $host, $bare, 'www.' . $bare ) ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// Certificates only for verified domains (and the platform's own church addresses).
+		if ( $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . ks_table( 'domains' ) . " WHERE status = 'verified' AND domain IN (%s, %s, %s)", $host, $bare, 'www.' . $bare ) ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			return true;
 		}
 		if ( $wpdb->get_var( $wpdb->prepare( "SELECT blog_id FROM {$wpdb->blogs} WHERE domain = %s AND deleted = 0", $host ) ) ) {

@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 		<label><?php esc_html_e( 'Password', 'kingdom-church-suite' ); ?><input type="password" name="pwd" required autocomplete="current-password"></label>
 		<label class="kcs-check"><input type="checkbox" name="rememberme" value="1"> <?php esc_html_e( 'Remember me', 'kingdom-church-suite' ); ?></label>
 		<input type="hidden" name="kcs_form" value="login">
-		<input type="hidden" name="redirect_to" value="<?php echo esc_attr( isset( $_GET['redirect_to'] ) ? esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>">
+		<input type="hidden" name="redirect_to" value="<?php echo esc_attr( ! empty( $redirect_to ) ? $redirect_to : ( isset( $_GET['redirect_to'] ) ? esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) : '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>">
 		<input type="text" name="kcs_website" class="kcs-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
 		<?php wp_nonce_field( 'kcs_login', '_kcs_nonce' ); ?>
 		<button type="submit" class="kcs-btn kcs-btn--block"><?php esc_html_e( 'Log in', 'kingdom-church-suite' ); ?></button>

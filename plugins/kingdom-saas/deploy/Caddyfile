@@ -2,36 +2,41 @@
 # every church subdomain and every custom domain churches connect.
 #
 # 1. Point DNS for yourplatform.com AND *.yourplatform.com at this server.
-# 2. Replace yourplatform.com and the PHP-FPM socket below.
+# 2. Replace yourplatform.com (3 places), the email and the PHP-FPM socket below.
 # 3. caddy run --config /etc/caddy/Caddyfile
 #
-# Custom domains get certificates "on demand": before issuing one, Caddy asks the
-# platform whether the domain belongs to a church (ks/v1/tls), so nobody can make
-# you request certificates for random domains.
+# Church subdomains and custom domains get certificates "on demand": before issuing one,
+# Caddy asks the platform whether the host belongs to a church (ks/v1/tls), so nobody can
+# make you request certificates for random domains.
 
 {
 	email you@yourplatform.com
 	on_demand_tls {
-		ask http://127.0.0.1/wp-json/ks/v1/tls
+		ask http://127.0.0.1:5555/wp-json/ks/v1/tls
 	}
 }
 
 (wordpress) {
 	root * /var/www/platform
 	encode zstd gzip
+	# Never serve secrets, dotfiles (.git, .env) or PHP uploaded into the media folder.
+	@blocked {
+		path /wp-config.php /xmlrpc.php /wp-content/debug.log /.* /*/.*
+		path_regexp uploadsphp ^/wp-content/uploads/.*\.php$
+	}
+	respond @blocked 404
+	@wellknown path /.well-known/ks-domain-check
+	rewrite @wellknown /index.php?{query}
 	php_fastcgi unix//run/php/php8.3-fpm.sock
 	file_server
-	@blocked path /wp-config.php /xmlrpc.php /wp-content/debug.log
-	respond @blocked 404
 }
 
-# Platform + church subdomains (wildcard certificate needs a DNS provider plugin,
-# or remove the *. line and let on-demand TLS issue one per subdomain).
-yourplatform.com, *.yourplatform.com {
+# The platform itself.
+yourplatform.com {
 	import wordpress
 }
 
-# Every other host = a church's custom domain.
+# Church subdomains (*.yourplatform.com) and custom domains: one certificate each, on demand.
 https:// {
 	tls {
 		on_demand
@@ -39,7 +44,10 @@ https:// {
 	import wordpress
 }
 
-# Internal plain-HTTP listener used by the "ask" check above.
-http://127.0.0.1 {
+# Internal listener for the "ask" check above. WordPress needs the platform's host name to
+# answer (127.0.0.1 is not a site), so the Host header is set here.
+http://127.0.0.1:5555 {
+	bind 127.0.0.1
+	request_header Host yourplatform.com
 	import wordpress
 }

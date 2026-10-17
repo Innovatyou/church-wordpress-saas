@@ -135,7 +135,7 @@
 .kcs-live.has-chat .kcs-live__body { grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); }
 @media (max-width: 900px) { .kcs-live.has-chat .kcs-live__body { grid-template-columns: 1fr; } }
 .kcs-embed { position: relative; aspect-ratio: 16 / 9; border-radius: var(--kcs-radius); overflow: hidden; background: #000; }
-.kcs-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.kcs-embed iframe { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; border: 0; }
 .kcs-live__chat iframe { width: 100%; height: 100%; min-height: 420px; border: 0; border-radius: var(--kcs-radius); background: var(--kcs-surface-2); }
 .kcs-live__offline { aspect-ratio: 16/9; display: grid; place-items: center; background: var(--kcs-surface-2); border-radius: var(--kcs-radius); }
 .kcs-live__actions { display: flex; flex-wrap: wrap; gap: .5rem; }
@@ -233,7 +233,7 @@
 [data-kcs-region-scope][data-region="local"] .kcs-in-international { display: none !important; }
 .kcs-region { display: inline-flex; flex-wrap: wrap; gap: .25rem; padding: .3rem; margin: 0 0 1rem; border-radius: 999px; background: var(--kcs-surface-2); border: 1px solid var(--kcs-border); max-width: 100%; }
 .kcs-region__opt { position: relative; display: block !important; margin: 0 !important; cursor: pointer; }
-.kcs-region__opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.kcs-region__opt input { position: absolute; opacity: 0; top: 0; right: 0; bottom: 0; left: 0; margin: 0; cursor: pointer; }
 .kcs-region__opt span { display: inline-flex; align-items: center; gap: .35rem; padding: .5rem 1rem; border-radius: 999px; font-weight: 600; font-size: .92rem; transition: background .2s, color .2s; }
 .kcs-region__opt span b { font-size: .75rem; opacity: .75; }
 .kcs-region__opt input:checked + span { background: var(--kcs-primary); color: var(--kcs-primary-contrast, #fff); box-shadow: 0 6px 16px -8px var(--kcs-primary); }
@@ -249,7 +249,7 @@
 .kcs-tithe__types { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); }
 .kcs-tithe__types legend { grid-column: 1 / -1; }
 .kcs-tithe__type { position: relative; display: block !important; margin: 0 !important; cursor: pointer; }
-.kcs-tithe__type input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.kcs-tithe__type input { position: absolute; opacity: 0; top: 0; right: 0; bottom: 0; left: 0; margin: 0; cursor: pointer; }
 .kcs-tithe__type span { display: grid; gap: .2rem; height: 100%; padding: 1rem; border-radius: 14px; border: 1px solid var(--kcs-border); background: var(--kcs-surface); transition: transform .2s, border-color .2s, box-shadow .2s; }
 .kcs-tithe__type i { font-style: normal; font-size: 1.3rem; color: var(--kcs-primary); }
 .kcs-tithe__type small { color: var(--kcs-muted); font-weight: 400; line-height: 1.35; }

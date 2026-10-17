@@ -32,6 +32,9 @@ class KCS_Installer {
 		self::create_pages();
 		self::default_plans();
 		KCS_Post_Types::register();
+		if ( class_exists( 'KCS_Features' ) ) {
+			KCS_Features::register_feed(); // So /feed/sermon-podcast/ works straight after activation.
+		}
 		flush_rewrite_rules();
 		self::schedule_events();
 		update_option( 'kcs_db_version', KCS_DB_VERSION );
@@ -309,7 +312,7 @@ class KCS_Installer {
 		$settings = get_option( 'kcs_settings', array() );
 		foreach ( $pages as $key => $page ) {
 			$opt = 'page_' . $key;
-			if ( ! empty( $settings[ $opt ] ) && get_post_status( (int) $settings[ $opt ] ) ) {
+			if ( ! empty( $settings[ $opt ] ) && ! in_array( get_post_status( (int) $settings[ $opt ] ), array( false, 'trash' ), true ) ) {
 				continue;
 			}
 			// Reuse an existing page that already holds the shortcode.

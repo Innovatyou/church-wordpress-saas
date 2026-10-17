@@ -79,14 +79,17 @@ function offlineFallback(request) {
 
 function page(event) {
 	var request = event.request;
-	var network = fetch(request).then(function (res) {
-		// Only public pages the site marked as safe to save (never dashboards or logged-in views).
+	var network = fetch(request);
+	// Save public pages the site marked as safe to keep (never dashboards or logged-in views).
+	// Registered now, while the event is still active, so the fresh copy is saved even when a
+	// slow network means the saved copy was shown first.
+	event.waitUntil(network.then(function (res) {
 		if (res && res.ok && res.type === 'basic' && res.headers.get('X-KCS-Offline') === '1') {
 			var copy = res.clone();
-			event.waitUntil(caches.open(PAGES).then(function (c) { return c.put(request, copy); }).then(function () { return trim(PAGES, MAX_PAGES); }));
+			return caches.open(PAGES).then(function (c) { return c.put(request, copy); }).then(function () { return trim(PAGES, MAX_PAGES); });
 		}
-		return res;
-	});
+		return null;
+	}).catch(function () {}));
 	// Wait for the network, but if it is slow and we have a saved copy, show that instead.
 	return timeout(network, TIMEOUT).catch(function () {
 		return caches.match(request, { ignoreVary: true }).then(function (hit) {

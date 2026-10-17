@@ -71,6 +71,10 @@ $pals  = array( 'royal' => array( __( 'Royal', 'kingdom-saas' ), '#5b2a86' ), 'o
 			</fieldset>
 			<input type="text" name="website" class="ks-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
 			<label class="ks-check"><input type="checkbox" name="terms" value="1" required <?php checked( (bool) $v( 'terms' ) ); ?>> <?php esc_html_e( 'I agree to the terms of service and privacy policy.', 'kingdom-saas' ); ?></label>
+			<?php if ( ks_get( 'turnstile_site' ) ) : ?>
+				<div class="cf-turnstile" data-sitekey="<?php echo esc_attr( ks_get( 'turnstile_site' ) ); ?>"></div>
+				<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script><?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript ?>
+			<?php endif; ?>
 			<button class="ks-btn ks-btn--lg ks-btn--block"><?php esc_html_e( 'Create my church website', 'kingdom-saas' ); ?></button>
 			<p class="ks-small ks-center"><?php esc_html_e( 'Already have a church site?', 'kingdom-saas' ); ?> <a href="<?php echo esc_url( wp_login_url() ); ?>"><?php esc_html_e( 'Log in', 'kingdom-saas' ); ?></a></p>
 		</form>

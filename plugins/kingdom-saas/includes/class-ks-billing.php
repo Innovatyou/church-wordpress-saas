@@ -222,9 +222,31 @@ class KS_Billing {
 		if ( ! $claimed ) {
 			return true;
 		}
-		$sub   = KS_Tenants::get( $inv->blog_id );
-		$from  = max( time(), $sub && $sub->current_period_end && 'active' === $sub->status ? strtotime( $sub->current_period_end . ' UTC' ) : 0 );
-		$until = gmdate( 'Y-m-d H:i:s', strtotime( '+1 ' . ( 'year' === $inv->billing_interval ? 'year' : 'month' ), $from ) );
+		$sub      = KS_Tenants::get( $inv->blog_id );
+		$interval = 'year' === $inv->billing_interval ? 'year' : 'month';
+		$end      = $sub && $sub->current_period_end ? strtotime( $sub->current_period_end . ' UTC' ) : 0;
+		$from     = time();
+		$bonus    = 0;
+		if ( $sub && 'active' === $sub->status && $end > time() ) {
+			if ( $sub->plan === $inv->plan && $sub->billing_interval === $inv->billing_interval ) {
+				$from = $end; // Paying ahead on the same plan: add a period after the current one.
+			} else {
+				// Changing plan: the new plan starts now and unused paid time is credited at its value.
+				$old_price = KS_Plans::price( $sub->plan, $sub->billing_interval, $sub->region );
+				$new_price = KS_Plans::price( $inv->plan, $interval, 'USD' === strtoupper( $inv->currency ) ? 'international' : 'local' );
+				$old_len   = ( 'year' === $sub->billing_interval ? 365 : 30 ) * DAY_IN_SECONDS;
+				$new_len   = ( 'year' === $interval ? 365 : 30 ) * DAY_IN_SECONDS;
+				if ( $old_price['currency'] === $new_price['currency'] && $new_price['amount'] > 0 ) {
+					$credit = ( $end - time() ) * ( $old_price['amount'] / $old_len );
+					$bonus  = (int) floor( $credit / ( $new_price['amount'] / $new_len ) );
+				}
+			}
+		} elseif ( $sub && 'trialing' === $sub->status && $sub->trial_ends_at ) {
+			$from = max( time(), strtotime( $sub->trial_ends_at . ' UTC' ) ); // Keep the rest of the free trial.
+		}
+		$until = gmdate( 'Y-m-d H:i:s', ks_add_interval( $from, $interval ) + $bonus );
+		// A church suspended by the platform owner stays suspended until they reactivate it.
+		$blocked = $sub && 'suspended' === $sub->status && 'admin_blocked' === $sub->last_notice;
 		$wpdb->update( ks_table( 'invoices' ), array( 'period_end' => $until ), array( 'id' => $inv->id ) );
 		KS_Tenants::update(
 			$inv->blog_id,
@@ -232,11 +254,9 @@ class KS_Billing {
 				'plan'                 => $inv->plan,
 				'billing_interval'     => $inv->billing_interval,
 				'region'               => 'USD' === strtoupper( $inv->currency ) ? 'international' : 'local',
-				'status'               => 'active',
 				'current_period_end'   => $until,
 				'cancel_at_period_end' => 0,
-				'last_notice'          => '',
-			)
+			) + ( $blocked ? array() : array( 'status' => 'active', 'last_notice' => '' ) )
 		);
 		KS_Domains::enforce_plan( $inv->blog_id );
 		$sub  = KS_Tenants::get( $inv->blog_id );

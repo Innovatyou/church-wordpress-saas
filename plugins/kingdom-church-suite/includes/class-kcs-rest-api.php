@@ -308,7 +308,9 @@ class KCS_REST_API {
 		if ( ! $payment ) {
 			return new WP_Error( 'kcs_not_found', 'Not found', array( 'status' => 404 ) );
 		}
-		if ( 'pending' === $payment->status && 'bank_transfer' !== $payment->gateway ) {
+		// Ask the gateway at most every 10 seconds per payment (this endpoint is public).
+		if ( 'pending' === $payment->status && 'bank_transfer' !== $payment->gateway && ! get_transient( 'kcs_pv_' . $payment->id ) && kcs_rate_limit( 'pay_status', 120, 600 ) ) {
+			set_transient( 'kcs_pv_' . $payment->id, 1, 10 );
 			KCS_Payments::verify_and_update( $payment );
 			$payment = KCS_Payments::get( $payment->id );
 		}
@@ -501,6 +503,12 @@ class KCS_REST_API {
 	 */
 	public static function change_my_plan( $req ) {
 		$partner = KCS_Partners::get_by_user( get_current_user_id() );
+		if ( ! $partner ) {
+			return new WP_Error( 'kcs_not_partner', __( 'Partner record not found.', 'kingdom-church-suite' ), array( 'status' => 404 ) );
+		}
+		if ( ! kcs_rate_limit( 'plan_change_' . $partner->id, 5, HOUR_IN_SECONDS ) ) {
+			return new WP_Error( 'kcs_rate', __( 'Too many plan changes. Please try again later.', 'kingdom-church-suite' ), array( 'status' => 429 ) );
+		}
 		$result  = KCS_Partners::change_plan( $partner, (int) $req['plan_id'], (float) $req['amount'], sanitize_key( (string) $req['frequency'] ), sanitize_key( (string) $req['region'] ) );
 		if ( is_wp_error( $result ) ) {
 			return $result;

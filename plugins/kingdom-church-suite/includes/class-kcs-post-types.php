@@ -139,6 +139,7 @@ class KCS_Post_Types {
 						'type'          => 'string',
 						'single'        => true,
 						'show_in_rest'  => true,
+						'sanitize_callback' => in_array( $key, array( '_kcs_start', '_kcs_end' ), true ) ? array( __CLASS__, 'sanitize_datetime' ) : null,
 						'auth_callback' => function () {
 							return current_user_can( 'edit_posts' );
 						},
@@ -311,5 +312,16 @@ class KCS_Post_Types {
 			return $m[1];
 		}
 		return '';
+	}
+
+	/**
+	 * Event dates: keep only values PHP can read as a date ("2026-12-24T18:00" etc.).
+	 *
+	 * @param string $value Value.
+	 * @return string
+	 */
+	public static function sanitize_datetime( $value ) {
+		$value = sanitize_text_field( (string) $value );
+		return '' === $value || false !== strtotime( $value ) ? $value : '';
 	}
 }

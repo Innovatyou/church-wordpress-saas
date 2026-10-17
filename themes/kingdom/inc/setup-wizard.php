@@ -129,7 +129,7 @@ function kingdom_build_starter_site( $home_tpl = 'template-home-classic.php' ) {
 		// Reuse pages created by the plugin.
 		if ( $p[3] && function_exists( 'kcs_get_option' ) ) {
 			$plugin_id = (int) kcs_get_option( 'page_' . $p[3], 0 );
-			if ( $plugin_id && get_post_status( $plugin_id ) ) {
+			if ( $plugin_id && 'publish' === get_post_status( $plugin_id ) ) {
 				$id = $plugin_id;
 			}
 		}
@@ -156,9 +156,13 @@ function kingdom_build_starter_site( $home_tpl = 'template-home-classic.php' ) {
 		}
 	}
 
-	update_option( 'show_on_front', 'page' );
-	update_option( 'page_on_front', $ids['home'] );
-	update_option( 'page_for_posts', $ids['blog'] );
+	if ( ! empty( $ids['home'] ) ) {
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $ids['home'] );
+	}
+	if ( ! empty( $ids['blog'] ) ) {
+		update_option( 'page_for_posts', $ids['blog'] );
+	}
 
 	// Menus.
 	$primary = array( 'home', 'about' => array( 'leadership', 'beliefs', 'testimonies' ), 'ministries', 'sermons', 'events', 'watch', 'partnership', 'contact' );
@@ -196,7 +200,7 @@ function kingdom_build_starter_site( $home_tpl = 'template-home-classic.php' ) {
 		$locations[ $location ] = $menu_id;
 	}
 	set_theme_mod( 'nav_menu_locations', $locations );
-	if ( ! get_theme_mod( 'kingdom_header_cta_url' ) ) {
+	if ( ! get_theme_mod( 'kingdom_header_cta_url' ) && ! empty( $ids['give'] ) ) {
 		set_theme_mod( 'kingdom_header_cta_url', get_permalink( $ids['give'] ) );
 	}
 

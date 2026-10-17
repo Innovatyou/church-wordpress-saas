@@ -92,28 +92,6 @@ if ( ! $cta_url && kingdom_plugin_active() ) {
 				)
 			);
 			?>
-			<div class="k-nav__mobile-extra">
-				<?php if ( get_theme_mod( 'kingdom_palette_switcher', true ) ) : ?>
-					<div class="k-nav__palette">
-						<span><?php esc_html_e( 'Site colours', 'kingdom' ); ?></span>
-						<div class="k-palette__swatches">
-							<?php foreach ( kingdom_palettes() as $kingdom_slug => $kingdom_p ) : ?>
-								<button type="button" data-palette="<?php echo esc_attr( $kingdom_slug ); ?>" title="<?php echo esc_attr( $kingdom_p[0] ); ?>" style="--sw-a:<?php echo esc_attr( $kingdom_p[1] ); ?>;--sw-b:<?php echo esc_attr( $kingdom_p[2] ); ?>"><span class="screen-reader-text"><?php echo esc_html( $kingdom_p[0] ); ?></span></button>
-							<?php endforeach; ?>
-						</div>
-						<?php kingdom_custom_colour_fields( 'k-nav-pal' ); ?>
-					</div>
-				<?php endif; ?>
-				<?php if ( class_exists( 'KCS_PWA' ) && KCS_PWA::enabled() ) : ?>
-					<div class="k-nav__app">
-						<button type="button" class="k-btn k-btn--outline k-btn--block" data-kcs-install hidden><?php echo kingdom_icon( 'download' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php esc_html_e( 'Install our app', 'kingdom' ); ?></button>
-						<button type="button" class="k-btn k-btn--outline k-btn--block" data-kcs-push hidden data-off-label="<?php esc_attr_e( 'Turn on notifications', 'kingdom' ); ?>" data-on-label="<?php esc_attr_e( 'Notifications on', 'kingdom' ); ?>"><?php echo kingdom_icon( 'bell' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <span data-kcs-push-label><?php esc_html_e( 'Turn on notifications', 'kingdom' ); ?></span></button>
-					</div>
-				<?php endif; ?>
-				<?php if ( $cta_url ) : ?>
-					<a class="k-btn k-btn--accent k-btn--block" href="<?php echo esc_url( $cta_url ); ?>"><?php echo esc_html( $cta_text ); ?></a>
-				<?php endif; ?>
-			</div>
 		</nav>
 
 		<div class="k-header__actions">
@@ -121,7 +99,7 @@ if ( ! $cta_url && kingdom_plugin_active() ) {
 				<?php echo do_shortcode( '[kcs_live_badge]' ); ?>
 			<?php endif; ?>
 			<?php if ( get_theme_mod( 'kingdom_header_search', true ) ) : ?>
-				<button type="button" class="k-icon-btn" data-search-toggle aria-label="<?php esc_attr_e( 'Search', 'kingdom' ); ?>"><?php echo kingdom_icon( 'search' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+				<button type="button" class="k-icon-btn" data-search-toggle aria-controls="k-search-panel" aria-expanded="false" aria-label="<?php esc_attr_e( 'Search', 'kingdom' ); ?>"><?php echo kingdom_icon( 'search' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 			<?php endif; ?>
 			<?php if ( get_theme_mod( 'kingdom_dark_toggle', true ) ) : ?>
 				<button type="button" class="k-icon-btn" data-theme-toggle aria-label="<?php esc_attr_e( 'Toggle dark mode', 'kingdom' ); ?>"><span class="k-when-light"><?php echo kingdom_icon( 'moon' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><span class="k-when-dark"><?php echo kingdom_icon( 'sun' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span></button>
@@ -129,12 +107,13 @@ if ( ! $cta_url && kingdom_plugin_active() ) {
 			<?php if ( $cta_url && get_theme_mod( 'kingdom_header_cta', true ) ) : ?>
 				<a class="k-btn k-btn--accent k-btn--sm k-hide-sm" href="<?php echo esc_url( $cta_url ); ?>"><?php echo kingdom_icon( 'heart' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php echo esc_html( $cta_text ); ?></a>
 			<?php endif; ?>
-			<button type="button" class="k-icon-btn k-nav-toggle" data-nav-toggle aria-controls="k-nav" aria-expanded="false" aria-label="<?php esc_attr_e( 'Menu', 'kingdom' ); ?>"><span class="k-when-closed"><?php echo kingdom_icon( 'menu' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><span class="k-when-open"><?php echo kingdom_icon( 'close' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span></button>
+			<button type="button" class="k-icon-btn k-nav-toggle" data-nav-toggle aria-controls="k-drawer" aria-expanded="false" aria-label="<?php esc_attr_e( 'Menu', 'kingdom' ); ?>"><span class="k-when-closed"><?php echo kingdom_icon( 'menu' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><span class="k-when-open"><?php echo kingdom_icon( 'close' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span></button>
 		</div>
 	</div>
-	<div class="k-search-panel" data-search-panel hidden>
+	<div class="k-search-panel" id="k-search-panel" data-search-panel hidden>
 		<div class="k-container"><?php get_search_form(); ?></div>
 	</div>
 </header>
+<?php get_template_part( 'template-parts/mobile-menu' ); ?>
 
 <main id="content" class="k-main">

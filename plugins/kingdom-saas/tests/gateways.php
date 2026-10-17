@@ -23,7 +23,8 @@ $ok( 'paystack webhook bad signature leaves invoice pending', 'pending' === KS_B
 $ok( 'paystack webhook good signature → 200', 200 === $hook( 'webhooks/paystack', $body, array( 'x-paystack-signature' => hash_hmac( 'sha512', $body, 'sk_test_abc' ) ) ) );
 $after = KS_Tenants::get( $faith );
 $ok( 'invoice paid, plan → growth, region local', 'paid' === KS_Billing::invoice( $inv->reference )->status && 'growth' === $after->plan && 'local' === $after->region );
-$ok( 'period extended by one month from previous end', strtotime( $after->current_period_end ) - strtotime( $before->current_period_end ) > 27 * DAY_IN_SECONDS );
+// A different plan starts now (a full month from today); unused time on the old plan is added on top.
+$ok( 'plan change starts a new month now', strtotime( $after->current_period_end . ' UTC' ) - time() > 27 * DAY_IN_SECONDS );
 $end = $after->current_period_end;
 $hook( 'webhooks/paystack', $body, array( 'x-paystack-signature' => hash_hmac( 'sha512', $body, 'sk_test_abc' ) ) );
 $ok( 'duplicate webhook does not extend twice', KS_Tenants::get( $faith )->current_period_end === $end );

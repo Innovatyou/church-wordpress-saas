@@ -16,7 +16,8 @@ $kingdom_bg = kingdom_image( 'kingdom_stats_image' );
 		<?php foreach ( $kingdom_lines as $kingdom_line ) : ?>
 			<?php $kingdom_p = array_map( 'trim', explode( '|', $kingdom_line ) ); ?>
 			<div class="k-stat" data-reveal>
-				<strong data-count="<?php echo esc_attr( preg_replace( '/[^0-9]/', '', $kingdom_p[0] ) ); ?>"><?php echo esc_html( $kingdom_p[0] ); ?></strong><span class="k-stat__plus">+</span>
+				<?php $kingdom_num = str_replace( array( ',', ' ' ), '', $kingdom_p[0] ); ?>
+				<strong<?php echo ctype_digit( $kingdom_num ) ? ' data-count="' . esc_attr( $kingdom_num ) . '"' : ''; // Only plain numbers count up ("24/7" or "3.5k" stay as written). ?>><?php echo esc_html( $kingdom_p[0] ); ?></strong><span class="k-stat__plus">+</span>
 				<small><?php echo esc_html( $kingdom_p[1] ?? '' ); ?></small>
 			</div>
 		<?php endforeach; ?>

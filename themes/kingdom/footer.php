@@ -115,7 +115,7 @@ $social   = kingdom_social_links();
 		<?php foreach ( $kingdom_tabs as $kingdom_tab ) : ?>
 			<a href="<?php echo esc_url( $kingdom_tab[2] ); ?>"<?php echo untrailingslashit( $kingdom_tab[2] ) === untrailingslashit( home_url( add_query_arg( array() ) ) ) ? ' aria-current="page"' : ''; ?>><?php echo kingdom_icon( $kingdom_tab[0] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><span><?php echo esc_html( $kingdom_tab[1] ); ?></span></a>
 		<?php endforeach; ?>
-		<button type="button" data-nav-toggle aria-controls="k-nav" aria-expanded="false"><?php echo kingdom_icon( 'menu' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><span><?php esc_html_e( 'Menu', 'kingdom' ); ?></span></button>
+		<button type="button" data-nav-toggle aria-controls="k-drawer" aria-expanded="false"><?php echo kingdom_icon( 'menu' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><span><?php esc_html_e( 'Menu', 'kingdom' ); ?></span></button>
 	</nav>
 <?php endif; ?>
 
@@ -138,7 +138,7 @@ $social   = kingdom_social_links();
 <?php if ( get_theme_mod( 'kingdom_to_top', true ) ) : ?>
 	<button type="button" class="k-to-top" data-to-top aria-label="<?php esc_attr_e( 'Back to top', 'kingdom' ); ?>">↑</button>
 <?php endif; ?>
-<div class="k-modal" data-video-modal hidden><button type="button" class="k-modal__close" data-modal-close aria-label="<?php esc_attr_e( 'Close', 'kingdom' ); ?>">×</button><div class="k-modal__body"></div></div>
+<div class="k-modal" data-video-modal role="dialog" aria-modal="true" aria-label="<?php esc_attr_e( 'Video', 'kingdom' ); ?>" hidden><button type="button" class="k-modal__close" data-modal-close aria-label="<?php esc_attr_e( 'Close', 'kingdom' ); ?>">×</button><div class="k-modal__body"></div></div>
 
 <?php wp_footer(); ?>
 </body>

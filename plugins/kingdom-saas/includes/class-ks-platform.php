@@ -58,7 +58,8 @@ class KS_Platform {
 		if ( ! $route && is_front_page() && ! is_paged() ) {
 			$route = 'landing';
 		}
-		if ( ! $route ) {
+		// Only known pages; anything else (including "./platform" or "../x") is a normal 404.
+		if ( ! $route || ! in_array( $route, array( 'landing', 'signup', 'platform', 'test-checkout' ), true ) ) {
 			return;
 		}
 		if ( 'platform' === $route && ! is_super_admin() ) {
@@ -79,12 +80,37 @@ class KS_Platform {
 	}
 
 	/**
+	 * Per-visitor flash key: the user ID, or a random browser cookie for visitors (never the IP,
+	 * which many visitors can share behind a proxy).
+	 *
+	 * @param bool $create Create the cookie if missing.
+	 * @return string
+	 */
+	private static function flash_key( $create ) {
+		if ( get_current_user_id() ) {
+			return 'ks_flash_' . get_current_user_id();
+		}
+		$token = isset( $_COOKIE['ks_flash'] ) ? preg_replace( '/[^a-zA-Z0-9]/', '', (string) wp_unslash( $_COOKIE['ks_flash'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( strlen( $token ) !== 32 ) {
+			if ( ! $create ) {
+				return '';
+			}
+			$token = wp_generate_password( 32, false, false );
+			setcookie( 'ks_flash', $token, array( 'expires' => time() + 600, 'path' => '/', 'secure' => is_ssl(), 'httponly' => true, 'samesite' => 'Lax' ) );
+		}
+		return 'ks_flash_v' . md5( $token );
+	}
+
+	/**
 	 * Read and clear the flash message.
 	 *
 	 * @return array|null array( message, type, old input ).
 	 */
 	private static function flash() {
-		$key = 'ks_flash_' . ( get_current_user_id() ? get_current_user_id() : md5( $_SERVER['REMOTE_ADDR'] ?? '' ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		$key = self::flash_key( false );
+		if ( ! $key ) {
+			return null;
+		}
 		$f   = get_site_transient( $key );
 		delete_site_transient( $key );
 		return $f ? $f : null;
@@ -99,8 +125,7 @@ class KS_Platform {
 	 * @param array  $old  Old input to refill the form.
 	 */
 	private static function back( $msg, $type, $to, $old = array() ) {
-		$key = 'ks_flash_' . ( get_current_user_id() ? get_current_user_id() : md5( $_SERVER['REMOTE_ADDR'] ?? '' ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-		set_site_transient( $key, array( $msg, $type, $old ), 120 );
+		set_site_transient( self::flash_key( true ), array( $msg, $type, $old ), 120 );
 		wp_safe_redirect( $to );
 		exit;
 	}
@@ -133,13 +158,13 @@ class KS_Platform {
 		$msg = __( 'Saved.', 'kingdom-saas' );
 		switch ( $do ) {
 			case 'suspend':
-				KS_Tenants::update( $bid, array( 'status' => 'suspended' ) );
+				KS_Tenants::update( $bid, array( 'status' => 'suspended', 'last_notice' => 'admin_blocked' ) );
 				$msg = __( 'Church suspended. Visitors now see the paused page.', 'kingdom-saas' );
 				break;
 			case 'reactivate':
 				$sub  = KS_Tenants::get( $bid );
 				$paid = $sub && $sub->current_period_end && strtotime( $sub->current_period_end . ' UTC' ) > time();
-				KS_Tenants::update( $bid, $paid ? array( 'status' => 'active' ) : array( 'status' => 'trialing', 'trial_ends_at' => gmdate( 'Y-m-d H:i:s', time() + 7 * DAY_IN_SECONDS ) ) );
+				KS_Tenants::update( $bid, $paid ? array( 'status' => 'active', 'last_notice' => '' ) : array( 'status' => 'trialing', 'last_notice' => '', 'trial_ends_at' => gmdate( 'Y-m-d H:i:s', time() + 7 * DAY_IN_SECONDS ) ) );
 				$msg = $paid ? __( 'Church reactivated.', 'kingdom-saas' ) : __( 'Church reactivated with a 7-day grace trial.', 'kingdom-saas' );
 				break;
 			case 'extend':
@@ -239,6 +264,27 @@ class KS_Platform {
 	}
 
 	/**
+	 * Check the Cloudflare Turnstile answer (bot protection on sign-up, when keys are set).
+	 *
+	 * @param string $token Widget response.
+	 * @return bool
+	 */
+	private static function turnstile_ok( $token ) {
+		if ( '' === $token ) {
+			return false;
+		}
+		$res = wp_remote_post(
+			'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+			array(
+				'timeout' => 10,
+				'body'    => array( 'secret' => ks_get( 'turnstile_secret' ), 'response' => $token, 'remoteip' => ks_client_ip() ),
+			)
+		);
+		$body = is_wp_error( $res ) ? array() : json_decode( wp_remote_retrieve_body( $res ), true );
+		return ! empty( $body['success'] );
+	}
+
+	/**
 	 * Church sign-up.
 	 *
 	 * @param array $d Posted data.
@@ -257,6 +303,9 @@ class KS_Platform {
 		}
 		if ( empty( $d['terms'] ) ) {
 			self::back( __( 'Please accept the terms to continue.', 'kingdom-saas' ), 'error', $back, $old );
+		}
+		if ( ks_get( 'turnstile_secret' ) && ! self::turnstile_ok( (string) ( $d['cf-turnstile-response'] ?? '' ) ) ) {
+			self::back( __( 'Please confirm you are not a robot and try again.', 'kingdom-saas' ), 'error', $back, $old );
 		}
 		$r = KS_Provisioner::create_church(
 			array(

@@ -19,3 +19,21 @@ add_filter( 'pre_http_request', function ( $pre, $args, $url ) {
 	}
 	return $pre;
 }, 10, 3 );
+
+// Test only: fake DNS for *.test domains (TXT token + CNAME to the platform), and let the
+// HTTP reachability check call them although they resolve to 127.0.0.1.
+add_filter( 'ks_dns_records', function ( $records, $host, $type ) {
+	if ( ! preg_match( '/\.test$/', $host ) ) {
+		return $records;
+	}
+	global $wpdb;
+	if ( DNS_TXT === $type ) {
+		$apex  = preg_replace( '/^_ks-verify\./', '', $host );
+		$token = $wpdb->get_var( $wpdb->prepare( 'SELECT token FROM ' . ks_table( 'domains' ) . ' WHERE domain IN (%s, %s) ORDER BY id DESC LIMIT 1', $apex, 'www.' . $apex ) );
+		return $token ? array( array( 'host' => $host, 'type' => 'TXT', 'txt' => $token ) ) : array();
+	}
+	return array( array( 'host' => $host, 'type' => 'CNAME', 'target' => ks_get( 'cname_target' ) ? ks_get( 'cname_target' ) : ks_get( 'base_domain' ) ) );
+}, 10, 3 );
+add_filter( 'http_request_host_is_external', function ( $external, $host ) {
+	return $external || (bool) preg_match( '/\.test$/', $host );
+}, 10, 2 );

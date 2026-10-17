@@ -97,3 +97,7 @@
 .kca-app-preview img { width: 64px; height: 64px; border-radius: 15px; box-shadow: 0 6px 16px rgba(0,0,0,.4); }
 .kca-help { margin-top: .5rem; font-size: .9rem; }
 .kca-help summary { cursor: pointer; font-weight: 700; }
+.kca-font-preview { display: grid; gap: .35rem; margin: .25rem 0 1rem; padding: 1.1rem 1.2rem; border-radius: var(--kcs-radius); border: 1px dashed var(--kcs-border); background: var(--kcs-surface-2, rgba(0,0,0,.02)); }
+.kca-font-preview strong { font-size: 1.7rem; line-height: 1.15; font-weight: 700; overflow-wrap: anywhere; }
+.kca-font-preview p { margin: 0; font-size: 1rem; line-height: 1.55; }
+.kca-font-preview small { color: var(--kcs-muted); font-size: .8rem; }

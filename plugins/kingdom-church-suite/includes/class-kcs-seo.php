@@ -172,7 +172,9 @@ class KCS_SEO {
 		} elseif ( is_singular() ) {
 			$post = get_queried_object();
 			$desc = get_post_meta( $post->ID, '_kcs_seo_desc', true );
-			if ( ! $desc ) {
+			if ( ! $desc && post_password_required( $post ) ) {
+				$desc = ''; // Never reveal password-protected content in meta tags.
+			} elseif ( ! $desc ) {
 				$desc = $post->post_excerpt ? $post->post_excerpt : wp_strip_all_tags( strip_shortcodes( $post->post_content ) );
 			}
 		} elseif ( is_category() || is_tag() || is_tax() ) {

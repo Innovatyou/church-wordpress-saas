@@ -16,8 +16,9 @@
 			credentials: 'same-origin',
 			body: body ? JSON.stringify(body) : undefined
 		}).then(function (res) {
-			return res.json().then(function (data) {
-				if (!res.ok) { throw new Error((data && data.message) || t('error', 'Error')); }
+			// A proxy or server error page is HTML, not JSON: show a friendly message instead.
+			return res.json().catch(function () { return null; }).then(function (data) {
+				if (!res.ok || data === null) { throw new Error((data && data.message) || t('error', 'Error')); }
 				return data;
 			});
 		});

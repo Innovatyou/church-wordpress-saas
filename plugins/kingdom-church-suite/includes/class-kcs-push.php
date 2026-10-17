@@ -62,9 +62,13 @@ class KCS_Push {
 		if ( is_array( $keys ) && ! empty( $keys['public'] ) && ! empty( $keys['private'] ) ) {
 			return $keys;
 		}
-		$key = openssl_pkey_new( array( 'curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC ) );
-		openssl_pkey_export( $key, $pem );
-		$d    = openssl_pkey_get_details( $key );
+		$key = function_exists( 'openssl_pkey_new' ) ? openssl_pkey_new( array( 'curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC ) ) : false;
+		$d   = $key ? openssl_pkey_get_details( $key ) : false;
+		$pem = '';
+		if ( ! $key || empty( $d['ec']['x'] ) || ! openssl_pkey_export( $key, $pem ) || ! $pem ) {
+			// This server cannot make keys (OpenSSL missing or misconfigured): notifications stay off.
+			return array( 'public' => '', 'private' => '' );
+		}
 		$keys = array(
 			'public'  => self::b64u( "\x04" . str_pad( $d['ec']['x'], 32, "\0", STR_PAD_LEFT ) . str_pad( $d['ec']['y'], 32, "\0", STR_PAD_LEFT ) ),
 			'private' => $pem,
@@ -184,7 +188,7 @@ class KCS_Push {
 	 * @return array|null url, headers, data, type, options (for Requests::request_multiple).
 	 */
 	public static function request( $sub, $message ) {
-		if ( ! self::valid_endpoint( $sub->endpoint ) ) {
+		if ( ! self::keys()['private'] || ! self::valid_endpoint( $sub->endpoint ) ) {
 			return null;
 		}
 		$body = self::encrypt( wp_json_encode( $message ), $sub->p256dh, $sub->auth );
@@ -341,7 +345,7 @@ class KCS_Push {
 			'failed'  => 0,
 			'date'    => current_time( 'mysql' ),
 		);
-		$queue   = (array) get_option( 'kcs_push_queue', array() );
+		$queue   = self::read_queue();
 		$queue[] = $job;
 		update_option( 'kcs_push_queue', $queue, false );
 		// Send in the background so the page (or the visitor who triggered "we're live") never waits.
@@ -357,45 +361,106 @@ class KCS_Push {
 	 */
 	public static function process_queue() {
 		global $wpdb;
-		$queue  = (array) get_option( 'kcs_push_queue', array() );
-		$budget = 500;
+		// One sender at a time (cron and a manual send can overlap). The lock expires by itself.
+		$lock = (int) get_option( 'kcs_push_lock', 0 );
+		if ( $lock > time() ) {
+			return;
+		}
+		update_option( 'kcs_push_lock', time() + 120, false );
 		$table  = kcs_table( 'push' );
-		foreach ( $queue as $i => &$job ) {
-			while ( $budget > 0 && $job['ids'] ) {
-				// 50 phones at a time, sent in parallel.
-				$chunk   = array_splice( $job['ids'], 0, min( 50, $budget ) );
-				$budget -= count( $chunk );
-				$subs    = $wpdb->get_results( 'SELECT * FROM ' . $table . ' WHERE id IN (' . implode( ',', array_map( 'intval', $chunk ) ) . ')', OBJECT_K ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				$reqs    = array();
-				foreach ( $subs as $id => $sub ) {
-					$r = self::request( $sub, $job['message'] );
-					if ( $r ) {
-						$reqs[ $id ] = $r;
-					} else {
-						++$job['failed'];
-					}
+		$budget = 500;
+		while ( $budget > 0 ) {
+			// Claim the next chunk first (saved before sending), so a timeout never sends it twice
+			// and jobs added meanwhile are never overwritten.
+			$queue = self::read_queue();
+			$job   = null;
+			$stale = false;
+			foreach ( $queue as $i => $j ) {
+				if ( ! empty( $j['ids'] ) ) {
+					$job = null === $job ? $i : $job;
+				} elseif ( (int) ( $j['touched'] ?? 0 ) < time() - 300 ) {
+					// Last chunk claimed by a run that never finished: close the job.
+					self::log( $j );
+					unset( $queue[ $i ] );
+					$stale = true;
 				}
-				foreach ( self::send_parallel( $reqs ) as $id => $code ) {
-					if ( $code >= 200 && $code < 300 ) {
-						++$job['sent'];
-					} else {
-						++$job['failed'];
-						if ( in_array( $code, array( 404, 410 ), true ) ) {
-							$wpdb->delete( $table, array( 'id' => $id ) ); // Device unsubscribed or app removed.
-						}
+			}
+			if ( $stale ) {
+				update_option( 'kcs_push_queue', array_values( $queue ), false );
+				continue;
+			}
+			if ( null === $job ) {
+				break;
+			}
+			$queue[ $job ]['touched'] = time();
+			$chunk                 = array_splice( $queue[ $job ]['ids'], 0, min( 50, $budget ) );
+			$budget               -= count( $chunk );
+			$message               = $queue[ $job ]['message'];
+			$job_id                = $queue[ $job ]['id'];
+			update_option( 'kcs_push_queue', array_values( $queue ), false );
+
+			$sent   = 0;
+			$failed = 0;
+			$subs   = $wpdb->get_results( 'SELECT * FROM ' . $table . ' WHERE id IN (' . implode( ',', array_map( 'intval', $chunk ) ) . ')', OBJECT_K ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$reqs   = array();
+			foreach ( $subs as $id => $sub ) {
+				$r = self::request( $sub, $message );
+				if ( $r ) {
+					$reqs[ $id ] = $r;
+				} else {
+					++$failed;
+				}
+			}
+			foreach ( self::send_parallel( $reqs ) as $id => $code ) {
+				if ( $code >= 200 && $code < 300 ) {
+					++$sent;
+				} else {
+					++$failed;
+					if ( in_array( $code, array( 404, 410 ), true ) ) {
+						$wpdb->delete( $table, array( 'id' => $id ) ); // Device unsubscribed or app removed.
 					}
 				}
 			}
-			if ( ! $job['ids'] ) {
-				self::log( $job );
+			self::record( $job_id, $sent, $failed );
+			update_option( 'kcs_push_lock', time() + 120, false );
+		}
+		delete_option( 'kcs_push_lock' );
+		if ( self::read_queue() && ! wp_next_scheduled( 'kcs_push_batch' ) ) {
+			wp_schedule_single_event( time() + 30, 'kcs_push_batch' );
+		}
+	}
+
+	/**
+	 * The queue as stored now (not a copy cached earlier in this request).
+	 *
+	 * @return array
+	 */
+	private static function read_queue() {
+		wp_cache_delete( 'kcs_push_queue', 'options' );
+		return array_values( (array) get_option( 'kcs_push_queue', array() ) );
+	}
+
+	/**
+	 * Add a chunk's results to its job; log and remove the job when it is finished.
+	 *
+	 * @param string $job_id Job ID.
+	 * @param int    $sent   Delivered.
+	 * @param int    $failed Failed.
+	 */
+	private static function record( $job_id, $sent, $failed ) {
+		$queue = self::read_queue();
+		foreach ( $queue as $i => $j ) {
+			if ( $j['id'] !== $job_id ) {
+				continue;
+			}
+			$queue[ $i ]['sent']   += $sent;
+			$queue[ $i ]['failed'] += $failed;
+			if ( empty( $queue[ $i ]['ids'] ) ) {
+				self::log( $queue[ $i ] );
 				unset( $queue[ $i ] );
 			}
 		}
-		unset( $job );
 		update_option( 'kcs_push_queue', array_values( $queue ), false );
-		if ( $queue && ! wp_next_scheduled( 'kcs_push_batch' ) ) {
-			wp_schedule_single_event( time() + 30, 'kcs_push_batch' );
-		}
 	}
 
 	/**

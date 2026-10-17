@@ -90,7 +90,7 @@ body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-syste
 .ks-device__bar span { margin-left: 8px; padding: 2px 10px; border-radius: 999px; background: var(--ks-surface); }
 .ks-device__cap { position: absolute; left: 16px; bottom: 16px; color: #fff; text-shadow: 0 2px 12px rgba(0, 0, 0, .5); display: grid; }
 .ks-device__cap strong { font-size: 1.4rem; }
-.ks-device--back { position: absolute; inset: 30px auto auto 0; width: 60%; opacity: .55; transform: rotateY(18deg) translateZ(-80px); }
+.ks-device--back { position: absolute; top: 30px; right: auto; bottom: auto; left: 0; width: 60%; opacity: .55; transform: rotateY(18deg) translateZ(-80px); }
 .ks-float { position: absolute; padding: .7rem 1rem; border-radius: 14px; background: var(--ks-surface); border: 1px solid var(--ks-border); box-shadow: var(--ks-shadow); font-weight: 800; display: grid; animation: ks-bob 5s ease-in-out infinite; }
 .ks-float small { font-weight: 500; color: var(--ks-muted); font-size: .75rem; }
 .ks-float--a { left: -3%; top: 38%; }
@@ -109,7 +109,7 @@ body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-syste
 .ks-toggles { display: flex; flex-wrap: wrap; justify-content: center; gap: .7rem; margin-bottom: 1.8rem; }
 .ks-seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 14px; background: var(--ks-surface-2); border: 1px solid var(--ks-border); max-width: 100%; }
 .ks-seg label { position: relative; cursor: pointer; }
-.ks-seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.ks-seg input { position: absolute; opacity: 0; top: 0; right: 0; bottom: 0; left: 0; margin: 0; cursor: pointer; }
 .ks-seg span { display: inline-flex; align-items: center; gap: .35rem; padding: .55rem .95rem; border-radius: 10px; font-weight: 700; font-size: .9rem; color: var(--ks-muted); }
 .ks-seg b { font-size: .72rem; font-weight: 700; opacity: .8; }
 .ks-seg input:checked + span { background: var(--ks-brand); color: #fff; box-shadow: 0 8px 18px -12px var(--ks-brand); }

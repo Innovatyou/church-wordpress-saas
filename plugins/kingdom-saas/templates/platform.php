@@ -243,6 +243,8 @@ $old    = $flash[2] ?? array();
 					<label><?php esc_html_e( 'Stripe secret key', 'kingdom-saas' ); ?><input type="password" name="stripe_secret" value="<?php echo esc_attr( ks_get( 'stripe_secret' ) ); ?>" autocomplete="off"></label>
 					<label><?php esc_html_e( 'Stripe webhook signing secret', 'kingdom-saas' ); ?><input type="password" name="stripe_webhook" value="<?php echo esc_attr( ks_get( 'stripe_webhook' ) ); ?>" autocomplete="off"></label>
 					<label><?php esc_html_e( 'Bank transfer details (shown to churches)', 'kingdom-saas' ); ?><textarea name="bank_details" rows="3"><?php echo esc_textarea( ks_get( 'bank_details' ) ); ?></textarea></label>
+					<label><?php esc_html_e( 'Cloudflare Turnstile site key (bot protection on sign-up, optional)', 'kingdom-saas' ); ?><input name="turnstile_site" value="<?php echo esc_attr( ks_get( 'turnstile_site' ) ); ?>" autocomplete="off"></label>
+					<label><?php esc_html_e( 'Cloudflare Turnstile secret key', 'kingdom-saas' ); ?><input type="password" name="turnstile_secret" value="<?php echo esc_attr( ks_get( 'turnstile_secret' ) ); ?>" autocomplete="off"></label>
 					<label class="ks-check"><input type="checkbox" name="test_mode" value="1" <?php checked( '1', ks_get( 'test_mode' ) ); ?>> <?php esc_html_e( 'Test mode (adds a simulated “Test payment” option)', 'kingdom-saas' ); ?></label>
 					<p class="ks-small"><?php esc_html_e( 'Webhooks:', 'kingdom-saas' ); ?> <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/paystack' ) ); ?></code> · <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/stripe' ) ); ?></code></p>
 				</fieldset>

@@ -34,8 +34,10 @@ class KS_Provisioner {
 		if ( ! preg_match( '/^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/', $name ) ) {
 			return new WP_Error( 'ks_subdomain', __( 'Use 3–40 letters, numbers or hyphens (not at the start or end).', 'kingdom-saas' ) );
 		}
-		$reserved = array_map( 'trim', explode( ',', strtolower( ks_get( 'reserved' ) ) ) );
-		if ( in_array( $name, $reserved, true ) ) {
+		// Always reserved (mail, login and system names), plus the list in platform settings.
+		$always   = array( 'www', 'mail', 'email', 'smtp', 'imap', 'pop', 'pop3', 'mx', 'ns', 'ns1', 'ns2', 'autodiscover', 'autoconfig', 'webmail', 'ftp', 'admin', 'administrator', 'root', 'api', 'app', 'platform', 'billing', 'login', 'signup', 'register', 'account', 'accounts', 'secure', 'support', 'help', 'status', 'cdn', 'static', 'assets', 'm' );
+		$reserved = array_merge( $always, array_map( 'trim', explode( ',', strtolower( ks_get( 'reserved' ) ) ) ) );
+		if ( 0 === strpos( $name, 'xn--' ) || in_array( $name, $reserved, true ) ) {
 			return new WP_Error( 'ks_subdomain', __( 'That address is reserved. Please choose another.', 'kingdom-saas' ) );
 		}
 		$domain = $name . '.' . ks_get( 'base_domain' );
@@ -108,7 +110,8 @@ class KS_Provisioner {
 			for ( $i = 2; username_exists( $login ); $i++ ) {
 				$login = $base . $i;
 			}
-			$user_id = wpmu_create_user( $login, $password ? $password : wp_generate_password( 16 ), $email );
+			$user_id  = wpmu_create_user( $login, $password ? $password : wp_generate_password( 16 ), $email );
+			$new_user = (bool) $user_id;
 			if ( ! $user_id ) {
 				return new WP_Error( 'ks_user', __( 'We could not create your account. Please try again.', 'kingdom-saas' ) );
 			}
@@ -126,6 +129,11 @@ class KS_Provisioner {
 		$blog_id    = wpmu_create_blog( $domain, '/', $church, $user_id, array( 'public' => 1 ), get_current_network_id() );
 		wp_installing( $installing );
 		if ( is_wp_error( $blog_id ) ) {
+			// Don't leave an account behind that would block trying again with the same email.
+			if ( ! empty( $new_user ) ) {
+				require_once ABSPATH . 'wp-admin/includes/ms.php';
+				wpmu_delete_user( $user_id );
+			}
 			return $blog_id;
 		}
 
@@ -174,7 +182,7 @@ class KS_Provisioner {
 				'region'           => 'local' === ( $a['region'] ?? '' ) ? 'local' : 'international',
 				'status'           => in_array( $a['status'] ?? '', array( 'active', 'trialing' ), true ) ? $a['status'] : 'trialing',
 				'trial_ends_at'    => $trial,
-				'current_period_end' => 'active' === ( $a['status'] ?? '' ) ? gmdate( 'Y-m-d H:i:s', strtotime( '+1 ' . ( 'year' === ( $a['interval'] ?? '' ) ? 'year' : 'month' ) ) ) : null,
+				'current_period_end' => 'active' === ( $a['status'] ?? '' ) ? gmdate( 'Y-m-d H:i:s', ks_add_interval( time(), 'year' === ( $a['interval'] ?? '' ) ? 'year' : 'month' ) ) : null,
 				'created_at'       => $now,
 				'updated_at'       => $now,
 			)
@@ -231,7 +239,7 @@ class KS_Provisioner {
 	 */
 	public static function on_delete_site( $site ) {
 		global $wpdb;
-		foreach ( array( 'subscriptions', 'domains' ) as $t ) {
+		foreach ( array( 'subscriptions', 'domains', 'invoices' ) as $t ) {
 			$wpdb->delete( ks_table( $t ), array( 'blog_id' => (int) $site->blog_id ) );
 		}
 	}

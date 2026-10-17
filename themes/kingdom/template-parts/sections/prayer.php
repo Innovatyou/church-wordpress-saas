@@ -5,6 +5,10 @@
  * @package Kingdom
  */
 
+// Needs the Kingdom Church Suite plugin (plans, payments, prayer and live stream).
+if ( ! kingdom_plugin_active() ) {
+	return;
+}
 ?>
 <section class="k-section k-prayer">
 	<div class="k-container k-split k-split--center">

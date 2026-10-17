@@ -108,7 +108,7 @@ class KCS_PWA {
 		if ( null !== $v ) {
 			return $v;
 		}
-		$v = substr( md5( KCS_VERSION . filemtime( KCS_PATH . 'assets/js/pwa.js' ) . filemtime( __FILE__ ) . wp_json_encode( array( self::name(), self::name( true ), self::colours(), self::logo_id(), self::logo_id() ? filemtime( get_attached_file( self::logo_id() ) ) : 0 ) ) ), 0, 10 );
+		$v = substr( md5( KCS_VERSION . filemtime( KCS_PATH . 'assets/js/pwa.js' ) . filemtime( __FILE__ ) . wp_json_encode( array( self::name(), self::name( true ), self::colours(), self::logo_id(), self::logo_id() && file_exists( (string) get_attached_file( self::logo_id() ) ) ? filemtime( get_attached_file( self::logo_id() ) ) : 0 ) ) ), 0, 10 );
 		return $v;
 	}
 
@@ -196,7 +196,7 @@ class KCS_PWA {
 		foreach ( $pages as $key => $p ) {
 			$id = (int) kcs_get_option( 'page_' . $key, 0 );
 			if ( $id && 'publish' === get_post_status( $id ) ) {
-				$shortcuts[] = array( 'name' => $p[0], 'short_name' => $p[0], 'description' => $p[1], 'url' => wp_make_link_relative( get_permalink( $id ) ) . '?utm_source=app', 'icons' => array( array( 'src' => self::url( 'icon', array( 'size' => 192, 'v' => $v ) ), 'sizes' => '192x192', 'type' => 'image/png' ) ) );
+				$shortcuts[] = array( 'name' => $p[0], 'short_name' => $p[0], 'description' => $p[1], 'url' => add_query_arg( 'utm_source', 'app', wp_make_link_relative( get_permalink( $id ) ) ), 'icons' => array( array( 'src' => self::url( 'icon', array( 'size' => 192, 'v' => $v ) ), 'sizes' => '192x192', 'type' => 'image/png' ) ) );
 			}
 		}
 		$path = wp_make_link_relative( home_url( '/' ) );
@@ -333,9 +333,27 @@ class KCS_PWA {
 			'version' => self::version(),
 			'offline' => self::url( 'offline', array( 'v' => self::version() ) ),
 			'precache' => $assets,
-			'never'   => array( '/wp-admin', '/wp-login.php', '/wp-json/', 'kcs_pwa=sw', 'preview=', 'wp-cron.php', 'xmlrpc.php', '/church-admin', '/partner-dashboard', '/thank-you', '?kcs_action', '&kcs_action', 'ks_login=' ),
+			'never'   => self::never_cache(),
 		);
 		return '/* ' . self::name() . ' app — service worker */' . "\nconst KCS = " . wp_json_encode( $config, JSON_UNESCAPED_SLASHES ) . ";\n" . file_get_contents( KCS_PATH . 'assets/js/sw.js' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+	}
+
+	/**
+	 * Addresses the service worker must never save: admin, login, dashboards, checkout and
+	 * receipts (using each page's real address, whatever its slug or language).
+	 *
+	 * @return string[]
+	 */
+	private static function never_cache() {
+		$never = array( '/wp-admin', '/wp-login.php', '/wp-json/', 'rest_route=', 'kcs_pwa=sw', 'preview=', 'wp-cron.php', 'xmlrpc.php', '?kcs_action', '&kcs_action', 'ks_login=', 'reference=', '/church-admin', '/partner-dashboard', '/thank-you' );
+		foreach ( array( 'church_admin', 'partner_dashboard', 'partner_login', 'thank_you' ) as $page ) {
+			$url = kcs_page_url( $page );
+			$rel = $url ? untrailingslashit( wp_make_link_relative( $url ) ) : '';
+			if ( $rel && '/' !== $rel && '' !== trim( $rel, '/' ) ) {
+				$never[] = $rel;
+			}
+		}
+		return array_values( array_unique( $never ) );
 	}
 
 	/**

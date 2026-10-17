@@ -66,33 +66,176 @@ function kingdom_widgets() {
 add_action( 'widgets_init', 'kingdom_widgets' );
 
 /**
- * Google font choices.
+ * Font library: name => array( Google Fonts family spec, style ).
+ * Styles: serif (classic, traditional), sans (clean, modern), display (headings only), system.
+ *
+ * @return array
+ */
+function kingdom_font_library() {
+	return apply_filters(
+		'kingdom_fonts',
+		array(
+			// Classic & traditional (serif).
+			'Playfair Display'   => array( 'Playfair+Display:wght@500;600;700;800', 'serif' ),
+			'Cormorant Garamond' => array( 'Cormorant+Garamond:wght@500;600;700', 'serif' ),
+			'Lora'               => array( 'Lora:wght@400;500;600;700', 'serif' ),
+			'Merriweather'       => array( 'Merriweather:wght@400;700;900', 'serif' ),
+			'Libre Baskerville'  => array( 'Libre+Baskerville:wght@400;700', 'serif' ),
+			'EB Garamond'        => array( 'EB+Garamond:wght@400;500;600;700;800', 'serif' ),
+			'Cinzel'             => array( 'Cinzel:wght@400;500;600;700;800', 'serif' ),
+			'Crimson Pro'        => array( 'Crimson+Pro:wght@400;500;600;700', 'serif' ),
+			'DM Serif Display'   => array( 'DM+Serif+Display', 'serif' ),
+			'Fraunces'           => array( 'Fraunces:wght@400;500;600;700;800', 'serif' ),
+			'Marcellus'          => array( 'Marcellus', 'serif' ),
+			'Prata'              => array( 'Prata', 'serif' ),
+			'Spectral'           => array( 'Spectral:wght@400;500;600;700', 'serif' ),
+			'Noto Serif'         => array( 'Noto+Serif:wght@400;500;600;700', 'serif' ),
+			// Clean & modern (sans-serif).
+			'Inter'              => array( 'Inter:wght@400;500;600;700;800', 'sans' ),
+			'Poppins'            => array( 'Poppins:wght@400;500;600;700;800', 'sans' ),
+			'Montserrat'         => array( 'Montserrat:wght@400;500;600;700;800', 'sans' ),
+			'DM Sans'            => array( 'DM+Sans:wght@400;500;700', 'sans' ),
+			'Plus Jakarta Sans'  => array( 'Plus+Jakarta+Sans:wght@400;500;600;700;800', 'sans' ),
+			'Open Sans'          => array( 'Open+Sans:wght@400;500;600;700;800', 'sans' ),
+			'Lato'               => array( 'Lato:wght@400;700;900', 'sans' ),
+			'Nunito'             => array( 'Nunito:wght@400;500;600;700;800', 'sans' ),
+			'Raleway'            => array( 'Raleway:wght@400;500;600;700;800', 'sans' ),
+			'Work Sans'          => array( 'Work+Sans:wght@400;500;600;700;800', 'sans' ),
+			'Source Sans 3'      => array( 'Source+Sans+3:wght@400;500;600;700;800', 'sans' ),
+			'Manrope'            => array( 'Manrope:wght@400;500;600;700;800', 'sans' ),
+			'Outfit'             => array( 'Outfit:wght@400;500;600;700;800', 'sans' ),
+			'Figtree'            => array( 'Figtree:wght@400;500;600;700;800', 'sans' ),
+			'Mulish'             => array( 'Mulish:wght@400;500;600;700;800', 'sans' ),
+			'Josefin Sans'       => array( 'Josefin+Sans:wght@400;500;600;700', 'sans' ),
+			'Rubik'              => array( 'Rubik:wght@400;500;600;700;800', 'sans' ),
+			'Urbanist'           => array( 'Urbanist:wght@400;500;600;700;800', 'sans' ),
+			'Noto Sans'          => array( 'Noto+Sans:wght@400;500;600;700;800', 'sans' ),
+			// Bold & expressive (headings).
+			'Bebas Neue'         => array( 'Bebas+Neue', 'display' ),
+			'Oswald'             => array( 'Oswald:wght@400;500;600;700', 'display' ),
+			'Anton'              => array( 'Anton', 'display' ),
+			'Great Vibes'        => array( 'Great+Vibes', 'display' ),
+			'Dancing Script'     => array( 'Dancing+Script:wght@400;500;600;700', 'display' ),
+			// No download: the phone or computer's own font (fastest, nothing sent to Google).
+			'System'             => array( '', 'system' ),
+		)
+	);
+}
+
+/**
+ * Google font choices: name => family spec (kept for compatibility).
  *
  * @return array
  */
 function kingdom_fonts() {
-	return array(
-		'Inter'            => 'Inter:wght@400;500;600;700;800',
-		'Poppins'          => 'Poppins:wght@400;500;600;700;800',
-		'Montserrat'       => 'Montserrat:wght@400;500;600;700;800',
-		'DM Sans'          => 'DM+Sans:wght@400;500;700',
-		'Plus Jakarta Sans' => 'Plus+Jakarta+Sans:wght@400;500;600;700;800',
-		'Playfair Display' => 'Playfair+Display:wght@500;600;700;800',
-		'Cormorant Garamond' => 'Cormorant+Garamond:wght@500;600;700',
-		'Lora'             => 'Lora:wght@400;500;600;700',
-		'System'           => '',
+	return array_map(
+		function ( $f ) {
+			return $f[0];
+		},
+		kingdom_font_library()
 	);
+}
+
+/**
+ * Font names grouped for dropdowns: label => array( name => name ).
+ *
+ * @param bool $headings Include heading-only (display) fonts.
+ * @return array Flat name => "Name (style)" list.
+ */
+function kingdom_font_choices( $headings = true ) {
+	$styles = array(
+		'serif'   => __( 'classic', 'kingdom' ),
+		'sans'    => __( 'modern', 'kingdom' ),
+		'display' => __( 'bold headings', 'kingdom' ),
+		'system'  => __( 'device font, fastest', 'kingdom' ),
+	);
+	$out    = array();
+	foreach ( kingdom_font_library() as $name => $f ) {
+		if ( ! $headings && 'display' === $f[1] ) {
+			continue;
+		}
+		$out[ $name ] = sprintf( '%1$s (%2$s)', 'System' === $name ? __( 'Device font', 'kingdom' ) : $name, $styles[ $f[1] ] ?? $f[1] );
+	}
+	return $out;
+}
+
+/**
+ * Ready-made font pairings: slug => array( label, heading font, body font ).
+ *
+ * @return array
+ */
+function kingdom_font_pairs() {
+	return apply_filters(
+		'kingdom_font_pairs',
+		array(
+			'classic'     => array( __( 'Classic — Playfair Display + Inter', 'kingdom' ), 'Playfair Display', 'Inter' ),
+			'traditional' => array( __( 'Traditional — Cinzel + Lato', 'kingdom' ), 'Cinzel', 'Lato' ),
+			'heritage'    => array( __( 'Heritage — EB Garamond + Source Sans 3', 'kingdom' ), 'EB Garamond', 'Source Sans 3' ),
+			'elegant'     => array( __( 'Elegant — Cormorant Garamond + Raleway', 'kingdom' ), 'Cormorant Garamond', 'Raleway' ),
+			'warm'        => array( __( 'Warm — Lora + Nunito', 'kingdom' ), 'Lora', 'Nunito' ),
+			'editorial'   => array( __( 'Editorial — DM Serif Display + DM Sans', 'kingdom' ), 'DM Serif Display', 'DM Sans' ),
+			'modern'      => array( __( 'Modern — Montserrat + Open Sans', 'kingdom' ), 'Montserrat', 'Open Sans' ),
+			'friendly'    => array( __( 'Friendly — Poppins + Nunito', 'kingdom' ), 'Poppins', 'Nunito' ),
+			'fresh'       => array( __( 'Fresh — Outfit + Figtree', 'kingdom' ), 'Outfit', 'Figtree' ),
+			'youth'       => array( __( 'Youth — Bebas Neue + Work Sans', 'kingdom' ), 'Bebas Neue', 'Work Sans' ),
+			'bold'        => array( __( 'Bold — Oswald + Rubik', 'kingdom' ), 'Oswald', 'Rubik' ),
+			'grace'       => array( __( 'Grace — Fraunces + Manrope', 'kingdom' ), 'Fraunces', 'Manrope' ),
+			'simple'      => array( __( 'Simple & fast — device fonts', 'kingdom' ), 'System', 'System' ),
+			'custom'      => array( __( 'Custom — choose heading and body fonts below', 'kingdom' ), '', '' ),
+		)
+	);
+}
+
+/**
+ * The fonts in use: array( heading, body ), always names from the library.
+ *
+ * @return array{0: string, 1: string}
+ */
+function kingdom_active_fonts() {
+	$lib   = kingdom_font_library();
+	$pairs = kingdom_font_pairs();
+	$pair  = get_theme_mod( 'kingdom_font_pair', 'custom' );
+	if ( 'custom' !== $pair && isset( $pairs[ $pair ] ) ) {
+		$heading = $pairs[ $pair ][1];
+		$body    = $pairs[ $pair ][2];
+	} else {
+		$heading = get_theme_mod( 'kingdom_font_heading', 'Playfair Display' );
+		$body    = get_theme_mod( 'kingdom_font_body', 'Inter' );
+	}
+	return array(
+		isset( $lib[ $heading ] ) ? $heading : 'Playfair Display',
+		isset( $lib[ $body ] ) && 'display' !== $lib[ $body ][1] ? $body : 'Inter',
+	);
+}
+
+/**
+ * CSS font stack for a library font.
+ *
+ * @param string $name Font name.
+ * @return string
+ */
+function kingdom_font_stack( $name ) {
+	$lib   = kingdom_font_library();
+	$sys   = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+	$style = $lib[ $name ][1] ?? 'sans';
+	if ( 'system' === $style ) {
+		return $sys;
+	}
+	$fallback = array(
+		'serif'   => 'Georgia, "Times New Roman", serif',
+		'display' => 'Impact, "Arial Narrow", sans-serif',
+	);
+	return '"' . str_replace( '"', '', $name ) . '", ' . ( $fallback[ $style ] ?? $sys );
 }
 
 /**
  * Front-end assets.
  */
 function kingdom_assets() {
-	$fonts    = kingdom_fonts();
-	$heading  = get_theme_mod( 'kingdom_font_heading', 'Playfair Display' );
-	$body     = get_theme_mod( 'kingdom_font_body', 'Inter' );
-	$families = array_filter( array_unique( array( $fonts[ $heading ] ?? '', $fonts[ $body ] ?? '' ) ) );
-	if ( $families ) {
+	$fonts            = kingdom_fonts();
+	list( $h, $b )    = kingdom_active_fonts();
+	$families         = array_filter( array_unique( array( $fonts[ $h ] ?? '', $fonts[ $b ] ?? '' ) ) );
+	if ( $families && 'system' !== get_theme_mod( 'kingdom_font_source', 'google' ) ) {
 		wp_enqueue_style( 'kingdom-fonts', 'https://fonts.googleapis.com/css2?family=' . implode( '&family=', $families ) . '&display=swap', array(), null ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
 	}
 	wp_enqueue_style( 'kingdom-main', KINGDOM_URI . '/assets/css/main.css', array(), KINGDOM_VERSION );
@@ -127,18 +270,17 @@ add_filter( 'wp_resource_hints', 'kingdom_resource_hints', 10, 2 );
  */
 function kingdom_dynamic_css() {
 	list( $primary, $accent, $dark ) = kingdom_brand_colors();
-	$heading = get_theme_mod( 'kingdom_font_heading', 'Playfair Display' );
-	$body    = get_theme_mod( 'kingdom_font_body', 'Inter' );
+	list( $heading, $body ) = kingdom_active_fonts();
 	$radius  = array(
 		'sharp'   => '4px',
 		'rounded' => '14px',
 		'pill'    => '24px',
 	);
 	$r       = $radius[ get_theme_mod( 'kingdom_radius', 'rounded' ) ] ?? '14px';
-	$width   = absint( get_theme_mod( 'kingdom_container', 1200 ) );
-	$stack   = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-	$hfont   = 'System' === $heading ? $stack : '"' . $heading . '", ' . ( in_array( $heading, array( 'Playfair Display', 'Cormorant Garamond', 'Lora' ), true ) ? 'Georgia, serif' : $stack );
-	$bfont   = 'System' === $body ? $stack : '"' . $body . '", ' . $stack;
+	$width   = min( 1600, max( 960, absint( get_theme_mod( 'kingdom_container', 1200 ) ) ) );
+	$local   = 'system' === get_theme_mod( 'kingdom_font_source', 'google' );
+	$hfont   = $local ? kingdom_font_stack( 'System' ) : kingdom_font_stack( $heading );
+	$bfont   = $local ? kingdom_font_stack( 'System' ) : kingdom_font_stack( $body );
 
 	$css = ':root{--k-primary:' . $primary . ';--k-on-primary:' . kingdom_on_colour( $primary ) . ';--k-accent:' . $accent . ';--k-dark:' . $dark . ';--k-radius:' . $r . ';--k-container:' . $width . 'px;--k-font-heading:' . $hfont . ';--k-font-body:' . $bfont . ';}';
 	// Visitor colour switcher: each palette can be applied with <html data-palette="slug">.

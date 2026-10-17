@@ -151,7 +151,26 @@ function kcs_next_due_date( $frequency, $from = null ) {
 		return null;
 	}
 	$base = $from ? strtotime( $from ) : current_time( 'timestamp' ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
-	return gmdate( 'Y-m-d', strtotime( $intervals[ $frequency ], $base ) );
+	if ( 'weekly' === $frequency ) {
+		return gmdate( 'Y-m-d', strtotime( '+1 week', $base ) );
+	}
+	// Month-based: keep the day, but never spill into the next month (31 Jan → 28/29 Feb).
+	$months = array( 'monthly' => 1, 'quarterly' => 3, 'yearly' => 12 );
+	$y      = (int) gmdate( 'Y', $base );
+	$m      = (int) gmdate( 'n', $base ) + $months[ $frequency ];
+	$y     += (int) floor( ( $m - 1 ) / 12 );
+	$m      = ( ( $m - 1 ) % 12 ) + 1;
+	$d      = min( (int) gmdate( 'j', $base ), (int) gmdate( 't', gmmktime( 0, 0, 0, $m, 1, $y ) ) );
+	return sprintf( '%04d-%02d-%02d', $y, $m, $d );
+}
+
+/**
+ * Currencies that have no minor unit (amounts are whole numbers).
+ *
+ * @return string[]
+ */
+function kcs_zero_decimal_currencies() {
+	return array( 'BIF', 'CLP', 'DJF', 'GNF', 'JPY', 'KMF', 'KRW', 'MGA', 'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF' );
 }
 
 /**
@@ -314,7 +333,7 @@ function kcs_generate_reference( $prefix = 'KCS' ) {
  */
 function kcs_page_url( $key ) {
 	$page_id = (int) kcs_get_option( 'page_' . $key, 0 );
-	if ( $page_id && get_post_status( $page_id ) ) {
+	if ( $page_id && 'publish' === get_post_status( $page_id ) ) {
 		return get_permalink( $page_id );
 	}
 	return home_url( '/' );
@@ -327,6 +346,16 @@ function kcs_page_url( $key ) {
  */
 function kcs_client_ip() {
 	$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
+	// Behind Cloudflare or a load balancer every visitor arrives from the proxy's address. Only when
+	// the site owner names the header the proxy sets (in wp-config.php, e.g.
+	// define( 'KCS_TRUSTED_PROXY_HEADER', 'HTTP_CF_CONNECTING_IP' );) is that header trusted.
+	if ( defined( 'KCS_TRUSTED_PROXY_HEADER' ) && ! empty( $_SERVER[ KCS_TRUSTED_PROXY_HEADER ] ) ) {
+		$first = trim( explode( ',', sanitize_text_field( wp_unslash( $_SERVER[ KCS_TRUSTED_PROXY_HEADER ] ) ) )[0] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated
+		if ( filter_var( $first, FILTER_VALIDATE_IP ) ) {
+			$ip = $first;
+		}
+	}
+	$ip = (string) apply_filters( 'kcs_client_ip', $ip );
 	return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '0.0.0.0';
 }
 

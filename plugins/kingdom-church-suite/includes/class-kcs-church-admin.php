@@ -452,7 +452,7 @@ class KCS_Church_Admin {
 	 */
 	public static function render() {
 		if ( ! is_user_logged_in() ) {
-			return kcs_get_template( 'partner-login', array( 'notice' => __( 'Church staff: please log in to open the admin dashboard.', 'kingdom-church-suite' ) ) );
+			return kcs_get_template( 'partner-login', array( 'notice' => __( 'Church staff: please log in to open the admin dashboard.', 'kingdom-church-suite' ), 'redirect_to' => self::url() ) );
 		}
 		if ( ! self::can() ) {
 			return '<div class="kcs-alert kcs-alert--error">' . esc_html__( 'This dashboard is for church staff only.', 'kingdom-church-suite' ) . '</div>';
@@ -995,6 +995,7 @@ class KCS_Church_Admin {
 		}
 		$groups = array(
 			'brand'    => __( 'Church colours', 'kingdom-church-suite' ),
+			'fonts'    => __( 'Church fonts', 'kingdom-church-suite' ),
 			'banner'   => __( 'Homepage banner', 'kingdom-church-suite' ),
 			'media'    => __( 'Live stream, video & audio', 'kingdom-church-suite' ),
 			'sections' => __( 'Show or hide sections', 'kingdom-church-suite' ),
@@ -1016,7 +1017,10 @@ class KCS_Church_Admin {
 						<p class="kcs-muted"><?php esc_html_e( 'Pick a ready-made palette, or choose Custom and set your own church colours. Button text switches between white and dark automatically so it stays readable.', 'kingdom-church-suite' ); ?></p>
 					<?php elseif ( 'media' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'Paste your YouTube channel link or @handle once: the website shows your live stream the moment you go live, a countdown when a stream is scheduled, and your replay video the rest of the time. Videos and audio left empty show your latest sermons.', 'kingdom-church-suite' ); ?></p>
-					<?php else : ?>
+					<?php elseif ( 'fonts' === $group ) : ?>
+						<p class="kcs-muted"><?php esc_html_e( 'Choose a ready-made pairing (a heading font and a body text font that look good together), or Custom to pick your own. The preview updates as you choose.', 'kingdom-church-suite' ); ?></p>
+						<?php self::font_preview(); ?>
+					<?php elseif ( 'sections' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'Untick a section to remove it from every page of the website.', 'kingdom-church-suite' ); ?></p>
 						<div class="kca-switches">
 					<?php endif; ?>
@@ -1044,6 +1048,65 @@ class KCS_Church_Admin {
 			<?php endforeach; ?>
 		</form>
 		<p><a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( home_url( '/' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View website', 'kingdom-church-suite' ); ?></a></p>
+		<?php
+	}
+
+	/**
+	 * Live font preview for the Church fonts card (fonts come from the theme's library).
+	 */
+	private static function font_preview() {
+		if ( ! function_exists( 'kingdom_font_library' ) ) {
+			return;
+		}
+		$data = array(
+			'lib'   => kingdom_fonts(),
+			'pairs' => array_map(
+				function ( $p ) {
+					return array( $p[1], $p[2] );
+				},
+				kingdom_font_pairs()
+			),
+		);
+		list( $h, $b ) = kingdom_active_fonts();
+		?>
+		<div class="kca-font-preview" data-kca-font-preview data-fonts="<?php echo esc_attr( wp_json_encode( $data ) ); ?>">
+			<strong data-font-h style="font-family:<?php echo esc_attr( kingdom_font_stack( $h ) ); ?>"><?php echo esc_html( kcs_get_option( 'church_name', get_bloginfo( 'name' ) ) ); ?></strong>
+			<p data-font-b style="font-family:<?php echo esc_attr( kingdom_font_stack( $b ) ); ?>"><?php esc_html_e( 'Join us this Sunday for worship, the Word and fellowship. Everyone is welcome — come as you are.', 'kingdom-church-suite' ); ?></p>
+			<small data-font-names><?php echo esc_html( $h . ' + ' . $b ); ?></small>
+		</div>
+		<script>
+		(function () {
+			var box = document.querySelector('[data-kca-font-preview]');
+			if (!box) { return; }
+			var data = JSON.parse(box.getAttribute('data-fonts'));
+			var form = box.closest('form');
+			function val(n) { var el = form.querySelector('[name="' + n + '"]'); return el ? el.value : ''; }
+			function stack(name) { return name === 'System' || !name ? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : '"' + name + '", sans-serif'; }
+			function load(name) {
+				if (!data.lib[name] || val('kingdom_font_source') === 'system' || document.getElementById('kca-gf-' + name.replace(/\W/g, ''))) { return; }
+				var l = document.createElement('link');
+				l.rel = 'stylesheet'; l.id = 'kca-gf-' + name.replace(/\W/g, '');
+				l.href = 'https://fonts.googleapis.com/css2?family=' + data.lib[name] + '&display=swap';
+				document.head.appendChild(l);
+			}
+			function update() {
+				var pair = data.pairs[val('kingdom_font_pair')];
+				var h = pair && pair[0] ? pair[0] : val('kingdom_font_heading');
+				var b = pair && pair[1] ? pair[1] : val('kingdom_font_body');
+				if (val('kingdom_font_source') === 'system') { h = 'System'; b = 'System'; }
+				load(h); load(b);
+				box.querySelector('[data-font-h]').style.fontFamily = stack(h);
+				box.querySelector('[data-font-b]').style.fontFamily = stack(b);
+				box.querySelector('[data-font-names]').textContent = (h === 'System' ? 'Device font' : h) + ' + ' + (b === 'System' ? 'Device font' : b);
+				['kingdom_font_heading', 'kingdom_font_body'].forEach(function (n) {
+					var el = form.querySelector('[name="' + n + '"]');
+					if (el) { el.closest('label').style.opacity = pair && pair[0] ? '.5' : ''; }
+				});
+			}
+			form.addEventListener('change', function (e) { if (/^kingdom_font_/.test(e.target.name || '')) { update(); } });
+			update();
+		}());
+		</script>
 		<?php
 	}
 

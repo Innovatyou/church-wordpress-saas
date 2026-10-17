@@ -66,8 +66,8 @@
 }
 
 /* Bottom sheet (iPhone guide, notifications) */
-.kcs-app-sheet { position: fixed; inset: 0; z-index: 99995; }
-.kcs-app-sheet__backdrop { position: absolute; inset: 0; background: rgba(10, 8, 14, 0.5); opacity: 0; transition: opacity 0.25s; }
+.kcs-app-sheet { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 99995; }
+.kcs-app-sheet__backdrop { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(10, 8, 14, 0.5); opacity: 0; transition: opacity 0.25s; }
 .kcs-app-sheet__panel {
 	position: absolute;
 	left: 0;

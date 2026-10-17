@@ -114,6 +114,10 @@ function kingdom_website_settings() {
 	$out['kingdom_color_primary'] = array( __( 'Custom main colour', 'kingdom' ), 'color', 'brand', '#5b2a86' );
 	$out['kingdom_color_accent']  = array( __( 'Custom highlight colour', 'kingdom' ), 'color', 'brand', '#f4a62a' );
 	$out['kingdom_color_dark']    = array( __( 'Custom dark colour (footer & dark sections)', 'kingdom' ), 'color', 'brand', '#16121c' );
+	$out['kingdom_font_pair']     = array( __( 'Font pairing', 'kingdom' ), 'select', 'fonts', 'custom', wp_list_pluck( kingdom_font_pairs(), 0 ) );
+	$out['kingdom_font_heading']  = array( __( 'Heading font (when Custom)', 'kingdom' ), 'select', 'fonts', 'Playfair Display', kingdom_font_choices( true ) );
+	$out['kingdom_font_body']     = array( __( 'Body text font (when Custom)', 'kingdom' ), 'select', 'fonts', 'Inter', kingdom_font_choices( false ) );
+	$out['kingdom_font_source']   = array( __( 'Load fonts from', 'kingdom' ), 'select', 'fonts', 'google', array( 'google' => __( 'Google Fonts', 'kingdom' ), 'system' => __( 'Device fonts only (fastest, nothing loaded from Google)', 'kingdom' ) ) );
 	foreach ( kingdom_media_settings() as $key => $f ) {
 		$out[ $key ] = array( $f[0], $f[1], 'media', $f[2] );
 	}
@@ -234,7 +238,7 @@ function kingdom_site_elements() {
 function kingdom_media_settings() {
 	$out = array(
 		'kingdom_ytlive_channel'  => array( __( 'YouTube live: your channel (link, @handle or channel ID) — switches to your stream automatically', 'kingdom' ), 'text', '' ),
-		'kingdom_ytlive_url'      => array( __( 'YouTube live: video to show when you are not live (link or ID)', 'kingdom' ), 'text', 'xzoaPmLegBE' ),
+		'kingdom_ytlive_url'      => array( __( 'YouTube live: video to show when you are not live (link or ID)', 'kingdom' ), 'text', '' ),
 		'kingdom_ytlive_api_key'  => array( __( 'YouTube live: YouTube API key (optional, most reliable detection)', 'kingdom' ), 'text', '' ),
 		'kingdom_ytlive_title'    => array( __( 'YouTube live: heading', 'kingdom' ), 'text', __( 'Worship with us live', 'kingdom' ) ),
 		'kingdom_ytlive_autoplay' => array( __( 'YouTube live: start playing (muted) when the page opens — YouTube may not count these as views until the viewer taps play', 'kingdom' ), 'checkbox', false ),
@@ -303,7 +307,7 @@ function kingdom_audio_tracks( $limit = 4 ) {
 		$src = esc_url_raw( (string) get_theme_mod( 'kingdom_audio_' . $i . '_url', '' ) );
 		if ( $src ) {
 			$title   = get_theme_mod( 'kingdom_audio_' . $i . '_title', '' );
-			$items[] = array( 'title' => $title ? $title : wp_basename( wp_parse_url( $src, PHP_URL_PATH ) ), 'src' => $src, 'meta' => '', 'url' => '' );
+			$items[] = array( 'title' => $title ? $title : wp_basename( (string) wp_parse_url( $src, PHP_URL_PATH ) ), 'src' => $src, 'meta' => '', 'url' => '' );
 		}
 	}
 	if ( ! $items && post_type_exists( 'kcs_sermon' ) ) {
@@ -434,6 +438,10 @@ function kingdom_icon( $name ) {
 		'close'     => '<path d="M6 6l12 12M18 6 6 18"/>',
 		'search'    => '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
 		'arrow'     => '<path d="M5 12h14M13 6l6 6-6 6"/>',
+		'chevron-right' => '<path d="m9 6 6 6-6 6"/>',
+		'chevron-left'  => '<path d="m15 6-6 6 6 6"/>',
+		'user'      => '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+		'grid'      => '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
 		'headphones' => '<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><rect x="3" y="14" width="4" height="7" rx="1"/><rect x="17" y="14" width="4" height="7" rx="1"/>',
 		'book'      => '<path d="M4 4h6a3 3 0 0 1 3 3v14a2 2 0 0 0-2-2H4zM20 4h-6a3 3 0 0 0-3 3v14a2 2 0 0 1 2-2h7z"/>',
 		'download'  => '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
@@ -632,7 +640,117 @@ function kingdom_share_links() {
 }
 
 /**
- * Fallback menu when none is assigned.
+ * A menu location as a tree, for the mobile menu's sliding panels.
+ *
+ * @param string $location Theme menu location.
+ * @return array[] id, title, url, target, current, ancestor, children.
+ */
+function kingdom_menu_tree( $location = 'primary' ) {
+	$items     = array();
+	$locations = get_nav_menu_locations();
+	if ( ! empty( $locations[ $location ] ) ) {
+		$menu_items = wp_get_nav_menu_items( $locations[ $location ], array( 'update_post_term_cache' => false ) );
+		if ( $menu_items ) {
+			// Adds current-menu-item / current-menu-ancestor, as wp_nav_menu() does.
+			_wp_menu_item_classes_by_context( $menu_items );
+			foreach ( $menu_items as $m ) {
+				$classes      = (array) $m->classes;
+				$items[ (int) $m->ID ] = array(
+					'id'       => (int) $m->ID,
+					'parent'   => (int) $m->menu_item_parent,
+					'title'    => wp_strip_all_tags( apply_filters( 'nav_menu_item_title', $m->title, $m, array(), 0 ) ),
+					'url'      => $m->url,
+					'target'   => $m->target,
+					'current'  => (bool) array_intersect( $classes, array( 'current-menu-item', 'current_page_item' ) ),
+					'ancestor' => (bool) array_intersect( $classes, array( 'current-menu-ancestor', 'current-menu-parent', 'current_page_ancestor' ) ),
+					'children' => array(),
+				);
+			}
+		}
+	}
+	if ( ! $items ) {
+		// No menu yet: top-level pages and their sub-pages, like the desktop fallback.
+		$current = is_page() ? get_queried_object_id() : 0;
+		foreach ( get_pages( array( 'sort_column' => 'menu_order,post_title' ) ) as $pg ) {
+			$items[ (int) $pg->ID ] = array(
+				'id'       => (int) $pg->ID,
+				'parent'   => (int) $pg->post_parent,
+				'title'    => get_the_title( $pg ),
+				'url'      => get_permalink( $pg ),
+				'target'   => '',
+				'current'  => $current === (int) $pg->ID,
+				'ancestor' => $current && in_array( (int) $pg->ID, get_post_ancestors( $current ), true ),
+				'children' => array(),
+			);
+		}
+	}
+	// Build the tree (children keep menu order).
+	$tree = array();
+	foreach ( array_keys( $items ) as $id ) {
+		$parent = $items[ $id ]['parent'];
+		if ( $parent && isset( $items[ $parent ] ) ) {
+			$items[ $parent ]['children'][] = &$items[ $id ];
+		} else {
+			$tree[] = &$items[ $id ];
+		}
+	}
+	return $tree;
+}
+
+/**
+ * One row: the link, plus a boxed arrow that opens its sub-menu.
+ *
+ * @param array  $item  Menu item.
+ * @param string $panel Panel the row is in.
+ */
+function kingdom_drawer_item( $item, $panel ) {
+	$classes = 'k-drawer__item' . ( $item['current'] ? ' is-current' : '' ) . ( $item['ancestor'] ? ' is-ancestor' : '' );
+	$sub     = 'k-drawer-p-' . (int) $item['id'];
+	echo '<li class="' . esc_attr( $classes ) . '">';
+	if ( $item['children'] && ( ! $item['url'] || '#' === $item['url'] ) ) {
+		// A heading-only item: the whole row opens the sub-menu.
+		echo '<button type="button" class="k-drawer__link" data-drawer-open="' . esc_attr( $sub ) . '" aria-controls="' . esc_attr( $sub ) . '" aria-expanded="false">' . esc_html( $item['title'] ) . '</button>';
+	} else {
+		echo '<a class="k-drawer__link" href="' . esc_url( $item['url'] ) . '"' . ( $item['target'] ? ' target="' . esc_attr( $item['target'] ) . '" rel="noopener"' : '' ) . ( $item['current'] ? ' aria-current="page"' : '' ) . '>' . esc_html( $item['title'] ) . '</a>';
+	}
+	if ( $item['children'] ) {
+		/* translators: %s: menu item, e.g. "Ministries" */
+		echo '<button type="button" class="k-drawer__more" data-drawer-open="' . esc_attr( $sub ) . '" aria-controls="' . esc_attr( $sub ) . '" aria-expanded="false" aria-label="' . esc_attr( sprintf( __( 'Open %s menu', 'kingdom' ), $item['title'] ) ) . '">' . kingdom_icon( 'chevron-right' ) . '</button>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+	echo '</li>';
+}
+
+/**
+ * Mobile menu: one sub-menu panel (and, recursively, its own sub-menus).
+ *
+ * @param array  $item   Menu item with children.
+ * @param string $parent Panel to go back to.
+ */
+function kingdom_drawer_panel( $item, $parent ) {
+	$id = 'k-drawer-p-' . (int) $item['id'];
+	echo '<section class="k-drawer__panel" id="' . esc_attr( $id ) . '" data-drawer-panel data-parent="' . esc_attr( $parent ) . '" aria-label="' . esc_attr( $item['title'] ) . '">';
+	echo '<button type="button" class="k-drawer__back" data-drawer-back>' . kingdom_icon( 'chevron-left' ) . '<span>' . esc_html__( 'Back', 'kingdom' ) . '</span></button>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	echo '<p class="k-drawer__panel-title">' . esc_html( $item['title'] ) . '</p><ul class="k-drawer__menu">';
+	if ( $item['url'] && '#' !== $item['url'] ) {
+		$overview = $item;
+		/* translators: %s: menu item, e.g. "Ministries" */
+		$overview['title']    = sprintf( __( 'All %s', 'kingdom' ), $item['title'] );
+		$overview['children'] = array();
+		kingdom_drawer_item( $overview, $id );
+	}
+	foreach ( $item['children'] as $child ) {
+		kingdom_drawer_item( $child, $id );
+	}
+	echo '</ul></section>';
+	foreach ( $item['children'] as $child ) {
+		if ( $child['children'] ) {
+			kingdom_drawer_panel( $child, $id );
+		}
+	}
+}
+
+/**
+ * Fallback for the primary menu: list published pages.
  */
 function kingdom_fallback_menu() {
 	echo '<ul class="k-menu">';
@@ -700,9 +818,10 @@ function kingdom_brand_colors() {
 		return array( $palettes[ $choice ][1], $palettes[ $choice ][2], $palettes[ $choice ][3] );
 	}
 	return array(
-		sanitize_hex_color( get_theme_mod( 'kingdom_color_primary', '#5b2a86' ) ),
-		sanitize_hex_color( get_theme_mod( 'kingdom_color_accent', '#f4a62a' ) ),
-		sanitize_hex_color( get_theme_mod( 'kingdom_color_dark', '#16121c' ) ),
+		// An emptied colour falls back to the default instead of breaking the colour scheme.
+		sanitize_hex_color( get_theme_mod( 'kingdom_color_primary', '#5b2a86' ) ) ? sanitize_hex_color( get_theme_mod( 'kingdom_color_primary', '#5b2a86' ) ) : '#5b2a86',
+		sanitize_hex_color( get_theme_mod( 'kingdom_color_accent', '#f4a62a' ) ) ? sanitize_hex_color( get_theme_mod( 'kingdom_color_accent', '#f4a62a' ) ) : '#f4a62a',
+		sanitize_hex_color( get_theme_mod( 'kingdom_color_dark', '#16121c' ) ) ? sanitize_hex_color( get_theme_mod( 'kingdom_color_dark', '#16121c' ) ) : '#16121c',
 	);
 }
 

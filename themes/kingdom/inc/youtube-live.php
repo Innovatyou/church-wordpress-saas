@@ -114,47 +114,36 @@ function kingdom_ytlive_api_key() {
  * @return array state (live|upcoming|offline), video_id, title, starts_at (unix), source.
  */
 function kingdom_ytlive_check( $channel ) {
+	$out = kingdom_ytlive_check_page( $channel );
+	// With an API key, confirm the stream found on the page (1 quota unit, instead of a 100-unit search).
 	$key = kingdom_ytlive_api_key();
-	if ( $key ) {
-		foreach ( array( 'live', 'upcoming' ) as $type ) {
-			$res = wp_remote_get(
-				add_query_arg(
-					array(
-						'part'       => 'snippet',
-						'channelId'  => $channel,
-						'eventType'  => $type,
-						'type'       => 'video',
-						'order'      => 'date',
-						'maxResults' => 1,
-						'key'        => $key,
-					),
-					'https://www.googleapis.com/youtube/v3/search'
-				),
-				array( 'timeout' => 8 )
+	if ( $key && $out['video_id'] ) {
+		$res  = wp_remote_get( add_query_arg( array( 'part' => 'snippet,liveStreamingDetails', 'id' => $out['video_id'], 'key' => $key ), 'https://www.googleapis.com/youtube/v3/videos' ), array( 'timeout' => 8 ) );
+		$item = ! is_wp_error( $res ) && 200 === (int) wp_remote_retrieve_response_code( $res ) ? ( json_decode( wp_remote_retrieve_body( $res ), true )['items'][0] ?? null ) : null;
+		if ( $item ) {
+			$live  = $item['liveStreamingDetails'] ?? array();
+			$state = ! empty( $live['actualStartTime'] ) && empty( $live['actualEndTime'] ) ? 'live' : ( ! empty( $live['scheduledStartTime'] ) && empty( $live['actualStartTime'] ) ? 'upcoming' : 'offline' );
+			return array(
+				'state'     => $state,
+				'video_id'  => 'offline' === $state ? '' : $out['video_id'],
+				'title'     => 'offline' === $state ? '' : html_entity_decode( (string) ( $item['snippet']['title'] ?? $out['title'] ), ENT_QUOTES ),
+				'starts_at' => ! empty( $live['scheduledStartTime'] ) ? (int) strtotime( $live['scheduledStartTime'] ) : $out['starts_at'],
+				'viewers'   => (int) ( $live['concurrentViewers'] ?? 0 ),
+				'source'    => 'api',
 			);
-			if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
-				break; // Quota or key problem: fall back to the public page below.
-			}
-			$item = json_decode( wp_remote_retrieve_body( $res ), true )['items'][0] ?? null;
-			if ( $item && ! empty( $item['id']['videoId'] ) ) {
-				$details = wp_remote_get( add_query_arg( array( 'part' => 'liveStreamingDetails', 'id' => $item['id']['videoId'], 'key' => $key ), 'https://www.googleapis.com/youtube/v3/videos' ), array( 'timeout' => 8 ) );
-				$live    = is_wp_error( $details ) ? array() : ( json_decode( wp_remote_retrieve_body( $details ), true )['items'][0]['liveStreamingDetails'] ?? array() );
-				return array(
-					'state'     => $type,
-					'video_id'  => $item['id']['videoId'],
-					'title'     => html_entity_decode( (string) ( $item['snippet']['title'] ?? '' ), ENT_QUOTES ),
-					'starts_at' => ! empty( $live['scheduledStartTime'] ) ? (int) strtotime( $live['scheduledStartTime'] ) : 0,
-					'viewers'   => (int) ( $live['concurrentViewers'] ?? 0 ),
-					'source'    => 'api',
-				);
-			}
-			if ( 'upcoming' === $type ) {
-				return array( 'state' => 'offline', 'video_id' => '', 'title' => '', 'starts_at' => 0, 'viewers' => 0, 'source' => 'api' );
-			}
 		}
 	}
+	return $out;
+}
 
-	// No key: the channel's public /live page points at the current (or next scheduled) stream.
+/**
+ * Read the channel's public /live page (no key or quota needed).
+ *
+ * @param string $channel Channel ID.
+ * @return array state, video_id, title, starts_at, viewers, source.
+ */
+function kingdom_ytlive_check_page( $channel ) {
+	// The channel's public /live page points at the current (or next scheduled) stream.
 	$html = kingdom_ytlive_fetch( 'https://www.youtube.com/channel/' . rawurlencode( $channel ) . '/live' );
 	$out  = array( 'state' => 'offline', 'video_id' => '', 'title' => '', 'starts_at' => 0, 'viewers' => 0, 'source' => 'page' );
 	if ( '' === $html ) {
@@ -187,6 +176,49 @@ function kingdom_ytlive_check( $channel ) {
 }
 
 /**
+ * The channel's live status, shared by all visitors.
+ *
+ * The last answer is kept; when it is older than the cache time, one request (or the background
+ * check) refreshes it while every other visitor gets the last answer straight away.
+ *
+ * @param string $channel Channel ID.
+ * @param bool   $force   Refresh now.
+ * @return array
+ */
+function kingdom_ytlive_status( $channel, $force = false ) {
+	$stored = get_option( 'kingdom_ytlive_status_store' );
+	$valid  = is_array( $stored ) && ( $stored['channel'] ?? '' ) === $channel;
+	$fresh  = $valid && time() - (int) $stored['checked_at'] < kingdom_ytlive_cache_ttl( $stored['state'] );
+	if ( $fresh && ! $force ) {
+		return $stored;
+	}
+	// One refresh at a time; the lock frees itself after 30 seconds.
+	$lock = (int) get_option( 'kingdom_ytlive_lock', 0 );
+	if ( $lock > time() || ( $lock && ! delete_option( 'kingdom_ytlive_lock' ) ) || ! add_option( 'kingdom_ytlive_lock', time() + 30, '', false ) ) {
+		if ( $valid ) {
+			return $stored;
+		}
+		return array( 'state' => 'offline', 'video_id' => '', 'title' => '', 'starts_at' => 0, 'viewers' => 0, 'source' => 'pending', 'channel' => $channel, 'checked_at' => 0 );
+	}
+	$status = array_merge( kingdom_ytlive_check( $channel ), array( 'channel' => $channel, 'checked_at' => time() ) );
+	if ( 'error' === $status['source'] && $valid ) {
+		$status = array_merge( $stored, array( 'checked_at' => time() ) ); // YouTube unreachable: keep the last answer.
+	}
+	update_option( 'kingdom_ytlive_status_store', $status, false );
+	delete_option( 'kingdom_ytlive_lock' );
+	// First time this broadcast is seen live: notify once (add_option succeeds for one request only).
+	if ( 'live' === $status['state'] && $status['video_id'] && add_option( 'kingdom_ytlive_live_' . md5( $status['video_id'] ), time(), '', false ) ) {
+		$prev = get_option( 'kingdom_ytlive_last_live' );
+		if ( $prev && $prev !== $status['video_id'] ) {
+			delete_option( 'kingdom_ytlive_live_' . md5( $prev ) );
+		}
+		update_option( 'kingdom_ytlive_last_live', $status['video_id'], false );
+		do_action( 'kingdom_ytlive_went_live', $status );
+	}
+	return $status;
+}
+
+/**
  * Everything the YouTube live section needs, cached and shared by all visitors.
  *
  * @param bool $force Check YouTube now instead of using the cached answer.
@@ -194,21 +226,12 @@ function kingdom_ytlive_check( $channel ) {
  */
 function kingdom_youtube_live( $force = false ) {
 	$channel  = kingdom_ytlive_channel_id();
-	$raw      = trim( (string) get_theme_mod( 'kingdom_ytlive_url', 'xzoaPmLegBE' ) );
+	$raw      = trim( (string) get_theme_mod( 'kingdom_ytlive_url', '' ) );
 	$replay   = preg_match( '/^[A-Za-z0-9_-]{11}$/', $raw ) ? $raw : kingdom_youtube_id( $raw );
 	$autoplay = (bool) get_theme_mod( 'kingdom_ytlive_autoplay', false );
 
 	if ( $channel ) {
-		$status = $force ? false : get_transient( 'kingdom_ytlive_status' );
-		if ( ! is_array( $status ) || ( $status['channel'] ?? '' ) !== $channel ) {
-			$status = array_merge( kingdom_ytlive_check( $channel ), array( 'channel' => $channel, 'checked_at' => time() ) );
-			set_transient( 'kingdom_ytlive_status', $status, kingdom_ytlive_cache_ttl( $status['state'] ) );
-			// First time this broadcast is seen live: tell the app (push notifications) once.
-			if ( 'live' === $status['state'] && $status['video_id'] && get_option( 'kingdom_ytlive_last_live' ) !== $status['video_id'] ) {
-				update_option( 'kingdom_ytlive_last_live', $status['video_id'], false );
-				do_action( 'kingdom_ytlive_went_live', $status );
-			}
-		}
+		$status = kingdom_ytlive_status( $channel, $force );
 		$video = $status['video_id'] ? $status['video_id'] : $replay;
 		$out   = array(
 			'mode'       => 'channel',
@@ -229,7 +252,7 @@ function kingdom_youtube_live( $force = false ) {
 
 	$play         = $autoplay && 'offline' !== $out['state'];
 	$out['embed'] = $out['video_id'] ? 'https://www.youtube-nocookie.com/embed/' . rawurlencode( $out['video_id'] ) . '?rel=0&modestbranding=1&playsinline=1' . ( $play ? '&autoplay=1&mute=1' : '' ) : '';
-	$out['chat']  = get_theme_mod( 'kingdom_ytlive_chat', false ) && in_array( $out['state'], array( 'live', 'upcoming', 'video' ), true ) && $out['video_id']
+	$out['chat']  = get_theme_mod( 'kingdom_ytlive_chat', false ) && in_array( $out['state'], array( 'live', 'upcoming' ), true ) && $out['video_id']
 		? 'https://www.youtube.com/live_chat?v=' . rawurlencode( $out['video_id'] ) . '&embed_domain=' . rawurlencode( (string) wp_parse_url( home_url(), PHP_URL_HOST ) )
 		: '';
 	$next                = class_exists( 'KCS_Livestream' ) ? KCS_Livestream::next_service() : null;
@@ -309,7 +332,7 @@ add_action( 'rest_api_init', 'kingdom_ytlive_rest' );
  * Forget the cached channel lookup and status when the settings change.
  */
 function kingdom_ytlive_reset() {
-	delete_transient( 'kingdom_ytlive_status' );
+	delete_option( 'kingdom_ytlive_status_store' );
 	delete_transient( 'kingdom_ytlive_resolve_failed' );
 }
 add_action( 'customize_save_after', 'kingdom_ytlive_reset' );
@@ -362,10 +385,12 @@ add_filter( 'cron_schedules', 'kingdom_ytlive_cron_schedules' );
  * Keep the background check scheduled only while a channel is set.
  */
 function kingdom_ytlive_schedule() {
+	// Only the raw setting is checked here (resolving an @handle would mean a web request on every page).
+	$set  = '' !== trim( (string) get_theme_mod( 'kingdom_ytlive_channel', '' ) ) || ( function_exists( 'kcs_get_option' ) && '' !== trim( (string) kcs_get_option( 'yt_channel_id' ) ) );
 	$next = wp_next_scheduled( 'kingdom_ytlive_poll' );
-	if ( kingdom_ytlive_channel_id() && ! $next ) {
+	if ( $set && ! $next ) {
 		wp_schedule_event( time() + MINUTE_IN_SECONDS, 'kingdom_five_minutes', 'kingdom_ytlive_poll' );
-	} elseif ( ! kingdom_ytlive_channel_id() && $next ) {
+	} elseif ( ! $set && $next ) {
 		wp_clear_scheduled_hook( 'kingdom_ytlive_poll' );
 	}
 }

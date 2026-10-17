@@ -69,7 +69,10 @@ class KCS_Access {
 	 * @param object $partner Partner.
 	 * @return int
 	 */
-	public static function tier( $partner ) {
+	public static function tier( $partner, $paid_only = true ) {
+		if ( $paid_only && ! empty( $partner->id ) ) {
+			$partner = KCS_Partners::paid_terms( $partner );
+		}
 		$value = self::monthly_value( $partner->amount, $partner->frequency );
 		$tier  = 1;
 		foreach ( self::ranked_plans() as $i => $plan ) {

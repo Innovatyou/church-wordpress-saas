@@ -16,7 +16,7 @@ while ( have_posts() ) :
 	$kingdom_date     = get_post_meta( $kingdom_id, '_kcs_sermon_date', true );
 	$kingdom_speakers = get_the_terms( $kingdom_id, 'kcs_speaker' );
 	$kingdom_series   = get_the_terms( $kingdom_id, 'kcs_series' );
-	$kingdom_embed    = $kingdom_video ? wp_oembed_get( $kingdom_video ) : '';
+	$kingdom_embed    = $kingdom_video ? $GLOBALS['wp_embed']->shortcode( array(), $kingdom_video ) : ''; // Cached in post meta (no web request per visit).
 	kingdom_page_header();
 	?>
 	<article <?php post_class( 'k-section k-sermon' ); ?>>

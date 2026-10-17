@@ -40,8 +40,9 @@ $kingdom_title = get_theme_mod( 'kingdom_ytlive_title', __( 'Worship with us liv
 		</div>
 		<p class="k-ytlive__actions">
 			<a class="k-btn k-btn--light" data-ytlive-watch href="<?php echo esc_url( $kingdom_live['watch'] ); ?>" target="_blank" rel="noopener"><?php echo kingdom_icon( 'youtube' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php esc_html_e( 'Watch on YouTube', 'kingdom' ); ?></a>
-			<?php if ( get_theme_mod( 'kingdom_youtube' ) ) : ?>
-				<a class="k-btn k-btn--glass" href="<?php echo esc_url( add_query_arg( 'sub_confirmation', 1, get_theme_mod( 'kingdom_youtube' ) ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Subscribe', 'kingdom' ); ?></a>
+			<?php $kingdom_yt_channel = kingdom_social_links()['youtube'] ?? ''; ?>
+			<?php if ( $kingdom_yt_channel ) : ?>
+				<a class="k-btn k-btn--glass" href="<?php echo esc_url( add_query_arg( 'sub_confirmation', 1, $kingdom_yt_channel ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Subscribe', 'kingdom' ); ?></a>
 			<?php endif; ?>
 		</p>
 	</div>

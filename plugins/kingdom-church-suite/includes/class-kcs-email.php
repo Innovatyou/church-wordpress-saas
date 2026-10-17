@@ -258,6 +258,10 @@ body{margin:0;background:#f4f2f7;font-family:-apple-system,Segoe UI,Roboto,Helve
 
 		$touched = array();
 		foreach ( $rows as $row ) {
+			// Claim the row first, so a second batch running at the same time never sends it again.
+			if ( ! $wpdb->query( $wpdb->prepare( "UPDATE $table SET status = 'sending' WHERE id = %d AND status = 'queued'", $row->id ) ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				continue;
+			}
 			$ok = wp_mail( $row->email, $row->subject, $row->body, $headers );
 			$wpdb->update(
 				$table,
@@ -297,6 +301,10 @@ body{margin:0;background:#f4f2f7;font-family:-apple-system,Segoe UI,Roboto,Helve
 				'data'      => $data,
 			)
 		);
+		$secret = (string) kcs_get_option( 'api_key' );
+		if ( strlen( $secret ) < 20 ) {
+			return; // Unsigned events could be forged by anyone, so nothing is sent without an API key.
+		}
 		wp_remote_post(
 			$url,
 			array(
@@ -305,7 +313,7 @@ body{margin:0;background:#f4f2f7;font-family:-apple-system,Segoe UI,Roboto,Helve
 				'headers'  => array(
 					'Content-Type'    => 'application/json',
 					'X-KCS-Event'     => $event,
-					'X-KCS-Signature' => hash_hmac( 'sha256', $body, (string) kcs_get_option( 'api_key' ) ),
+					'X-KCS-Signature' => hash_hmac( 'sha256', $body, $secret ),
 				),
 				'body'     => $body,
 			)

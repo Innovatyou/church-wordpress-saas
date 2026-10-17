@@ -315,6 +315,19 @@ class KCS_Partners {
 					if ( ! is_email( $v ) ) {
 						continue 2;
 					}
+					// Keep emails unique and the partner's login account in step with them.
+					$current = self::get( $id );
+					if ( $current && strtolower( $v ) !== strtolower( $current->email ) ) {
+						$other      = self::get_by_email( $v );
+						$owner      = email_exists( $v );
+						$linked     = (int) $current->user_id;
+						if ( ( $other && (int) $other->id !== (int) $id ) || ( $owner && (int) $owner !== $linked ) ) {
+							continue 2;
+						}
+						if ( $linked ) {
+							wp_update_user( array( 'ID' => $linked, 'user_email' => $v ) );
+						}
+					}
 					break;
 				case 'textarea':
 					$v = sanitize_textarea_field( $v );
@@ -394,6 +407,7 @@ class KCS_Partners {
 		$new_value = $amount * ( $per_month[ $freq ] ?? 1 );
 		$direction = $partner->currency !== $currency ? 'switched' : ( $new_value > $old_value ? 'upgraded' : ( $new_value < $old_value ? 'downgraded' : 'switched' ) );
 
+		self::track_upgrade( $partner, $amount, $freq, $currency, $plan->id );
 		$old_plan = $partner->plan_id ? KCS_Plans::get( $partner->plan_id ) : null;
 		$note     = sprintf( '[%s] %s: %s → %s (%s)', current_time( 'Y-m-d' ), ucfirst( $direction ), $old_plan ? $old_plan->name : __( 'Custom', 'kingdom-church-suite' ), $plan->name, kcs_format_money( $amount, $currency ) );
 		self::update(
@@ -404,7 +418,6 @@ class KCS_Partners {
 				'currency'  => $currency,
 				'frequency' => $freq,
 				'notes'     => trim( $partner->notes . "\n" . $note ),
-				'status'    => 'paused' === $partner->status ? 'active' : $partner->status,
 			)
 		);
 
@@ -485,6 +498,42 @@ class KCS_Partners {
 	}
 
 	/**
+	 * Remember what a partner had paid for before an upgrade, so the higher tier (pastor contacts,
+	 * premium updates) opens only after a payment at the new level. Downgrades apply at once.
+	 *
+	 * @param object $partner  Partner before the change.
+	 * @param float  $amount   New amount.
+	 * @param string $freq     New frequency.
+	 * @param string $currency New currency.
+	 * @param int    $plan_id  New plan.
+	 */
+	public static function track_upgrade( $partner, $amount, $freq, $currency, $plan_id ) {
+		$key  = 'kcs_upgrade_' . (int) $partner->id;
+		$paid = get_option( $key );
+		if ( ! is_array( $paid ) ) {
+			$paid = array( 'plan_id' => (int) $partner->plan_id, 'amount' => (float) $partner->amount, 'frequency' => $partner->frequency, 'currency' => $partner->currency );
+		}
+		$new = (object) array( 'plan_id' => (int) $plan_id, 'amount' => (float) $amount, 'frequency' => $freq, 'currency' => $currency );
+		if ( KCS_Access::tier( $new ) > KCS_Access::tier( (object) $paid ) ) {
+			update_option( $key, $paid, false );
+		} else {
+			delete_option( $key );
+		}
+	}
+
+	/**
+	 * The plan values a partner has actually paid for (differs from the record only while an
+	 * upgrade is unpaid).
+	 *
+	 * @param object $partner Partner.
+	 * @return object
+	 */
+	public static function paid_terms( $partner ) {
+		$paid = get_option( 'kcs_upgrade_' . (int) $partner->id );
+		return is_array( $paid ) ? (object) array_merge( (array) $partner, $paid ) : $partner;
+	}
+
+	/**
 	 * Record a completed payment against a partner.
 	 *
 	 * @param object $partner Partner.
@@ -492,18 +541,21 @@ class KCS_Partners {
 	 */
 	public static function apply_payment( $partner, $payment ) {
 		global $wpdb;
+		$same_currency = strtoupper( (string) $payment->currency ) === strtoupper( (string) $partner->currency );
+		// Only a payment that covers the partner's commitment (in their currency) renews the
+		// partnership; anything smaller is recorded as a gift but does not unlock or extend it.
+		$covers = $same_currency && ( (float) $partner->amount <= 0 || (float) $payment->amount + 0.01 >= (float) $partner->amount );
+		$table  = kcs_table( 'partners' );
+		$now    = current_time( 'mysql' );
+		if ( ! $covers ) {
+			$wpdb->query( $wpdb->prepare( "UPDATE $table SET total_given = total_given + %f, last_payment_at = %s, updated_at = %s WHERE id = %d", $same_currency ? (float) $payment->amount : 0, $now, $now, (int) $partner->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			return;
+		}
+		delete_option( 'kcs_upgrade_' . (int) $partner->id ); // Paid at the new level: the upgrade is complete.
 		$base     = ( $partner->next_due_date && $partner->next_due_date > current_time( 'Y-m-d' ) ) ? $partner->next_due_date : current_time( 'Y-m-d' );
 		$next_due = kcs_next_due_date( $partner->frequency, $base );
-		$wpdb->query(
-			$wpdb->prepare(
-				'UPDATE ' . kcs_table( 'partners' ) . " SET total_given = total_given + %f, last_payment_at = %s, next_due_date = %s, status = 'active', updated_at = %s WHERE id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				(float) $payment->amount,
-				current_time( 'mysql' ),
-				$next_due,
-				current_time( 'mysql' ),
-				(int) $partner->id
-			)
-		);
+		// One-time partners have no next due date: store NULL (not an empty date).
+		$wpdb->query( $wpdb->prepare( "UPDATE $table SET total_given = total_given + %f, last_payment_at = %s, next_due_date = NULLIF(%s, ''), status = 'active', updated_at = %s WHERE id = %d", (float) $payment->amount, $now, (string) $next_due, $now, (int) $partner->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 
 	/**
@@ -541,7 +593,7 @@ class KCS_Partners {
 			'due_date'      => $partner->next_due_date ? date_i18n( get_option( 'date_format' ), strtotime( $partner->next_due_date ) ) : '',
 			'dashboard_url' => kcs_page_url( 'partner_dashboard' ),
 			'pay_url'       => add_query_arg( 'kcs_action', 'pay', kcs_page_url( 'partner_dashboard' ) ),
-			'admin_url'     => admin_url( 'admin.php?page=kcs-partners&action=edit&id=' . (int) $partner->id ),
+			'admin_url'     => KCS_Church_Admin::url( 'partners', array( 'id' => (int) $partner->id ) ),
 		);
 	}
 

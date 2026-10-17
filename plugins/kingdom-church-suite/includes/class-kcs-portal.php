@@ -141,11 +141,12 @@ class KCS_Portal {
 	 * @param array $data Data.
 	 */
 	private static function login( $data ) {
-		if ( ! kcs_rate_limit( 'login', 10, 900 ) ) {
+		$login = sanitize_text_field( $data['log'] ?? '' );
+		// Per account (stops password guessing) and a looser per-network limit (church Wi-Fi is shared).
+		if ( ! kcs_rate_limit( 'login_' . md5( strtolower( $login ) ), 10, 900 ) || ! kcs_rate_limit( 'login', 60, 900 ) ) {
 			self::add_message( __( 'Too many attempts. Please wait a few minutes.', 'kingdom-church-suite' ) );
 			return;
 		}
-		$login = sanitize_text_field( $data['log'] ?? '' );
 		if ( is_email( $login ) ) {
 			$u     = get_user_by( 'email', $login );
 			$login = $u ? $u->user_login : $login;
@@ -162,7 +163,9 @@ class KCS_Portal {
 			self::add_message( __( 'Invalid email/username or password.', 'kingdom-church-suite' ) );
 			return;
 		}
-		$redirect = ! empty( $data['redirect_to'] ) ? wp_validate_redirect( esc_url_raw( $data['redirect_to'] ), kcs_page_url( 'partner_dashboard' ) ) : kcs_page_url( 'partner_dashboard' );
+		// Church staff go to the Church Admin, partners to their dashboard.
+		$home     = user_can( $user, 'manage_kcs' ) && ! KCS_Partners::get_by_user( $user->ID ) ? kcs_page_url( 'church_admin' ) : kcs_page_url( 'partner_dashboard' );
+		$redirect = ! empty( $data['redirect_to'] ) ? wp_validate_redirect( esc_url_raw( $data['redirect_to'] ), $home ) : $home;
 		wp_safe_redirect( $redirect );
 		exit;
 	}
@@ -173,7 +176,7 @@ class KCS_Portal {
 	 * @param array $data Data.
 	 */
 	private static function register( $data ) {
-		if ( ! kcs_rate_limit( 'register', 5, 3600 ) ) {
+		if ( ! kcs_rate_limit( 'register', 20, 3600 ) ) {
 			self::add_message( __( 'Too many attempts. Please try again later.', 'kingdom-church-suite' ) );
 			return;
 		}
@@ -280,6 +283,9 @@ class KCS_Portal {
 			$update['status'] = 'active';
 		} elseif ( ! empty( $data['pause'] ) && in_array( $partner->status, array( 'active', 'overdue' ), true ) ) {
 			$update['status'] = 'paused';
+		}
+		if ( isset( $update['amount'] ) || isset( $update['plan_id'] ) ) {
+			KCS_Partners::track_upgrade( $partner, $update['amount'] ?? $partner->amount, $update['frequency'] ?? $partner->frequency, $update['currency'] ?? $partner->currency, $update['plan_id'] ?? $partner->plan_id );
 		}
 		KCS_Partners::update( $partner->id, $update );
 		wp_update_user(
