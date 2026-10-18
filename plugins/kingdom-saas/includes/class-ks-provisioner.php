@@ -160,8 +160,17 @@ class KS_Provisioner {
 			return $blog_id;
 		}
 
+		// Service times are worked out in the site's time zone: start from the platform's own
+		// (Lagos for a naira platform still on UTC) — the church can change it in Settings → General.
+		$tz = (string) get_blog_option( get_main_site_id(), 'timezone_string' );
+		if ( '' === $tz && 'NGN' === strtoupper( (string) ks_get( 'local_currency' ) ) && ! (float) get_blog_option( get_main_site_id(), 'gmt_offset' ) ) {
+			$tz = 'Africa/Lagos';
+		}
 		switch_to_blog( $blog_id );
 		update_option( 'permalink_structure', '/%postname%/' );
+		if ( $tz ) {
+			update_option( 'timezone_string', $tz );
+		}
 		update_option( 'blogdescription', __( 'Welcome home', 'kingdom-saas' ) );
 		update_option( 'admin_email', $email );
 		if ( ks_theme_ok() ) {

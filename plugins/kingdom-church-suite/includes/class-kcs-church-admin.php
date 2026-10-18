@@ -483,6 +483,7 @@ class KCS_Church_Admin {
 					KCS_Settings::save_tab( $tab, isset( $_POST['kcs'] ) && is_array( $_POST['kcs'] ) ? $_POST['kcs'] : array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized per field in save_tab.
 					if ( 'general' === $tab ) {
 						flush_rewrite_rules();
+						self::save_timezone( (string) ( $d['site_timezone'] ?? '' ) );
 					}
 				}
 				$msg  = __( 'Settings saved.', 'kingdom-church-suite' );
@@ -1483,12 +1484,15 @@ class KCS_Church_Admin {
 					<details class="kca-card kcs-form kca-setting-group">
 						<summary><strong><?php echo esc_html( $section ); ?></strong><?php if ( 'payments' === $tab ) : ?> <span class="kcs-badge kcs-badge--<?php echo $enabled ? 'completed' : 'cancelled'; ?>"><?php echo $enabled ? esc_html__( 'On', 'kingdom-church-suite' ) : esc_html__( 'Off', 'kingdom-church-suite' ); ?></span><?php endif; ?></summary>
 				<?php else : ?>
-					<section class="kca-card kcs-form kca-setting-group">
+					<section class="kca-card kcs-form kca-setting-group"<?php echo isset( $fields['service_schedule'] ) ? ' id="service-times"' : ''; ?>>
 						<h3><?php echo esc_html( $section ); ?></h3>
 				<?php endif; ?>
 				<?php
 				foreach ( $fields as $key => $field ) {
 					self::setting_field( $key, $field, $opts );
+					if ( 'service_schedule' === $key ) {
+						self::timezone_field();
+					}
 				}
 				?>
 				<button class="kcs-btn"><?php esc_html_e( 'Save settings', 'kingdom-church-suite' ); ?></button>
@@ -1503,6 +1507,38 @@ class KCS_Church_Admin {
 			</form>
 		<?php endif; ?>
 		<?php
+	}
+
+	/**
+	 * Save the time zone picked in Settings → General (a city, or a UTC offset like "UTC+1").
+	 *
+	 * @param string $tz Value from the time zone list.
+	 */
+	private static function save_timezone( $tz ) {
+		if ( '' === $tz ) {
+			return;
+		}
+		if ( preg_match( '/^UTC([+-]\d{1,2}(?:\.\d+)?)?$/', $tz, $m ) ) {
+			update_option( 'gmt_offset', isset( $m[1] ) ? (float) $m[1] : 0 );
+			update_option( 'timezone_string', '' );
+		} elseif ( in_array( $tz, timezone_identifiers_list( DateTimeZone::ALL_WITH_BC ), true ) ) {
+			update_option( 'timezone_string', $tz );
+		}
+		delete_transient( 'kcs_live_status' );
+	}
+
+	/**
+	 * The site's time zone (service times, countdown and live badge are worked out in it).
+	 */
+	private static function timezone_field() {
+		$tz = (string) get_option( 'timezone_string' );
+		if ( '' === $tz ) {
+			$off = (float) get_option( 'gmt_offset' );
+			$tz  = 0.0 === $off ? 'UTC' : 'UTC' . ( $off >= 0 ? '+' : '' ) . $off;
+		}
+		echo '<label>' . esc_html__( 'Time zone', 'kingdom-church-suite' ) . '<select name="site_timezone">' . wp_timezone_choice( $tz, get_user_locale() ) . '</select>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- core-built options.
+		/* translators: %s: current local time */
+		echo '<small class="kcs-muted">' . esc_html( sprintf( __( 'Service times above are in this time zone. Local time now: %s. Nigeria: choose Lagos.', 'kingdom-church-suite' ), wp_date( get_option( 'time_format' ) ) ) ) . '</small></label>';
 	}
 
 	/**
