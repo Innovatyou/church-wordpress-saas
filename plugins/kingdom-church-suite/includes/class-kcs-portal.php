@@ -24,6 +24,7 @@ class KCS_Portal {
 	 */
 	public static function init() {
 		add_action( 'template_redirect', array( __CLASS__, 'handle_forms' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'partner_home' ), 20 );
 		add_action( 'admin_init', array( __CLASS__, 'block_admin' ) );
 		add_filter( 'show_admin_bar', array( __CLASS__, 'admin_bar' ) );
 		add_filter( 'login_redirect', array( __CLASS__, 'login_redirect' ), 10, 3 );
@@ -93,10 +94,40 @@ class KCS_Portal {
 	 * @return string
 	 */
 	public static function login_redirect( $redirect, $requested, $user ) {
-		if ( $user instanceof WP_User && self::is_partner_only( $user ) ) {
+		if ( $user instanceof WP_User && ( self::is_partner_only( $user ) || ( KCS_Partners::get_by_user( $user->ID ) && self::is_entry_page( $requested ) ) ) ) {
 			return kcs_page_url( 'partner_dashboard' );
 		}
 		return $redirect;
+	}
+
+	/**
+	 * Is this URL the Become a Partner or Partner Login page (a partner has nothing to do there)?
+	 *
+	 * @param string $url URL.
+	 * @return bool
+	 */
+	private static function is_entry_page( $url ) {
+		$path = untrailingslashit( (string) wp_parse_url( $url, PHP_URL_PATH ) );
+		foreach ( array( 'partner_register', 'partner_login' ) as $key ) {
+			if ( (int) kcs_get_option( 'page_' . $key, 0 ) && untrailingslashit( (string) wp_parse_url( kcs_page_url( $key ), PHP_URL_PATH ) ) === $path ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Logged-in partners who open Become a Partner or Partner Login go straight to their dashboard.
+	 */
+	public static function partner_home() {
+		if ( 'GET' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || ! is_user_logged_in() || ! is_page() || ! kcs_is_partner() ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			return;
+		}
+		$id = get_queried_object_id();
+		if ( in_array( $id, array( (int) kcs_get_option( 'page_partner_register', 0 ), (int) kcs_get_option( 'page_partner_login', 0 ) ), true ) && $id ) {
+			wp_safe_redirect( kcs_page_url( 'partner_dashboard' ) );
+			exit;
+		}
 	}
 
 	/**
@@ -166,6 +197,9 @@ class KCS_Portal {
 		// Church staff go to the Church Admin, partners to their dashboard.
 		$home     = user_can( $user, 'manage_kcs' ) && ! KCS_Partners::get_by_user( $user->ID ) ? kcs_page_url( 'church_admin' ) : kcs_page_url( 'partner_dashboard' );
 		$redirect = ! empty( $data['redirect_to'] ) ? wp_validate_redirect( esc_url_raw( $data['redirect_to'] ), $home ) : $home;
+		if ( KCS_Partners::get_by_user( $user->ID ) && self::is_entry_page( $redirect ) ) {
+			$redirect = kcs_page_url( 'partner_dashboard' );
+		}
 		wp_safe_redirect( $redirect );
 		exit;
 	}
