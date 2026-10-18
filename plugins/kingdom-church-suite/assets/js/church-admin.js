@@ -73,3 +73,80 @@
 	sync();
 	if (wide.addEventListener) { wide.addEventListener('change', sync); }
 })();
+
+// Dashboard search: pages and settings appear as you type (↑ ↓ Enter), "/" focuses the box,
+// Enter with nothing picked opens the full results page (people, payments…).
+(function () {
+	var form = document.querySelector('[data-dsearch]');
+	if (!form || form.hasAttribute('data-dsearch-ready')) { return; }
+	form.setAttribute('data-dsearch-ready', '');
+	var input = form.querySelector('input[type="search"]');
+	var list = form.querySelector('[role="listbox"]');
+	var data = form.querySelector('[data-dsearch-index]');
+	var items = [];
+	try { items = JSON.parse(data.textContent) || []; } catch (e) { items = []; }
+	var more = data.getAttribute('data-more') || '%s';
+	var none = data.getAttribute('data-none') || '';
+	var active = -1;
+	function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+	items.forEach(function (i) { i.h = norm(i.t + ' ' + i.d + ' ' + i.k); i.n = norm(i.t); });
+	function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+	function close() { list.hidden = true; input.setAttribute('aria-expanded', 'false'); active = -1; }
+	function render() {
+		var q = norm(input.value.trim());
+		if (q.length < 2) { close(); return; }
+		var words = q.split(/\s+/);
+		var hits = items.filter(function (i) { return words.every(function (w) { return i.h.indexOf(w) > -1; }); });
+		hits.sort(function (a, b) { return (b.n.indexOf(q) === 0) - (a.n.indexOf(q) === 0) || (b.n.indexOf(q) > -1) - (a.n.indexOf(q) > -1) || a.t.length - b.t.length; });
+		var html = hits.slice(0, 8).map(function (i, n) {
+			return '<li role="option" id="dsearch-' + n + '"><a href="' + esc(i.u) + '"><strong>' + esc(i.t) + '</strong><small>' + esc(i.d) + '</small></a></li>';
+		}).join('');
+		if (!hits.length && none) { html = '<li class="is-note">' + esc(none) + '</li>'; }
+		html += '<li role="option" class="is-more" id="dsearch-more"><a href="#" data-dsearch-submit>' + esc(more.replace('%s', input.value.trim())) + ' →</a></li>';
+		list.innerHTML = html;
+		list.hidden = false;
+		input.setAttribute('aria-expanded', 'true');
+		active = -1;
+	}
+	function options() { return list.querySelectorAll('[role="option"]'); }
+	function mark(n) {
+		var o = options();
+		if (!o.length) { return; }
+		active = (n + o.length) % o.length;
+		o.forEach(function (el, i) { el.classList.toggle('is-active', i === active); });
+		input.setAttribute('aria-activedescendant', o[active].id);
+		o[active].scrollIntoView({ block: 'nearest' });
+	}
+	input.addEventListener('input', render);
+	input.addEventListener('focus', render);
+	input.addEventListener('keydown', function (e) {
+		if (e.key === 'ArrowDown') { e.preventDefault(); mark(active + 1); }
+		else if (e.key === 'ArrowUp') { e.preventDefault(); mark(active - 1); }
+		else if (e.key === 'Escape') { close(); }
+		else if (e.key === 'Enter' && active > -1) {
+			var a = options()[active].querySelector('a');
+			if (a && !a.hasAttribute('data-dsearch-submit')) { e.preventDefault(); window.location.href = a.href; }
+		}
+	});
+	list.addEventListener('click', function (e) {
+		var a = e.target.closest('[data-dsearch-submit]');
+		if (a) { e.preventDefault(); form.submit(); }
+	});
+	document.addEventListener('click', function (e) { if (!form.contains(e.target)) { close(); } });
+	document.addEventListener('keydown', function (e) {
+		var t = e.target.tagName;
+		if (e.key === '/' && t !== 'INPUT' && t !== 'TEXTAREA' && t !== 'SELECT' && !e.target.isContentEditable) { e.preventDefault(); input.focus(); }
+	});
+	// Jumped to a setting: open its collapsed group and highlight it.
+	function reveal() {
+		var id = decodeURIComponent((window.location.hash || '').slice(1));
+		var el = id && document.getElementById(id);
+		if (!el) { return; }
+		for (var p = el.parentElement; p; p = p.parentElement) { if (p.tagName === 'DETAILS') { p.open = true; } }
+		el.scrollIntoView({ block: 'center' });
+		var next = el.offsetHeight ? el : el.nextElementSibling; // an empty marker highlights the field after it
+		if (next) { next.classList.add('is-found'); setTimeout(function () { next.classList.remove('is-found'); }, 2600); }
+	}
+	window.addEventListener('hashchange', reveal);
+	if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', reveal); } else { reveal(); }
+})();

@@ -187,3 +187,19 @@ details.kca-card > summary::-webkit-details-marker { display: none; }
 .kca-image__btns { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .35rem; }
 .kca-image__btns .kcs-btn { padding: .5em .9em; font-size: .85rem; }
 .kca-image__preview[hidden], .kca-image__btns [hidden] { display: none !important; }
+/* Dashboard search */
+.kca-search { position: relative; }
+.kca-search input[type="search"] { width: 100%; min-height: 46px; padding: .55rem .9rem .55rem 2.5rem !important; border-radius: 12px; border: 1px solid var(--kcs-border); background: var(--kcs-surface); color: var(--kcs-text); font: inherit; font-size: 16px; }
+.kca-search input[type="search"]:focus { outline: 2px solid var(--kcs-primary); outline-offset: 1px; }
+.kca-search__ic { position: absolute; left: .85rem; top: 50%; transform: translateY(-50%); color: var(--kcs-muted); font-size: 1.35rem; line-height: 1; pointer-events: none; }
+.kca-search__list { position: absolute; z-index: 50; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: .35rem; list-style: none; max-height: min(70vh, 460px); overflow-y: auto; border-radius: 14px; border: 1px solid var(--kcs-border); background: var(--kcs-surface); box-shadow: 0 22px 48px -18px rgba(0,0,0,.35); }
+@media (min-width: 960px) { .kca-search__list { width: min(560px, calc(100vw - 4rem)); right: auto; } }
+.kca-search__list a { display: grid; gap: .1rem; padding: .6rem .75rem; border-radius: 10px; color: var(--kcs-text); text-decoration: none; }
+.kca-search__list small { color: var(--kcs-muted); font-size: .8rem; }
+.kca-search__list .is-active a, .kca-search__list a:hover { background: var(--kcs-surface-2); }
+.kca-search__list .is-more a { color: var(--kcs-primary); font-weight: 700; border-top: 1px solid var(--kcs-border); border-radius: 0 0 10px 10px; }
+.kca-search__list .is-note { padding: .6rem .75rem; color: var(--kcs-muted); font-size: .9rem; }
+.kca-anchor { display: block; height: 0; scroll-margin-top: 110px; }
+.is-found { animation: kca-found 2.6s ease; border-radius: 10px; }
+@keyframes kca-found { 0%, 60% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--kcs-accent) 55%, transparent); background: color-mix(in srgb, var(--kcs-accent) 12%, transparent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+.screen-reader-text { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(1px, 1px, 1px, 1px); white-space: nowrap; }

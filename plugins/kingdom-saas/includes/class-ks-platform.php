@@ -173,6 +173,86 @@ class KS_Platform {
 	}
 
 	/**
+	 * Everything the platform search box can jump to.
+	 *
+	 * @return array[] t (title), d (where), u (link), k (other words).
+	 */
+	public static function search_index() {
+		$u    = function ( $tab, $hash = '' ) {
+			return add_query_arg( 'tab', $tab, ks_platform_url( 'platform/' ) ) . ( $hash ? '#' . $hash : '' );
+		};
+		$set  = __( 'Settings', 'kingdom-saas' );
+		$rows = array(
+			array( __( 'Overview', 'kingdom-saas' ), __( 'Churches, monthly revenue and who needs attention', 'kingdom-saas' ), $u( 'overview' ), 'dashboard stats mrr revenue' ),
+			array( __( 'Churches', 'kingdom-saas' ), __( 'Every church: plan, status, open its admin, extend, suspend', 'kingdom-saas' ), $u( 'churches' ), 'tenants sites customers suspend extend trial' ),
+			array( __( 'Add a church', 'kingdom-saas' ), __( 'Create a church site yourself (offline sales)', 'kingdom-saas' ), $u( 'new' ), 'create new site manual' ),
+			array( __( 'Payments', 'kingdom-saas' ), __( 'Bank transfers to confirm and all invoices', 'kingdom-saas' ), $u( 'invoices' ), 'invoices billing confirm transfer receipt' ),
+			array( __( 'Domains', 'kingdom-saas' ), __( 'Church custom domains, DNS checks, parked domain steps', 'kingdom-saas' ), $u( 'domains' ), 'custom domain dns parked ssl' ),
+			array( __( 'Plans & pricing', 'kingdom-saas' ), __( 'Plan names, prices in USD and local currency, limits', 'kingdom-saas' ), $u( 'plans' ), 'price pricing naira dollars limits starter growth ministry' ),
+			array( __( 'Server IP & CNAME for custom domains', 'kingdom-saas' ), __( 'Domains → Domain settings', 'kingdom-saas' ), $u( 'domains', 'domain-settings' ), 'dns a record ip address cname' ),
+			array( __( 'Platform name, tagline & brand colour', 'kingdom-saas' ), $set . ' → ' . __( 'Brand', 'kingdom-saas' ), $u( 'settings', 'set-brand' ), 'logo name colour color tagline' ),
+			array( __( 'Dark or light mode', 'kingdom-saas' ), $set . ' → ' . __( 'Brand', 'kingdom-saas' ), $u( 'settings', 'set-brand' ), 'theme dark light colours mode' ),
+			array( __( 'Support email', 'kingdom-saas' ), $set . ' → ' . __( 'Brand', 'kingdom-saas' ), $u( 'settings', 'set-brand' ), 'email sender contact' ),
+			array( __( 'Platform domain & reserved addresses', 'kingdom-saas' ), $set . ' → ' . __( 'Domains', 'kingdom-saas' ), $u( 'settings', 'set-domains' ), 'https reserved names subdomain' ),
+			array( __( 'Free trial, grace and reminder days', 'kingdom-saas' ), $set . ' → ' . __( 'Trials & renewals', 'kingdom-saas' ), $u( 'settings', 'set-trials' ), 'trial days grace reminder suspend' ),
+			array( __( 'Local currency', 'kingdom-saas' ), $set . ' → ' . __( 'Trials & renewals', 'kingdom-saas' ), $u( 'settings', 'set-trials' ), 'ngn naira currency local label' ),
+			array( __( 'Paystack keys', 'kingdom-saas' ), $set . ' → ' . __( 'Payments', 'kingdom-saas' ), $u( 'settings', 'set-payments' ), 'paystack secret key gateway' ),
+			array( __( 'Flutterwave keys', 'kingdom-saas' ), $set . ' → ' . __( 'Payments', 'kingdom-saas' ), $u( 'settings', 'set-payments' ), 'flutterwave public secret hash webhook' ),
+			array( __( 'Stripe keys', 'kingdom-saas' ), $set . ' → ' . __( 'Payments', 'kingdom-saas' ), $u( 'settings', 'set-payments' ), 'stripe secret webhook card dollars' ),
+			array( __( 'Bot protection (Cloudflare Turnstile)', 'kingdom-saas' ), $set . ' → ' . __( 'Payments', 'kingdom-saas' ), $u( 'settings', 'set-payments' ), 'captcha spam turnstile signup' ),
+			array( __( 'Test mode', 'kingdom-saas' ), $set . ' → ' . __( 'Payments', 'kingdom-saas' ), $u( 'settings', 'set-payments' ), 'test simulated payment sandbox' ),
+			array( __( 'Bank accounts for bank transfer', 'kingdom-saas' ), $set . ' → ' . __( 'Bank transfer', 'kingdom-saas' ), $u( 'settings', 'set-bank' ), 'bank account number transfer offline' ),
+			array( __( 'Search & sharing (SEO)', 'kingdom-saas' ), $set . ' → ' . __( 'Search & sharing (SEO)', 'kingdom-saas' ), $u( 'settings', 'set-seo' ), 'seo google search console bing analytics ga4 sitemap sharing image social' ),
+			array( __( 'Setup check', 'kingdom-saas' ), __( 'Network Admin → Ministry OS Cloud', 'kingdom-saas' ), network_admin_url( 'admin.php?page=kingdom-cloud' ), 'setup check health problems' ),
+		);
+		$out = array();
+		foreach ( $rows as $r ) {
+			$out[] = array( 't' => $r[0], 'd' => $r[1], 'u' => $r[2], 'k' => $r[3] );
+		}
+		return (array) apply_filters( 'ks_platform_search_index', $out );
+	}
+
+	/**
+	 * Full search: pages and settings, churches, invoices and domains.
+	 *
+	 * @param string $q Search words.
+	 * @return array|null Rows per kind (t, d, u, s), or null when the search is too short.
+	 */
+	public static function search( $q ) {
+		global $wpdb;
+		$q = trim( (string) $q );
+		if ( mb_strlen( $q ) < 2 ) {
+			return null;
+		}
+		$words = preg_split( '/\s+/', mb_strtolower( $q ) );
+		$pages = array();
+		foreach ( self::search_index() as $i ) {
+			$hay = mb_strtolower( $i['t'] . ' ' . $i['d'] . ' ' . $i['k'] );
+			if ( count( array_filter( $words, function ( $w ) use ( $hay ) { return false !== mb_strpos( $hay, $w ); } ) ) === count( $words ) ) {
+				$pages[] = array( 't' => $i['t'], 'd' => $i['d'], 'u' => $i['u'] );
+			}
+		}
+		$churches = array();
+		foreach ( array_slice( KS_Tenants::all( array( 'search' => $q ) ), 0, 15 ) as $s ) {
+			$churches[] = array( 't' => $s->church_name, 'd' => $s->subdomain . ' · ' . $s->owner_email . ' · ' . ( KS_Plans::get( $s->plan )['name'] ?? $s->plan ), 'u' => add_query_arg( array( 'tab' => 'churches', 's' => $s->owner_email ), ks_platform_url( 'platform/' ) ), 's' => $s->status );
+		}
+		$like     = '%' . $wpdb->esc_like( $q ) . '%';
+		$invoices = array();
+		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT i.reference, i.amount, i.currency, i.status, i.created_at, i.gateway, s.church_name FROM ' . ks_table( 'invoices' ) . ' i LEFT JOIN ' . ks_table( 'subscriptions' ) . ' s ON s.blog_id = i.blog_id WHERE i.reference LIKE %s OR i.gateway_ref LIKE %s OR s.church_name LIKE %s OR s.owner_email LIKE %s ORDER BY i.id DESC LIMIT 15', $like, $like, $like, $like ) );
+		foreach ( $rows as $r ) {
+			$invoices[] = array( 't' => ( $r->church_name ? $r->church_name : '—' ) . ' — ' . ks_money( $r->amount, $r->currency ), 'd' => $r->reference . ' · ' . $r->gateway . ' · ' . date_i18n( 'j M Y', strtotime( $r->created_at . ' UTC' ) ), 'u' => add_query_arg( 'tab', 'invoices', ks_platform_url( 'platform/' ) ), 's' => $r->status );
+		}
+		$domains = array();
+		$rows    = $wpdb->get_results( $wpdb->prepare( 'SELECT d.domain, d.status, s.church_name FROM ' . ks_table( 'domains' ) . ' d LEFT JOIN ' . ks_table( 'subscriptions' ) . ' s ON s.blog_id = d.blog_id WHERE d.domain LIKE %s OR s.church_name LIKE %s ORDER BY d.id DESC LIMIT 15', $like, $like ) );
+		// phpcs:enable
+		foreach ( $rows as $r ) {
+			$domains[] = array( 't' => $r->domain, 'd' => (string) $r->church_name, 'u' => add_query_arg( 'tab', 'domains', ks_platform_url( 'platform/' ) ), 's' => $r->status );
+		}
+		return array( 'pages' => array_slice( $pages, 0, 12 ), 'churches' => $churches, 'invoices' => $invoices, 'domains' => $domains );
+	}
+
+	/**
 	 * Render platform pages.
 	 */
 	public static function route() {

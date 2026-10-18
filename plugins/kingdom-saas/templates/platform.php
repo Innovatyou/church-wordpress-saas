@@ -18,6 +18,12 @@ $tabs   = array(
 	'plans'    => array( __( 'Plans & pricing', 'kingdom-saas' ), '◈' ),
 	'settings' => array( __( 'Settings', 'kingdom-saas' ), '⚙' ),
 );
+$nav    = $tabs;
+$query  = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
+if ( isset( $_GET['tab'] ) && 'search' === $_GET['tab'] ) {
+	/* translators: %s: search words */
+	$tabs['search'] = array( '' === $query ? __( 'Search', 'kingdom-saas' ) : sprintf( __( 'Results for “%s”', 'kingdom-saas' ), $query ), '⌕' );
+}
 $tab    = isset( $_GET['tab'], $tabs[ $_GET['tab'] ] ) ? sanitize_key( $_GET['tab'] ) : 'overview';
 $search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
 $filter = isset( $_GET['status'] ) ? sanitize_key( $_GET['status'] ) : '';
@@ -49,8 +55,16 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 <div class="ks-app">
 	<aside class="ks-side">
 		<a class="ks-logo" href="<?php echo esc_url( ks_platform_url() ); ?>"><span class="ks-logo__mark" aria-hidden="true">✚</span><?php echo esc_html( ks_get( 'platform_name' ) ); ?></a>
+		<form class="ks-dsearch" role="search" method="get" action="<?php echo esc_url( ks_platform_url( 'platform/' ) ); ?>" data-dsearch>
+			<input type="hidden" name="tab" value="search">
+			<label class="ks-sr" for="ks-q"><?php esc_html_e( 'Search the dashboard', 'kingdom-saas' ); ?></label>
+			<span class="ks-dsearch__ic" aria-hidden="true">⌕</span>
+			<input id="ks-q" type="search" name="q" value="<?php echo esc_attr( $query ); ?>" placeholder="<?php esc_attr_e( 'Search churches, settings…', 'kingdom-saas' ); ?>" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ks-q-list">
+			<ul class="ks-dsearch__list" id="ks-q-list" role="listbox" hidden></ul>
+			<script type="application/json" data-dsearch-index data-more="<?php /* translators: %s: search words */ esc_attr_e( 'Search churches, invoices & domains for “%s”', 'kingdom-saas' ); ?>" data-none="<?php esc_attr_e( 'No page or setting matches. Press Enter to search churches, invoices & domains.', 'kingdom-saas' ); ?>"><?php echo wp_json_encode( KS_Platform::search_index(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP ); ?></script>
+		</form>
 		<nav aria-label="<?php esc_attr_e( 'Platform', 'kingdom-saas' ); ?>">
-			<?php foreach ( $tabs as $k => $t ) : ?>
+			<?php foreach ( $nav as $k => $t ) : ?>
 				<a href="<?php echo esc_url( add_query_arg( 'tab', $k, ks_platform_url( 'platform/' ) ) ); ?>"<?php echo $k === $tab ? ' aria-current="page"' : ''; ?>><span aria-hidden="true"><?php echo esc_html( $t[1] ); ?></span><?php echo esc_html( $t[0] ); ?><?php if ( ! empty( $badges[ $k ] ) ) : ?><em class="ks-count"><?php echo (int) $badges[ $k ]; ?></em><?php endif; ?></a>
 			<?php endforeach; ?>
 		</nav>
@@ -201,7 +215,7 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 		</div>
 
 <?php elseif ( 'domains' === $tab ) : ?>
-		<form method="post" class="ks-card ks-form">
+		<form method="post" class="ks-card ks-form" id="domain-settings">
 			<?php echo $f( 'save_domain_settings' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<h2><?php esc_html_e( 'Domain settings', 'kingdom-saas' ); ?></h2>
 			<p class="ks-muted"><?php esc_html_e( 'Churches on plans with custom domains connect theirs in Church Admin → Custom domain. These values decide the DNS records they are told to add.', 'kingdom-saas' ); ?></p>
@@ -250,6 +264,34 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 		</div>
 		<?php endif; ?>
 
+<?php elseif ( 'search' === $tab ) : ?>
+		<?php $res = KS_Platform::search( $query ); ?>
+		<?php if ( null === $res ) : ?>
+			<p class="ks-muted"><?php esc_html_e( 'Type at least two letters: a church name, an email, a web address, an invoice reference or a setting.', 'kingdom-saas' ); ?></p>
+		<?php elseif ( ! array_filter( $res ) ) : ?>
+			<p class="ks-muted"><?php esc_html_e( 'Nothing found. Try a shorter word, an email address or an invoice reference.', 'kingdom-saas' ); ?></p>
+		<?php else : ?>
+			<?php
+			$heads = array(
+				'pages'    => __( 'Pages & settings', 'kingdom-saas' ),
+				'churches' => __( 'Churches', 'kingdom-saas' ),
+				'invoices' => __( 'Invoices', 'kingdom-saas' ),
+				'domains'  => __( 'Custom domains', 'kingdom-saas' ),
+			);
+			?>
+			<?php foreach ( $res as $kind => $rows ) : ?>
+				<?php if ( ! $rows ) { continue; } ?>
+				<div class="ks-card ks-results">
+					<h2><?php echo esc_html( $heads[ $kind ] ); ?></h2>
+					<ul>
+						<?php foreach ( $rows as $r ) : ?>
+							<li><a href="<?php echo esc_url( $r['u'] ); ?>"><strong><?php echo esc_html( $r['t'] ); ?></strong><small><?php echo esc_html( $r['d'] ); ?></small></a><?php echo ! empty( $r['s'] ) ? wp_kses_post( ks_badge( $r['s'] ) ) : ''; ?></li>
+						<?php endforeach; ?>
+					</ul>
+				</div>
+			<?php endforeach; ?>
+		<?php endif; ?>
+
 <?php elseif ( 'plans' === $tab ) : ?>
 		<form method="post" class="ks-plan-edit">
 			<?php echo $f( 'save_plans' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -279,7 +321,7 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 		<form method="post" class="ks-settings">
 			<?php echo $f( 'save_settings' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<div class="ks-grid ks-grid--2">
-				<fieldset class="ks-card ks-form">
+				<fieldset class="ks-card ks-form" id="set-brand">
 					<legend><?php esc_html_e( 'Brand', 'kingdom-saas' ); ?></legend>
 					<label><?php esc_html_e( 'Platform name', 'kingdom-saas' ); ?><input name="platform_name" value="<?php echo esc_attr( ks_get( 'platform_name' ) ); ?>"></label>
 					<label><?php esc_html_e( 'Tagline', 'kingdom-saas' ); ?><textarea name="tagline" rows="2"><?php echo esc_textarea( ks_get( 'tagline' ) ); ?></textarea></label>
@@ -287,7 +329,7 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 					<label><?php esc_html_e( 'Site colours (landing page, sign-up and this dashboard)', 'kingdom-saas' ); ?><select name="color_mode"><?php foreach ( array( 'dark' => __( 'Dark (default)', 'kingdom-saas' ), 'light' => __( 'Light', 'kingdom-saas' ), 'auto' => __( 'Follow the visitor’s device', 'kingdom-saas' ) ) as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( ks_get( 'color_mode' ), $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select><small class="ks-small"><?php esc_html_e( 'Visitors can still switch with the sun/moon button; their choice is remembered.', 'kingdom-saas' ); ?></small></label>
 					<label><?php esc_html_e( 'Support email (also the sender)', 'kingdom-saas' ); ?><input type="email" name="support_email" value="<?php echo esc_attr( ks_get( 'support_email' ) ); ?>"></label>
 				</fieldset>
-				<fieldset class="ks-card ks-form">
+				<fieldset class="ks-card ks-form" id="set-domains">
 					<legend><?php esc_html_e( 'Domains', 'kingdom-saas' ); ?></legend>
 					<label><?php esc_html_e( 'Platform domain', 'kingdom-saas' ); ?><input name="base_domain" value="<?php echo esc_attr( ks_get( 'base_domain' ) ); ?>"></label>
 					<label><?php esc_html_e( 'CNAME target for custom domains', 'kingdom-saas' ); ?><input name="cname_target" value="<?php echo esc_attr( ks_get( 'cname_target' ) ); ?>" placeholder="<?php echo esc_attr( ks_get( 'base_domain' ) ); ?>"></label>
@@ -295,7 +337,7 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 					<label class="ks-check"><input type="checkbox" name="https" value="1" <?php checked( '1', ks_get( 'https' ) ); ?>> <?php esc_html_e( 'Church sites use https', 'kingdom-saas' ); ?></label>
 					<label><?php esc_html_e( 'Reserved church addresses', 'kingdom-saas' ); ?><input name="reserved" value="<?php echo esc_attr( ks_get( 'reserved' ) ); ?>"></label>
 				</fieldset>
-				<fieldset class="ks-card ks-form">
+				<fieldset class="ks-card ks-form" id="set-trials">
 					<legend><?php esc_html_e( 'Trials & renewals', 'kingdom-saas' ); ?></legend>
 					<label><?php esc_html_e( 'Free trial days', 'kingdom-saas' ); ?><input type="number" min="0" name="trial_days" value="<?php echo esc_attr( ks_get( 'trial_days' ) ); ?>"></label>
 					<label><?php esc_html_e( 'Grace days before suspension', 'kingdom-saas' ); ?><input type="number" min="0" name="grace_days" value="<?php echo esc_attr( ks_get( 'grace_days' ) ); ?>"></label>
@@ -303,7 +345,7 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 					<label><?php esc_html_e( 'Local currency (empty = USD only)', 'kingdom-saas' ); ?><input name="local_currency" maxlength="3" value="<?php echo esc_attr( ks_get( 'local_currency' ) ); ?>"></label>
 					<label><?php esc_html_e( 'Local label', 'kingdom-saas' ); ?><input name="local_label" value="<?php echo esc_attr( ks_get( 'local_label' ) ); ?>"></label>
 				</fieldset>
-				<fieldset class="ks-card ks-form">
+				<fieldset class="ks-card ks-form" id="set-payments">
 					<legend><?php esc_html_e( 'Payments', 'kingdom-saas' ); ?></legend>
 					<label><?php esc_html_e( 'Paystack secret key', 'kingdom-saas' ); ?><input type="password" name="paystack_secret" value="<?php echo esc_attr( ks_get( 'paystack_secret' ) ); ?>" autocomplete="off"></label>
 					<label><?php esc_html_e( 'Flutterwave public key', 'kingdom-saas' ); ?><input name="flutterwave_public" value="<?php echo esc_attr( ks_get( 'flutterwave_public' ) ); ?>" autocomplete="off" placeholder="FLWPUBK-…"></label>
@@ -316,7 +358,7 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 					<label class="ks-check"><input type="checkbox" name="test_mode" value="1" <?php checked( '1', ks_get( 'test_mode' ) ); ?>> <?php esc_html_e( 'Test mode (adds a simulated “Test payment” option)', 'kingdom-saas' ); ?></label>
 					<p class="ks-small"><?php esc_html_e( 'Webhooks:', 'kingdom-saas' ); ?> <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/paystack' ) ); ?></code> · <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/flutterwave' ) ); ?></code> · <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/stripe' ) ); ?></code></p>
 				</fieldset>
-				<fieldset class="ks-card ks-form ks-span-2">
+				<fieldset class="ks-card ks-form ks-span-2" id="set-bank">
 					<legend><?php esc_html_e( 'Bank transfer', 'kingdom-saas' ); ?></legend>
 					<p class="ks-small"><?php esc_html_e( 'Churches that choose bank transfer see these accounts and their invoice reference, then press “I have made this transfer”. You get an email and confirm it in Payments. Add up to 3 accounts; leave all empty to turn bank transfer off. An account with no currency is shown for every currency.', 'kingdom-saas' ); ?></p>
 					<?php $ks_accounts = KS_Bank::accounts(); ?>
@@ -337,7 +379,7 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 					<?php endfor; ?>
 					<label><?php esc_html_e( 'Extra note for churches (optional)', 'kingdom-saas' ); ?><textarea name="bank_details" rows="2" placeholder="<?php esc_attr_e( 'e.g. Transfers are confirmed within one working day.', 'kingdom-saas' ); ?>"><?php echo esc_textarea( ks_get( 'bank_details' ) ); ?></textarea></label>
 				</fieldset>
-				<fieldset class="ks-card ks-form ks-span-2">
+				<fieldset class="ks-card ks-form ks-span-2" id="set-seo">
 					<legend><?php esc_html_e( 'Search & sharing (SEO)', 'kingdom-saas' ); ?></legend>
 					<p class="ks-small"><?php esc_html_e( 'How your landing page appears on Google, WhatsApp and social media. Leave empty to use the built-in Nigeria-focused wording.', 'kingdom-saas' ); ?></p>
 					<div class="ks-grid ks-grid--2">

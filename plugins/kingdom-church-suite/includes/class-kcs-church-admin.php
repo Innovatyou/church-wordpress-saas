@@ -697,6 +697,11 @@ class KCS_Church_Admin {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
 		$views = self::views();
 		$view  = isset( $_GET['view'] ) && isset( $views[ sanitize_key( $_GET['view'] ) ] ) ? sanitize_key( $_GET['view'] ) : 'overview';
+		$query = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
+		if ( isset( $_GET['view'] ) && 'search' === $_GET['view'] ) {
+			$view           = 'search';
+			$views['search'] = array( __( 'Search', 'kingdom-church-suite' ), '⌕' );
+		}
 		// phpcs:enable
 		$flash = get_transient( 'kcs_admin_flash_' . get_current_user_id() );
 		delete_transient( 'kcs_admin_flash_' . get_current_user_id() );
@@ -721,6 +726,7 @@ class KCS_Church_Admin {
 				}
 				$todo = array_sum( $counts );
 				?>
+				<?php echo self::search_form( $query ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				<details class="kca__menu" data-kca-menu>
 					<summary><span class="kca__ic" aria-hidden="true"><?php echo esc_html( $views[ $view ][1] ); ?></span><span><small><?php esc_html_e( 'Menu', 'kingdom-church-suite' ); ?></small><?php echo esc_html( $views[ $view ][0] ); ?></span><?php if ( $todo ) : ?><em><?php echo (int) $todo; ?></em><?php endif; ?><b aria-hidden="true">☰</b></summary>
 					<nav class="kca__nav" aria-label="<?php esc_attr_e( 'Dashboard sections', 'kingdom-church-suite' ); ?>">
@@ -746,6 +752,8 @@ class KCS_Church_Admin {
 					<?php if ( 'overview' === $view ) : ?>
 						<h2><?php /* translators: %s: first name */ echo esc_html( sprintf( __( 'Welcome, %s', 'kingdom-church-suite' ), wp_get_current_user()->first_name ? wp_get_current_user()->first_name : wp_get_current_user()->display_name ) ); ?></h2>
 						<p class="kcs-muted"><?php echo esc_html( date_i18n( 'l, ' . get_option( 'date_format' ) ) ); ?></p>
+					<?php elseif ( 'search' === $view ) : ?>
+						<h2><?php /* translators: %s: search words */ echo esc_html( '' === $query ? __( 'Search', 'kingdom-church-suite' ) : sprintf( __( 'Results for “%s”', 'kingdom-church-suite' ), $query ) ); ?></h2>
 					<?php else : ?>
 						<h2><?php echo esc_html( $views[ $view ][0] ); ?></h2>
 						<?php if ( self::describe( $view ) ) : ?><p class="kcs-muted"><?php echo esc_html( self::describe( $view ) ); ?></p><?php endif; ?>
@@ -883,6 +891,182 @@ class KCS_Church_Admin {
 				</div>
 			</section>
 		</div>
+		<?php
+	}
+
+	/**
+	 * The dashboard search box: pages and settings appear as you type; Enter also searches people
+	 * and payments.
+	 *
+	 * @param string $query Current search.
+	 * @return string
+	 */
+	private static function search_form( $query ) {
+		$index = wp_json_encode( self::search_index(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP );
+		return '<form class="kca-search" role="search" method="get" action="' . esc_url( self::url( 'search' ) ) . '" data-dsearch>'
+			. '<input type="hidden" name="view" value="search">'
+			. '<label class="screen-reader-text" for="kca-q">' . esc_html__( 'Search the dashboard', 'kingdom-church-suite' ) . '</label>'
+			. '<span class="kca-search__ic" aria-hidden="true">⌕</span>'
+			. '<input id="kca-q" type="search" name="q" value="' . esc_attr( $query ) . '" placeholder="' . esc_attr__( 'Search pages, settings, people…', 'kingdom-church-suite' ) . '" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="kca-q-list">'
+			. '<ul class="kca-search__list" id="kca-q-list" role="listbox" hidden></ul>'
+			/* translators: %s: search words */
+			. '<script type="application/json" data-dsearch-index data-more="' . esc_attr__( 'Search people & payments for “%s”', 'kingdom-church-suite' ) . '" data-none="' . esc_attr__( 'No page or setting matches. Press Enter to search people & payments.', 'kingdom-church-suite' ) . '">' . $index . '</script>'
+			. '</form>';
+	}
+
+	/**
+	 * Everything the search box can jump to: pages, every setting and website option, plus common
+	 * words people use for them.
+	 *
+	 * @return array[] t (title), d (where it is), u (link), k (other words).
+	 */
+	public static function search_index() {
+		$views = self::views();
+		$out   = array();
+		foreach ( $views as $slug => $v ) {
+			$out[] = array( 't' => $v[0], 'd' => self::describe( $slug ), 'u' => self::url( $slug ), 'k' => '' );
+		}
+		$extra = array(
+			array( __( 'Service times', 'kingdom-church-suite' ), 'settings', array( 'tab' => 'general' ), 'service-times', __( 'schedule sunday worship midweek countdown next service', 'kingdom-church-suite' ) ),
+			array( __( 'Time zone', 'kingdom-church-suite' ), 'settings', array( 'tab' => 'general' ), 'set-timezone', __( 'timezone lagos clock time wrong hour', 'kingdom-church-suite' ) ),
+			array( __( 'Bank account numbers', 'kingdom-church-suite' ), 'transfers', array(), '', __( 'bank transfer account number offline giving', 'kingdom-church-suite' ) ),
+			array( __( 'WhatsApp chat button', 'kingdom-church-suite' ), 'pastors', array(), '', __( 'whatsapp number chat contact phone', 'kingdom-church-suite' ) ),
+			array( __( 'Send a push notification', 'kingdom-church-suite' ), 'app', array(), '', __( 'push notification phones app announce', 'kingdom-church-suite' ) ),
+		);
+		foreach ( $extra as $e ) {
+			if ( isset( $views[ $e[1] ] ) ) {
+				$out[] = array( 't' => $e[0], 'd' => $views[ $e[1] ][0], 'u' => self::url( $e[1], $e[2] ) . ( $e[3] ? '#' . $e[3] : '' ), 'k' => $e[4] );
+			}
+		}
+		// Website options (theme): Design & live stream, Pictures & text.
+		$groups = array(
+			'brand'    => array( 'website', __( 'Church colours', 'kingdom-church-suite' ) ),
+			'fonts'    => array( 'website', __( 'Church fonts', 'kingdom-church-suite' ) ),
+			'banner'   => array( 'website', __( 'Homepage banner', 'kingdom-church-suite' ) ),
+			'media'    => array( 'website', __( 'Live stream, video & audio', 'kingdom-church-suite' ) ),
+			'sections' => array( 'website', __( 'Show or hide sections', 'kingdom-church-suite' ) ),
+			'footer'   => array( 'website', __( 'Footer', 'kingdom-church-suite' ) ),
+			'pictures' => array( 'content', __( 'Pictures & logo', 'kingdom-church-suite' ) ),
+			'texts'    => array( 'content', __( 'Homepage text', 'kingdom-church-suite' ) ),
+			'contact'  => array( 'content', __( 'Contact & social', 'kingdom-church-suite' ) ),
+		);
+		foreach ( (array) apply_filters( 'kcs_website_settings', array() ) as $key => $f ) {
+			if ( isset( $groups[ $f[2] ] ) && isset( $views[ $groups[ $f[2] ][0] ] ) ) {
+				$g     = $groups[ $f[2] ];
+				$out[] = array( 't' => wp_strip_all_tags( $f[0] ), 'd' => $views[ $g[0] ][0] . ' → ' . $g[1], 'u' => self::url( $g[0] ) . '#wf-' . $key, 'k' => '' );
+			}
+		}
+		// Every Church Suite setting (administrators only).
+		if ( isset( $views['settings'] ) ) {
+			$tabs = KCS_Settings::tabs();
+			foreach ( KCS_Settings::schema() as $tab => $sections ) {
+				foreach ( (array) $sections as $section => $fields ) {
+					foreach ( (array) $fields as $key => $field ) {
+						if ( 'info' === ( $field['type'] ?? '' ) && empty( $field['desc'] ) ) {
+							continue;
+						}
+						$label = wp_strip_all_tags( (string) $field['label'] );
+						// "Enable", "Secret key"… say what they belong to.
+						if ( str_word_count( $label ) <= 3 && false === stripos( $label, (string) $section ) ) {
+							$label = $section . ' — ' . $label;
+						}
+						$out[] = array(
+							't' => $label,
+							'd' => $views['settings'][0] . ' → ' . ( $tabs[ $tab ] ?? $tab ) . ' → ' . $section,
+							'u' => self::url( 'settings', array( 'tab' => $tab ) ) . '#set-' . $key,
+							'k' => '',
+						);
+					}
+				}
+			}
+		}
+		return (array) apply_filters( 'kcs_church_admin_search_index', $out );
+	}
+
+	/**
+	 * Search results: matching pages and settings, then people, payments, prayer requests and
+	 * visitors.
+	 */
+	private static function view_search() {
+		global $wpdb;
+		$q = isset( $_GET['q'] ) ? trim( sanitize_text_field( wp_unslash( $_GET['q'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( mb_strlen( $q ) < 2 ) {
+			echo '<p class="kcs-muted">' . esc_html__( 'Type at least two letters: a page, a setting, a name, an email, a phone number or a payment reference.', 'kingdom-church-suite' ) . '</p>';
+			return;
+		}
+		$words = preg_split( '/\s+/', mb_strtolower( $q ) );
+		$pages = array_filter(
+			self::search_index(),
+			function ( $i ) use ( $words ) {
+				$hay = mb_strtolower( $i['t'] . ' ' . $i['d'] . ' ' . $i['k'] );
+				foreach ( $words as $w ) {
+					if ( false === mb_strpos( $hay, $w ) ) {
+						return false;
+					}
+				}
+				return true;
+			}
+		);
+		$like  = '%' . $wpdb->esc_like( $q ) . '%';
+		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+		$sets = array(
+			array(
+				__( 'Partners', 'kingdom-church-suite' ),
+				$wpdb->get_results( $wpdb->prepare( 'SELECT id, first_name, last_name, email, phone, status FROM ' . kcs_table( 'partners' ) . " WHERE CONCAT_WS(' ', first_name, last_name, email, phone) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ),
+				function ( $r ) {
+					return array( trim( $r->first_name . ' ' . $r->last_name ), trim( $r->email . ' · ' . $r->phone, ' ·' ), self::url( 'partners', array( 'id' => $r->id ) ), $r->status );
+				},
+			),
+			array(
+				__( 'Giving & payments', 'kingdom-church-suite' ),
+				$wpdb->get_results( $wpdb->prepare( 'SELECT reference, name, email, amount, currency, status, created_at FROM ' . kcs_table( 'payments' ) . " WHERE CONCAT_WS(' ', reference, name, email, phone) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ),
+				function ( $r ) {
+					return array( ( $r->name ? $r->name : $r->email ) . ' — ' . kcs_format_money( $r->amount, $r->currency ), $r->reference . ' · ' . mysql2date( get_option( 'date_format' ), $r->created_at ), self::url( 'payments', array( 's' => $r->reference ) ), $r->status );
+				},
+			),
+			array(
+				__( 'Prayer requests', 'kingdom-church-suite' ),
+				$wpdb->get_results( $wpdb->prepare( 'SELECT name, email, request, status FROM ' . kcs_table( 'prayer_requests' ) . " WHERE CONCAT_WS(' ', name, email, phone, request) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ),
+				function ( $r ) {
+					return array( $r->name ? $r->name : __( 'Anonymous', 'kingdom-church-suite' ), wp_trim_words( $r->request, 14 ), self::url( 'prayers' ), $r->status );
+				},
+			),
+			array(
+				__( 'First-time visitors', 'kingdom-church-suite' ),
+				$wpdb->get_results( $wpdb->prepare( 'SELECT name, email, phone, status FROM ' . kcs_table( 'visits' ) . " WHERE CONCAT_WS(' ', name, email, phone) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ),
+				function ( $r ) {
+					return array( $r->name, trim( $r->email . ' · ' . $r->phone, ' ·' ), self::url( 'visits' ), $r->status );
+				},
+			),
+		);
+		// phpcs:enable
+		$found = (bool) $pages;
+		?>
+		<?php if ( $pages ) : ?>
+			<section class="kca-card">
+				<h3><?php esc_html_e( 'Pages & settings', 'kingdom-church-suite' ); ?></h3>
+				<ul class="kca-list">
+					<?php foreach ( array_slice( $pages, 0, 12 ) as $i ) : ?>
+						<li><a href="<?php echo esc_url( $i['u'] ); ?>"><strong><?php echo esc_html( $i['t'] ); ?></strong><small><?php echo esc_html( $i['d'] ); ?></small></a></li>
+					<?php endforeach; ?>
+				</ul>
+			</section>
+		<?php endif; ?>
+		<?php foreach ( $sets as $set ) : ?>
+			<?php if ( ! $set[1] ) { continue; } $found = true; ?>
+			<section class="kca-card">
+				<h3><?php echo esc_html( $set[0] ); ?></h3>
+				<ul class="kca-list">
+					<?php foreach ( $set[1] as $r ) : ?>
+						<?php $row = $set[2]( $r ); ?>
+						<li><a href="<?php echo esc_url( $row[2] ); ?>"><strong><?php echo esc_html( $row[0] ); ?></strong><small><?php echo esc_html( $row[1] ); ?></small></a><?php echo kcs_status_badge( $row[3] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></li>
+					<?php endforeach; ?>
+				</ul>
+			</section>
+		<?php endforeach; ?>
+		<?php if ( ! $found ) : ?>
+			<p class="kcs-muted"><?php esc_html_e( 'Nothing found. Try a shorter word, a phone number, an email address or a payment reference.', 'kingdom-church-suite' ); ?></p>
+		<?php endif; ?>
 		<?php
 	}
 
@@ -1580,6 +1764,7 @@ class KCS_Church_Admin {
 							continue;
 						}
 						$value = get_theme_mod( $key, $f[3] );
+						echo '<span class="kca-anchor" id="wf-' . esc_attr( $key ) . '"></span>';
 						if ( 'checkbox' === $f[1] ) :
 							?>
 							<label class="kcs-check kca-switch"><input type="checkbox" name="<?php echo esc_attr( $key ); ?>" value="1" <?php checked( (bool) $value ); ?>> <?php echo esc_html( $f[0] ); ?></label>
@@ -1712,7 +1897,7 @@ class KCS_Church_Admin {
 			$off = (float) get_option( 'gmt_offset' );
 			$tz  = 0.0 === $off ? 'UTC' : 'UTC' . ( $off >= 0 ? '+' : '' ) . $off;
 		}
-		echo '<label>' . esc_html__( 'Time zone', 'kingdom-church-suite' ) . '<select name="site_timezone">' . wp_timezone_choice( $tz, get_user_locale() ) . '</select>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- core-built options.
+		echo '<span class="kca-anchor" id="set-timezone"></span><label>' . esc_html__( 'Time zone', 'kingdom-church-suite' ) . '<select name="site_timezone">' . wp_timezone_choice( $tz, get_user_locale() ) . '</select>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- core-built options.
 		/* translators: %s: current local time */
 		echo '<small class="kcs-muted">' . esc_html( sprintf( __( 'Service times above are in this time zone. Local time now: %s. Nigeria: choose Lagos.', 'kingdom-church-suite' ), wp_date( get_option( 'time_format' ) ) ) ) . '</small></label>';
 	}
@@ -1725,6 +1910,7 @@ class KCS_Church_Admin {
 	 * @param array  $opts  Saved settings.
 	 */
 	private static function setting_field( $key, $field, $opts ) {
+		echo '<span class="kca-anchor" id="set-' . esc_attr( $key ) . '"></span>';
 		$value = isset( $opts[ $key ] ) ? $opts[ $key ] : ( $field['default'] ?? '' );
 		$name  = 'kcs[' . $key . ']';
 		$desc  = ! empty( $field['desc'] ) ? '<small class="kcs-muted">' . wp_kses_post( $field['desc'] ) . '</small>' : '';
