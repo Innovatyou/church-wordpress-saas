@@ -105,7 +105,7 @@ p { margin: 0 0 1.1em; }
 .k-topbar a:hover { color: #fff; }
 .k-topbar__menu { display: flex; gap: 1rem; list-style: none; margin: 0; padding: 0; }
 .k-topbar .k-icon { width: 15px; height: 15px; }
-@media (max-width: 720px) { .k-topbar__info span { display: none; } }
+@media (max-width: 720px) { .k-topbar { display: none; } } /* phones: an app-like top, the bottom tab bar has the actions */
 
 /* Header ----------------------------------------------------------------- */
 .k-header { position: relative; z-index: 100; background: var(--k-surface); border-bottom: 1px solid var(--k-border); transition: background .3s, box-shadow .3s, transform .3s; }
@@ -852,6 +852,25 @@ html.is-app.has-sticky-header .k-header,
 html.is-app .has-sticky-header .k-header { top: 0; }
 html.is-app .k-footer { padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)); }
 html.is-app .k-palette { display: none; }
+
+/* ---------- Phones and the church app: compact, app-style page titles ---------- */
+/* Breadcrumbs stay in the page for Google (and on larger screens) but are not shown on phones. */
+@media (max-width: 768px) {
+	.k-page-header { padding-block: 1.1rem 1rem; }
+	.k-page-header.has-image { padding-block: 2.25rem 1.1rem; }
+	.has-transparent-header .k-page-header { padding-top: calc(var(--k-header-h) + 1.1rem); }
+	.k-page-header .kcs-breadcrumbs { display: none; }
+	.k-page-header__title { margin: 0; font-size: clamp(1.55rem, 7vw, 2rem); line-height: 1.15; letter-spacing: -.01em; }
+	.k-page-header__subtitle { margin-top: .35rem; font-size: 1rem; }
+	.k-page-header + .k-section,
+	.k-page-header + * > .k-section:first-child { padding-top: 1.25rem; }
+}
+html.is-app .k-page-header .kcs-breadcrumbs { display: none; }
+html.is-app .k-page-header { padding-block: .9rem .85rem; background: var(--k-bg); border-bottom: 1px solid var(--k-border); }
+html.is-app .k-page-header.has-image { padding-block: 2rem 1rem; border-bottom: 0; }
+html.is-app .k-page-header__title { font-size: clamp(1.45rem, 6.5vw, 1.85rem); }
+html.is-app .k-page-header + .k-section,
+html.is-app .k-page-header + * > .k-section:first-child { padding-top: 1rem; }
 
 /* ---------- Mobile menu (full screen, brand colours, sliding sub-menus) ---------- */
 .k-drawer {
