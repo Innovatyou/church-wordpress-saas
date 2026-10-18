@@ -28,6 +28,7 @@ function ks_default_settings() {
 		'platform_name'   => 'Ministry OS',
 		'tagline'         => __( 'Your church website, partner portal and online giving — ready in minutes.', 'kingdom-saas' ),
 		'brand_color'     => '#5b2a86',
+		'color_mode'      => 'dark',
 		'support_email'   => get_site_option( 'admin_email' ),
 		'base_domain'     => defined( 'DOMAIN_CURRENT_SITE' ) ? DOMAIN_CURRENT_SITE : wp_parse_url( network_home_url(), PHP_URL_HOST ),
 		'cname_target'    => '',

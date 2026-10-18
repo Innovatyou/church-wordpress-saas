@@ -16,14 +16,12 @@
 	--ks-on-brand: #fff;
 	color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-	:root { --ks-bg: #120f17; --ks-surface: #1c1723; --ks-surface-2: #261f30; --ks-text: #f3eff8; --ks-muted: #b3abbe; --ks-border: #332a3f; --ks-shadow: 0 24px 50px -30px rgba(0, 0, 0, .8); color-scheme: dark; }
-}
+:root[data-theme="dark"] { --ks-bg: #120f17; --ks-surface: #1c1723; --ks-surface-2: #261f30; --ks-text: #f3eff8; --ks-muted: #b3abbe; --ks-border: #332a3f; --ks-shadow: 0 24px 50px -30px rgba(0, 0, 0, .8); color-scheme: dark; }
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--ks-bg); color: var(--ks-text); -webkit-font-smoothing: antialiased; }
 .ks a { color: var(--ks-brand); }
-@media (prefers-color-scheme: dark) { .ks a { color: color-mix(in srgb, var(--ks-brand) 45%, #fff); } }
+:root[data-theme="dark"] .ks a { color: color-mix(in srgb, var(--ks-brand) 45%, #fff); }
 .ks h1, .ks h2, .ks h3 { line-height: 1.15; letter-spacing: -.02em; margin: 0 0 .5rem; }
 .ks h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 800; }
 .ks h2 { font-size: clamp(1.6rem, 3.4vw, 2.4rem); font-weight: 800; }
@@ -37,7 +35,7 @@ body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-syste
 .ks-small { font-size: .88rem; color: var(--ks-muted); }
 .ks-center { text-align: center; }
 .ks-eyebrow { display: inline-block; font-size: .75rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--ks-brand); margin-bottom: .6rem; }
-@media (prefers-color-scheme: dark) { .ks-eyebrow { color: color-mix(in srgb, var(--ks-brand) 40%, #fff); } }
+:root[data-theme="dark"] .ks-eyebrow { color: color-mix(in srgb, var(--ks-brand) 40%, #fff); }
 :focus-visible { outline: 3px solid color-mix(in srgb, var(--ks-brand) 60%, #fff); outline-offset: 2px; }
 
 /* Buttons */
@@ -45,7 +43,7 @@ body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-syste
 .ks-btn:hover { transform: translateY(-1px); }
 .ks-btn:disabled { opacity: .6; cursor: progress; transform: none; }
 .ks-btn--ghost { background: transparent; color: var(--ks-brand) !important; box-shadow: none; }
-@media (prefers-color-scheme: dark) { .ks-btn--ghost { color: var(--ks-text) !important; border-color: var(--ks-border); } }
+:root[data-theme="dark"] .ks-btn--ghost { color: var(--ks-text) !important; border-color: var(--ks-border); }
 .ks-btn--light { background: #fff; color: var(--ks-brand) !important; border-color: #fff; }
 .ks-btn--danger { background: transparent; border-color: color-mix(in srgb, var(--ks-bad) 50%, transparent); color: var(--ks-bad) !important; box-shadow: none; }
 .ks-btn--sm { padding: .5em 1em; font-size: .88rem; }
@@ -180,7 +178,7 @@ body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-syste
 .ks-badge--trialing { background: color-mix(in srgb, var(--ks-brand) 14%, transparent); color: var(--ks-brand); }
 .ks-badge--past_due, .ks-badge--pending, .ks-badge--review { background: color-mix(in srgb, var(--ks-warn) 16%, transparent); color: var(--ks-warn); }
 .ks-badge--suspended, .ks-badge--cancelled, .ks-badge--failed { background: color-mix(in srgb, var(--ks-bad) 14%, transparent); color: var(--ks-bad); }
-@media (prefers-color-scheme: dark) { .ks-badge--trialing { color: color-mix(in srgb, var(--ks-brand) 40%, #fff); } }
+:root[data-theme="dark"] .ks-badge--trialing { color: color-mix(in srgb, var(--ks-brand) 40%, #fff); }
 
 /* Platform dashboard */
 .ks--platform { background: var(--ks-bg); }
@@ -269,3 +267,11 @@ body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-syste
 .ks-grid--4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: .6rem; }
 .ks-account { padding: .8rem 0; border-top: 1px solid var(--ks-border); display: grid; gap: .5rem; }
 .ks-card + .ks-table { margin-top: 1.2rem; }
+
+/* Dark / light switch */
+.ks-mode { display: inline-grid; place-items: center; width: 40px; height: 40px; margin-left: auto; border-radius: 50%; border: 1px solid var(--ks-border); background: var(--ks-surface); color: var(--ks-text); font-size: 1.05rem; cursor: pointer; flex: none; }
+@media (min-width: 820px) { .ks-mode { margin-left: .5rem; } }
+.ks-mode:hover { border-color: var(--ks-brand); }
+:root[data-theme="dark"] .ks-mode__moon, :root:not([data-theme="dark"]) .ks-mode__sun { display: none; }
+.ks-top .ks-mode + .ks-btn { margin-left: .5rem; }
+:root[data-theme="dark"] .ks-feature__ic { color: color-mix(in srgb, var(--ks-brand) 35%, #fff); background: color-mix(in srgb, var(--ks-brand) 30%, transparent); }

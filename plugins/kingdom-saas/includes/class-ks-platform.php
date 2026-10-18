@@ -249,6 +249,9 @@ class KS_Platform {
 						$vals[ $k ] = in_array( $k, array( 'bank_details', 'tagline' ), true ) ? sanitize_textarea_field( $d[ $k ] ) : sanitize_text_field( $d[ $k ] );
 					}
 				}
+				if ( isset( $vals['color_mode'] ) && ! in_array( $vals['color_mode'], array( 'dark', 'light', 'auto' ), true ) ) {
+					$vals['color_mode'] = 'dark';
+				}
 				if ( isset( $vals['brand_color'] ) ) {
 					$vals['brand_color'] = sanitize_hex_color( $vals['brand_color'] ) ? sanitize_hex_color( $vals['brand_color'] ) : '#5b2a86';
 				}

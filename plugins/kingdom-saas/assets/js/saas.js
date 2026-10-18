@@ -71,3 +71,12 @@
 		});
 	}
 })();
+
+/* Dark / light switch (remembered on this device). */
+document.querySelectorAll('[data-ks-mode]').forEach(function (btn) {
+	btn.addEventListener('click', function () {
+		var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+		document.documentElement.dataset.theme = next;
+		try { localStorage.setItem('ks-theme', next); } catch (e) {}
+	});
+});

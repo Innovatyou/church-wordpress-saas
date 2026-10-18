@@ -17,9 +17,11 @@ $titles = array(
 	'test-checkout' => __( 'Test checkout', 'kingdom-saas' ) . ' — ' . $name,
 );
 $color  = sanitize_hex_color( ks_get( 'brand_color' ) ) ? sanitize_hex_color( ks_get( 'brand_color' ) ) : '#5b2a86';
+$mode   = in_array( ks_get( 'color_mode' ), array( 'dark', 'light', 'auto' ), true ) ? ks_get( 'color_mode' ) : 'dark';
 ?><!doctype html>
-<html <?php language_attributes(); ?>>
+<html <?php language_attributes(); ?> data-theme="<?php echo 'light' === $mode ? 'light' : 'dark'; ?>">
 <head>
+<script>(function(){var d=document.documentElement,m=<?php echo wp_json_encode( $mode ); ?>,s=null;try{s=localStorage.getItem('ks-theme');}catch(e){}if(s==='dark'||s==='light'){d.dataset.theme=s;}else if(m==='auto'){d.dataset.theme=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}})();</script>
 <meta charset="<?php bloginfo( 'charset' ); ?>">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?php echo esc_html( $titles[ $route ] ?? $name ); ?></title>
@@ -41,6 +43,7 @@ $color  = sanitize_hex_color( ks_get( 'brand_color' ) ) ? sanitize_hex_color( ks
 			<a href="<?php echo esc_url( ks_platform_url( '#pricing' ) ); ?>"><?php esc_html_e( 'Pricing', 'kingdom-saas' ); ?></a>
 			<a href="<?php echo esc_url( ks_platform_url( '#faq' ) ); ?>"><?php esc_html_e( 'FAQ', 'kingdom-saas' ); ?></a>
 		</nav>
+		<button type="button" class="ks-mode" data-ks-mode aria-label="<?php esc_attr_e( 'Switch between dark and light', 'kingdom-saas' ); ?>"><span class="ks-mode__sun" aria-hidden="true">☀</span><span class="ks-mode__moon" aria-hidden="true">☾</span></button>
 		<a class="ks-btn ks-btn--sm" href="<?php echo esc_url( ks_platform_url( 'signup/' ) ); ?>"><?php esc_html_e( 'Start free trial', 'kingdom-saas' ); ?></a>
 	</div>
 </header>
