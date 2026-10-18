@@ -120,8 +120,8 @@ class KCS_Settings {
 			'templates'  => array(),
 			'livestream' => array(
 				__( 'YouTube', 'kingdom-church-suite' ) => array(
-					'yt_channel_id'     => array( 'label' => __( 'YouTube channel ID', 'kingdom-church-suite' ), 'type' => 'text', 'desc' => __( 'Starts with "UC…". Found under YouTube Studio → Settings → Channel → Advanced.', 'kingdom-church-suite' ) ),
-					'yt_api_key'        => array( 'label' => __( 'YouTube Data API v3 key', 'kingdom-church-suite' ), 'type' => 'password', 'desc' => __( 'Optional. Enables accurate live detection, titles and upcoming streams. Without it the channel live embed is used.', 'kingdom-church-suite' ) ),
+					'yt_channel_id'     => array( 'label' => __( 'YouTube channel', 'kingdom-church-suite' ), 'type' => 'text', 'desc' => __( 'Paste your channel link (e.g. https://www.youtube.com/@yourchurch), @handle or "UC…" channel ID.', 'kingdom-church-suite' ) ),
+					'yt_api_key'        => array( 'label' => __( 'YouTube Data API v3 key', 'kingdom-church-suite' ), 'type' => 'password', 'desc' => __( 'Optional. Live detection works without it; a key is a backup when YouTube does not answer your server, and adds viewer counts.', 'kingdom-church-suite' ) ),
 					'yt_manual_video'   => array( 'label' => __( 'Force a video ID / URL', 'kingdom-church-suite' ), 'type' => 'text', 'desc' => __( 'Override detection (e.g. for a specific stream). Leave empty for automatic.', 'kingdom-church-suite' ) ),
 					'yt_fallback_video' => array( 'label' => __( 'Fallback video (shown when offline)', 'kingdom-church-suite' ), 'type' => 'text' ),
 					'yt_cache_minutes'  => array( 'label' => __( 'Cache live status (minutes)', 'kingdom-church-suite' ), 'type' => 'number', 'default' => '3', 'desc' => __( 'Each check costs 100 API quota units; keep this ≥ 2.', 'kingdom-church-suite' ) ),

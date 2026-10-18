@@ -116,6 +116,7 @@ class KCS_Livestream {
 			return $cached;
 		}
 		$channel = trim( (string) kcs_get_option( 'yt_channel_id' ) );
+		$channel = preg_match( '~(UC[A-Za-z0-9_-]{22})~', $channel, $m ) ? $m[1] : ( function_exists( 'kingdom_ytlive_channel_id' ) ? kingdom_ytlive_channel_id() : $channel );
 		$key     = trim( (string) kcs_get_option( 'yt_api_key' ) );
 		$manual  = KCS_Post_Types::youtube_id( kcs_get_option( 'yt_manual_video' ) );
 
@@ -130,10 +131,27 @@ class KCS_Livestream {
 			'next_service' => self::next_service(),
 		);
 
+		// The Ministry OS theme checks the channel itself (any channel link, @handle or ID, no API
+		// key needed, cached and shared). Use its answer so the website, badge, Watch page and app agree.
+		$theme = ! $manual && function_exists( 'kingdom_youtube_live' ) ? kingdom_youtube_live( $force ) : null;
+
 		if ( $manual ) {
 			$status['video_id'] = $manual;
 			$status['is_live']  = true;
 			$status['source']   = 'manual';
+		} elseif ( is_array( $theme ) && 'channel' === $theme['mode'] ) {
+			$status['channel_id'] = function_exists( 'kingdom_ytlive_channel_id' ) ? kingdom_ytlive_channel_id() : $channel;
+			$status['source']     = 'theme';
+			if ( 'live' === $theme['state'] && $theme['video_id'] ) {
+				$status['is_live']   = true;
+				$status['video_id']  = $theme['video_id'];
+				$status['title']     = $theme['title'];
+				$status['thumbnail'] = 'https://i.ytimg.com/vi/' . rawurlencode( $theme['video_id'] ) . '/hqdefault.jpg';
+			} elseif ( 'upcoming' === $theme['state'] && $theme['video_id'] ) {
+				$status['upcoming'] = array( array( 'video_id' => $theme['video_id'], 'title' => $theme['title'] ? $theme['title'] : __( 'Upcoming live stream', 'kingdom-church-suite' ), 'thumbnail' => '' ) );
+			} elseif ( $theme['video_id'] ) {
+				$status['fallback_video_id'] = $theme['video_id'];
+			}
 		} elseif ( $channel && $key && ( '1' !== kcs_get_option( 'yt_only_service_times', '1' ) || self::in_service_window() || $force ) ) {
 			$live = self::search( $channel, $key, 'live' );
 			if ( $live ) {
@@ -154,7 +172,7 @@ class KCS_Livestream {
 		}
 
 		$status = apply_filters( 'kcs_live_status', $status );
-		set_transient( 'kcs_live_status', $status, max( 1, (int) kcs_get_option( 'yt_cache_minutes', 3 ) ) * MINUTE_IN_SECONDS );
+		set_transient( 'kcs_live_status', $status, 'theme' === $status['source'] ? MINUTE_IN_SECONDS : max( 1, (int) kcs_get_option( 'yt_cache_minutes', 3 ) ) * MINUTE_IN_SECONDS );
 		return $status;
 	}
 

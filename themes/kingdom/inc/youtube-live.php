@@ -115,8 +115,16 @@ function kingdom_ytlive_api_key() {
  */
 function kingdom_ytlive_check( $channel ) {
 	$out = kingdom_ytlive_check_page( $channel );
-	// With an API key, confirm the stream found on the page (1 quota unit, instead of a 100-unit search).
 	$key = kingdom_ytlive_api_key();
+	// YouTube sometimes hides the /live page from hosting servers: with an API key, look at the
+	// channel's latest uploads instead (2 quota units, instead of a 100-unit search).
+	if ( $key && ! $out['video_id'] ) {
+		$api = kingdom_ytlive_check_uploads( $channel, $key );
+		if ( $api ) {
+			return $api;
+		}
+	}
+	// With an API key, confirm the stream found on the page (1 quota unit, instead of a 100-unit search).
 	if ( $key && $out['video_id'] ) {
 		$res  = wp_remote_get( add_query_arg( array( 'part' => 'snippet,liveStreamingDetails', 'id' => $out['video_id'], 'key' => $key ), 'https://www.googleapis.com/youtube/v3/videos' ), array( 'timeout' => 8 ) );
 		$item = ! is_wp_error( $res ) && 200 === (int) wp_remote_retrieve_response_code( $res ) ? ( json_decode( wp_remote_retrieve_body( $res ), true )['items'][0] ?? null ) : null;
@@ -137,6 +145,56 @@ function kingdom_ytlive_check( $channel ) {
 }
 
 /**
+ * Live or upcoming stream among the channel's latest uploads (YouTube Data API).
+ *
+ * @param string $channel Channel ID.
+ * @param string $key     API key.
+ * @return array|null Status, or null when the API did not answer.
+ */
+function kingdom_ytlive_check_uploads( $channel, $key ) {
+	$res = wp_remote_get( add_query_arg( array( 'part' => 'contentDetails', 'playlistId' => 'UU' . substr( $channel, 2 ), 'maxResults' => 5, 'key' => $key ), 'https://www.googleapis.com/youtube/v3/playlistItems' ), array( 'timeout' => 8 ) );
+	if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
+		return null;
+	}
+	$ids = array();
+	foreach ( (array) ( json_decode( wp_remote_retrieve_body( $res ), true )['items'] ?? array() ) as $item ) {
+		if ( ! empty( $item['contentDetails']['videoId'] ) ) {
+			$ids[] = $item['contentDetails']['videoId'];
+		}
+	}
+	$out = array( 'state' => 'offline', 'video_id' => '', 'title' => '', 'starts_at' => 0, 'viewers' => 0, 'source' => 'api' );
+	if ( ! $ids ) {
+		return $out;
+	}
+	$res = wp_remote_get( add_query_arg( array( 'part' => 'snippet,liveStreamingDetails', 'id' => implode( ',', $ids ), 'key' => $key ), 'https://www.googleapis.com/youtube/v3/videos' ), array( 'timeout' => 8 ) );
+	if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
+		return null;
+	}
+	foreach ( (array) ( json_decode( wp_remote_retrieve_body( $res ), true )['items'] ?? array() ) as $item ) {
+		$live = $item['liveStreamingDetails'] ?? array();
+		if ( ! empty( $live['actualStartTime'] ) && empty( $live['actualEndTime'] ) ) {
+			$state = 'live';
+		} elseif ( ! empty( $live['scheduledStartTime'] ) && empty( $live['actualStartTime'] ) && 'upcoming' !== $out['state'] ) {
+			$state = 'upcoming';
+		} else {
+			continue;
+		}
+		$out = array(
+			'state'     => $state,
+			'video_id'  => (string) $item['id'],
+			'title'     => html_entity_decode( (string) ( $item['snippet']['title'] ?? '' ), ENT_QUOTES ),
+			'starts_at' => ! empty( $live['scheduledStartTime'] ) ? (int) strtotime( $live['scheduledStartTime'] ) : 0,
+			'viewers'   => (int) ( $live['concurrentViewers'] ?? 0 ),
+			'source'    => 'api',
+		);
+		if ( 'live' === $state ) {
+			break;
+		}
+	}
+	return $out;
+}
+
+/**
  * Read the channel's public /live page (no key or quota needed).
  *
  * @param string $channel Channel ID.
@@ -151,6 +209,11 @@ function kingdom_ytlive_check_page( $channel ) {
 		return $out;
 	}
 	if ( ! preg_match( '~<link rel="canonical" href="https://www\.youtube\.com/watch\?v=([A-Za-z0-9_-]{11})"~', $html, $m ) ) {
+		// A real channel page means "not live"; anything else (a consent or "are you a robot"
+		// page shown to hosting servers) means we could not tell.
+		if ( false === strpos( $html, 'ytInitialData' ) && false === strpos( $html, '"externalId"' ) ) {
+			$out['source'] = 'error';
+		}
 		return $out;
 	}
 	$out['video_id'] = $m[1];

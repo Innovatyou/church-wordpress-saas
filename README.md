@@ -188,8 +188,8 @@ add_filter( 'kcs_payment_gateways', function ( $g ) { $g['mine'] = new My_Gatewa
 - Batch queue (default 50 per 5 minutes) with retries, to protect sender reputation
 
 ### Live streaming
-- YouTube Data API live detection (title, upcoming streams), cached and quota-friendly: by default it only queries around your service times
-- Works without an API key using the channel's live embed; a manual video override and an offline fallback video are also available
+- Paste the channel link, @handle or channel ID: live detection works with no API key, at any time of day (not only service times), and the website, live badge, Watch Live page and app all show the same status
+- Optional YouTube Data API key: a backup when YouTube does not answer the server (checks the latest uploads, 2 quota units) plus viewer counts; a manual video override and an offline fallback video are also available
 - `[kcs_livestream chat="yes"]` player plus YouTube live chat; Facebook Live or any custom embed (Vimeo, Boxcast…)
 - Countdown to the next service and a live badge that refreshes itself
 
