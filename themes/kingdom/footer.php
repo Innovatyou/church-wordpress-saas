@@ -12,8 +12,47 @@ $social   = kingdom_social_links();
 ?>
 </main>
 
-<footer class="k-footer">
-	<?php if ( get_theme_mod( 'kingdom_footer_newsletter', true ) && kingdom_plugin_active() ) : ?>
+<?php
+$kingdom_layout  = get_theme_mod( 'kingdom_footer_layout', 'columns' );
+$kingdom_colour  = get_theme_mod( 'kingdom_footer_colour', 'dark' );
+$kingdom_show    = array(
+	'about'   => get_theme_mod( 'kingdom_footer_show_about', true ),
+	'times'   => get_theme_mod( 'kingdom_footer_show_times', true ) && $services,
+	'links'   => get_theme_mod( 'kingdom_footer_show_links', true ) && has_nav_menu( 'footer' ),
+	'contact' => get_theme_mod( 'kingdom_footer_show_contact', true ) && ( get_theme_mod( 'kingdom_address' ) || get_theme_mod( 'kingdom_phone' ) || get_theme_mod( 'kingdom_email' ) ),
+	'bottom'  => get_theme_mod( 'kingdom_footer_show_bottom', true ),
+);
+$kingdom_widgets = 'columns' === $kingdom_layout && ( is_active_sidebar( 'footer-1' ) || is_active_sidebar( 'footer-2' ) || is_active_sidebar( 'footer-3' ) || is_active_sidebar( 'footer-4' ) );
+$kingdom_menu    = function ( $class ) {
+	wp_nav_menu(
+		array(
+			'theme_location' => 'footer',
+			'container'      => false,
+			'menu_class'     => $class,
+			'depth'          => 1,
+			'fallback_cb'    => false,
+		)
+	);
+};
+$kingdom_socials = function () use ( $social ) {
+	if ( ! $social ) {
+		return;
+	}
+	echo '<div class="k-social">';
+	foreach ( $social as $net => $url ) {
+		echo '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener" aria-label="' . esc_attr( ucfirst( $net ) ) . '">' . kingdom_icon( $net ) . '</a>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+	echo '</div>';
+};
+// The platform's "Powered by" credit (plans without white label) stays visible even when the copyright line or footer is off.
+$kingdom_credit  = (string) apply_filters( 'kingdom_footer_credit', '' );
+$kingdom_copy    = get_theme_mod( 'kingdom_copyright' ) ? get_theme_mod( 'kingdom_copyright' ) : '© ' . gmdate( 'Y' ) . ' ' . get_bloginfo( 'name' ) . '. ' . __( 'All rights reserved.', 'kingdom' );
+?>
+<?php if ( ! get_theme_mod( 'kingdom_footer_show', true ) && '' !== trim( wp_strip_all_tags( $kingdom_credit ) ) ) : ?>
+<footer class="k-footer k-footer--credit k-footer--<?php echo esc_attr( $kingdom_colour ); ?>"><div class="k-footer__bottom"><div class="k-container"><p><?php echo wp_kses_post( preg_replace( '/^\s*·\s*/u', '', $kingdom_credit ) ); ?></p></div></div></footer>
+<?php elseif ( get_theme_mod( 'kingdom_footer_show', true ) ) : ?>
+<footer class="k-footer k-footer--<?php echo esc_attr( $kingdom_layout ); ?> k-footer--<?php echo esc_attr( $kingdom_colour ); ?>">
+	<?php if ( get_theme_mod( 'kingdom_footer_newsletter', true ) && kingdom_plugin_active() && 'minimal' !== $kingdom_layout ) : ?>
 		<div class="k-footer__newsletter">
 			<div class="k-container">
 				<?php echo do_shortcode( '[kcs_newsletter style="inline" title="' . esc_attr__( 'Get weekly encouragement', 'kingdom' ) . '" text="' . esc_attr__( 'Sermons, devotionals and church news — straight to your inbox.', 'kingdom' ) . '"]' ); ?>
@@ -21,64 +60,110 @@ $social   = kingdom_social_links();
 		</div>
 	<?php endif; ?>
 
-	<div class="k-container k-footer__grid">
-		<?php if ( is_active_sidebar( 'footer-1' ) || is_active_sidebar( 'footer-2' ) || is_active_sidebar( 'footer-3' ) || is_active_sidebar( 'footer-4' ) ) : ?>
-			<?php for ( $i = 1; $i <= 4; $i++ ) : ?>
-				<div class="k-footer__col"><?php dynamic_sidebar( 'footer-' . $i ); ?></div>
-			<?php endfor; ?>
-		<?php else : ?>
-			<div class="k-footer__col">
+	<?php if ( 'minimal' === $kingdom_layout ) : ?>
+		<div class="k-container k-footer__slim">
+			<?php if ( $kingdom_show['about'] ) : ?><strong class="k-footer__brand"><?php bloginfo( 'name' ); ?></strong><?php endif; ?>
+			<?php
+			if ( $kingdom_show['links'] ) {
+				$kingdom_menu( 'k-footer__inline' );
+			}
+			if ( $kingdom_show['about'] ) {
+				$kingdom_socials();
+			}
+			?>
+			<?php if ( $kingdom_show['bottom'] ) : ?><p class="k-footer__copy"><?php echo esc_html( $kingdom_copy ); ?><?php echo wp_kses_post( $kingdom_credit ); ?></p><?php elseif ( $kingdom_credit ) : ?><p class="k-footer__copy"><?php echo wp_kses_post( preg_replace( '/^\s*·\s*/u', '', $kingdom_credit ) ); ?></p><?php endif; ?>
+		</div>
+	<?php elseif ( 'centered' === $kingdom_layout ) : ?>
+		<div class="k-container k-footer__center">
+			<?php if ( $kingdom_show['about'] ) : ?>
 				<h3 class="k-footer__brand"><?php bloginfo( 'name' ); ?></h3>
 				<?php if ( get_theme_mod( 'kingdom_brand_motto' ) ) : ?><p class="k-footer__motto"><?php echo esc_html( get_theme_mod( 'kingdom_brand_motto' ) ); ?></p><?php endif; ?>
-				<p><?php echo esc_html( get_theme_mod( 'kingdom_footer_about', __( 'Raising a generation of believers who love God, love people and transform their world.', 'kingdom' ) ) ); ?></p>
-				<?php if ( $social ) : ?>
-					<div class="k-social">
-						<?php foreach ( $social as $net => $url ) : ?>
-							<a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener" aria-label="<?php echo esc_attr( ucfirst( $net ) ); ?>"><?php echo kingdom_icon( $net ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></a>
-						<?php endforeach; ?>
+				<p class="k-footer__about"><?php echo esc_html( get_theme_mod( 'kingdom_footer_about', __( 'Raising a generation of believers who love God, love people and transform their world.', 'kingdom' ) ) ); ?></p>
+			<?php endif; ?>
+			<?php
+			if ( $kingdom_show['links'] ) {
+				$kingdom_menu( 'k-footer__inline' );
+			}
+			?>
+			<?php if ( $kingdom_show['times'] ) : ?>
+				<p class="k-footer__times">
+					<?php foreach ( $services as $s ) : ?>
+						<span><strong><?php echo esc_html( $s['name'] ); ?></strong> <?php echo esc_html( $s['day'] . ' · ' . $s['time'] ); ?></span>
+					<?php endforeach; ?>
+				</p>
+			<?php endif; ?>
+			<?php if ( $kingdom_show['contact'] ) : ?>
+				<p class="k-footer__inline-contact">
+					<?php if ( get_theme_mod( 'kingdom_address' ) ) : ?><span><?php echo kingdom_icon( 'pin' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php echo esc_html( preg_replace( '/\s*,?\s*\n\s*/', ', ', trim( get_theme_mod( 'kingdom_address' ) ) ) ); ?></span><?php endif; ?>
+					<?php if ( get_theme_mod( 'kingdom_phone' ) ) : ?><a href="tel:<?php echo esc_attr( preg_replace( '/[^0-9+]/', '', get_theme_mod( 'kingdom_phone' ) ) ); ?>"><?php echo kingdom_icon( 'phone' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php echo esc_html( get_theme_mod( 'kingdom_phone' ) ); ?></a><?php endif; ?>
+					<?php if ( get_theme_mod( 'kingdom_email' ) ) : ?><a href="mailto:<?php echo esc_attr( get_theme_mod( 'kingdom_email' ) ); ?>"><?php echo kingdom_icon( 'mail' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php echo esc_html( get_theme_mod( 'kingdom_email' ) ); ?></a><?php endif; ?>
+				</p>
+			<?php endif; ?>
+			<?php
+			if ( $kingdom_show['about'] ) {
+				$kingdom_socials();
+			}
+			?>
+		</div>
+	<?php elseif ( $kingdom_widgets || array_filter( array( $kingdom_show['about'], $kingdom_show['times'], $kingdom_show['links'], $kingdom_show['contact'] ) ) ) : ?>
+		<div class="k-container k-footer__grid">
+			<?php if ( $kingdom_widgets ) : ?>
+				<?php for ( $i = 1; $i <= 4; $i++ ) : ?>
+					<div class="k-footer__col"><?php dynamic_sidebar( 'footer-' . $i ); ?></div>
+				<?php endfor; ?>
+			<?php else : ?>
+				<?php if ( $kingdom_show['about'] ) : ?>
+					<div class="k-footer__col">
+						<h3 class="k-footer__brand"><?php bloginfo( 'name' ); ?></h3>
+						<?php if ( get_theme_mod( 'kingdom_brand_motto' ) ) : ?><p class="k-footer__motto"><?php echo esc_html( get_theme_mod( 'kingdom_brand_motto' ) ); ?></p><?php endif; ?>
+						<p><?php echo esc_html( get_theme_mod( 'kingdom_footer_about', __( 'Raising a generation of believers who love God, love people and transform their world.', 'kingdom' ) ) ); ?></p>
+						<?php $kingdom_socials(); ?>
 					</div>
 				<?php endif; ?>
-			</div>
-			<div class="k-footer__col">
-				<h4><?php esc_html_e( 'Service times', 'kingdom' ); ?></h4>
-				<ul class="k-footer__list">
-					<?php foreach ( $services as $s ) : ?>
-						<li><strong><?php echo esc_html( $s['name'] ); ?></strong><br><?php echo esc_html( $s['day'] . ' · ' . $s['time'] ); ?></li>
-					<?php endforeach; ?>
-				</ul>
-			</div>
-			<div class="k-footer__col">
-				<h4><?php esc_html_e( 'Quick links', 'kingdom' ); ?></h4>
-				<?php
-				wp_nav_menu(
-					array(
-						'theme_location' => 'footer',
-						'container'      => false,
-						'menu_class'     => 'k-footer__list',
-						'depth'          => 1,
-						'fallback_cb'    => false,
-					)
-				);
-				?>
-			</div>
-			<div class="k-footer__col">
-				<h4><?php esc_html_e( 'Visit us', 'kingdom' ); ?></h4>
-				<ul class="k-footer__list k-footer__contact">
-					<?php if ( get_theme_mod( 'kingdom_address' ) ) : ?><li><?php echo kingdom_icon( 'pin' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <span><?php echo nl2br( esc_html( get_theme_mod( 'kingdom_address' ) ) ); ?></span></li><?php endif; ?>
-					<?php if ( get_theme_mod( 'kingdom_phone' ) ) : ?><li><?php echo kingdom_icon( 'phone' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <a href="tel:<?php echo esc_attr( preg_replace( '/[^0-9+]/', '', get_theme_mod( 'kingdom_phone' ) ) ); ?>"><?php echo esc_html( get_theme_mod( 'kingdom_phone' ) ); ?></a></li><?php endif; ?>
-					<?php if ( get_theme_mod( 'kingdom_email' ) ) : ?><li><?php echo kingdom_icon( 'mail' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <a href="mailto:<?php echo esc_attr( get_theme_mod( 'kingdom_email' ) ); ?>"><?php echo esc_html( get_theme_mod( 'kingdom_email' ) ); ?></a></li><?php endif; ?>
-				</ul>
-			</div>
-		<?php endif; ?>
-	</div>
-
-	<div class="k-footer__bottom">
-		<div class="k-container">
-			<p><?php echo esc_html( get_theme_mod( 'kingdom_copyright' ) ? get_theme_mod( 'kingdom_copyright' ) : '© ' . gmdate( 'Y' ) . ' ' . get_bloginfo( 'name' ) . '. ' . __( 'All rights reserved.', 'kingdom' ) ); ?><?php echo wp_kses_post( apply_filters( 'kingdom_footer_credit', '' ) ); ?></p>
-			<?php if ( function_exists( 'the_privacy_policy_link' ) ) { the_privacy_policy_link(); } ?>
+				<?php if ( $kingdom_show['times'] ) : ?>
+					<div class="k-footer__col">
+						<h4><?php esc_html_e( 'Service times', 'kingdom' ); ?></h4>
+						<ul class="k-footer__list">
+							<?php foreach ( $services as $s ) : ?>
+								<li><strong><?php echo esc_html( $s['name'] ); ?></strong><br><?php echo esc_html( $s['day'] . ' · ' . $s['time'] ); ?></li>
+							<?php endforeach; ?>
+						</ul>
+					</div>
+				<?php endif; ?>
+				<?php if ( $kingdom_show['links'] ) : ?>
+					<div class="k-footer__col">
+						<h4><?php esc_html_e( 'Quick links', 'kingdom' ); ?></h4>
+						<?php $kingdom_menu( 'k-footer__list' ); ?>
+					</div>
+				<?php endif; ?>
+				<?php if ( $kingdom_show['contact'] ) : ?>
+					<div class="k-footer__col">
+						<h4><?php esc_html_e( 'Visit us', 'kingdom' ); ?></h4>
+						<ul class="k-footer__list k-footer__contact">
+							<?php if ( get_theme_mod( 'kingdom_address' ) ) : ?><li><?php echo kingdom_icon( 'pin' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <span><?php echo nl2br( esc_html( get_theme_mod( 'kingdom_address' ) ) ); ?></span></li><?php endif; ?>
+							<?php if ( get_theme_mod( 'kingdom_phone' ) ) : ?><li><?php echo kingdom_icon( 'phone' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <a href="tel:<?php echo esc_attr( preg_replace( '/[^0-9+]/', '', get_theme_mod( 'kingdom_phone' ) ) ); ?>"><?php echo esc_html( get_theme_mod( 'kingdom_phone' ) ); ?></a></li><?php endif; ?>
+							<?php if ( get_theme_mod( 'kingdom_email' ) ) : ?><li><?php echo kingdom_icon( 'mail' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <a href="mailto:<?php echo esc_attr( get_theme_mod( 'kingdom_email' ) ); ?>"><?php echo esc_html( get_theme_mod( 'kingdom_email' ) ); ?></a></li><?php endif; ?>
+						</ul>
+					</div>
+				<?php endif; ?>
+			<?php endif; ?>
 		</div>
-	</div>
+	<?php endif; ?>
+
+	<?php if ( ( $kingdom_show['bottom'] || $kingdom_credit ) && 'minimal' !== $kingdom_layout ) : ?>
+		<div class="k-footer__bottom">
+			<div class="k-container">
+				<?php if ( $kingdom_show['bottom'] ) : ?>
+					<p><?php echo esc_html( $kingdom_copy ); ?><?php echo wp_kses_post( $kingdom_credit ); ?></p>
+					<?php if ( function_exists( 'the_privacy_policy_link' ) ) { the_privacy_policy_link(); } ?>
+				<?php else : ?>
+					<p><?php echo wp_kses_post( preg_replace( '/^\s*·\s*/u', '', $kingdom_credit ) ); ?></p>
+				<?php endif; ?>
+			</div>
+		</div>
+	<?php endif; ?>
 </footer>
+<?php endif; ?>
 
 <?php $kingdom_wa = kingdom_whatsapp_chat(); ?>
 <?php if ( $kingdom_wa ) : ?>

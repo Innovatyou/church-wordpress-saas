@@ -212,9 +212,9 @@ function kingdom_customize_register( $wp ) {
 	$add( 'kingdom_social', 'kingdom_social_hashtag', __( 'Church hashtag', 'kingdom' ), 'text', '' );
 
 	// Footer.
-	$add( 'kingdom_footer', 'kingdom_footer_about', __( 'About text', 'kingdom' ), 'textarea', __( 'Raising a generation of believers who love God, love people and transform their world.', 'kingdom' ) );
-	$add( 'kingdom_footer', 'kingdom_footer_newsletter', __( 'Show newsletter in footer', 'kingdom' ), 'checkbox', true );
-	$add( 'kingdom_footer', 'kingdom_copyright', __( 'Copyright text', 'kingdom' ), 'text', '' );
+	foreach ( kingdom_footer_settings() as $key => $f ) {
+		$add( 'kingdom_footer', $key, $f[0], $f[1], $f[2], $f[3] ?? array(), 'kingdom_footer_layout' === $key ? __( 'Footer widgets (Widgets → Footer 1–4) replace the standard columns in the Four columns layout.', 'kingdom' ) : '' );
+	}
 
 	// Site elements not already offered elsewhere (registered last so nothing is added twice).
 	foreach ( kingdom_site_elements() as $key => $label ) {

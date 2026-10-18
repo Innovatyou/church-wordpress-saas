@@ -410,6 +410,9 @@ class KCS_Church_Admin {
 						case 'select':
 							$value = array_key_exists( $raw, (array) ( $f[4] ?? array() ) ) ? $raw : $f[3];
 							break;
+						case 'textarea':
+							$value = sanitize_textarea_field( $raw );
+							break;
 						default:
 							$value = sanitize_text_field( $raw );
 					}
@@ -1196,6 +1199,7 @@ class KCS_Church_Admin {
 			'banner'   => __( 'Homepage banner', 'kingdom-church-suite' ),
 			'media'    => __( 'Live stream, video & audio', 'kingdom-church-suite' ),
 			'sections' => __( 'Show or hide sections', 'kingdom-church-suite' ),
+			'footer'   => __( 'Footer', 'kingdom-church-suite' ),
 		);
 		?>
 		<form method="post" class="kca-cols">
@@ -1217,6 +1221,8 @@ class KCS_Church_Admin {
 					<?php elseif ( 'fonts' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'Choose a ready-made pairing (a heading font and a body text font that look good together), or Custom to pick your own. The preview updates as you choose.', 'kingdom-church-suite' ); ?></p>
 						<?php self::font_preview(); ?>
+					<?php elseif ( 'footer' === $group ) : ?>
+						<p class="kcs-muted"><?php esc_html_e( 'Turn the footer off, pick its layout and colours, and choose what it shows. Social links, address and phone come from your contact details; quick links come from the footer menu.', 'kingdom-church-suite' ); ?></p>
 					<?php elseif ( 'sections' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'Untick a section to remove it from every page of the website.', 'kingdom-church-suite' ); ?></p>
 						<div class="kca-switches">
@@ -1233,6 +1239,8 @@ class KCS_Church_Admin {
 							<label class="kcs-check kca-switch"><input type="checkbox" name="<?php echo esc_attr( $key ); ?>" value="1" <?php checked( (bool) $value ); ?>> <?php echo esc_html( $f[0] ); ?></label>
 						<?php elseif ( 'color' === $f[1] ) : ?>
 							<label class="kca-colour"><input type="color" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>"> <span><?php echo esc_html( $f[0] ); ?> <code><?php echo esc_html( $value ); ?></code></span></label>
+						<?php elseif ( 'textarea' === $f[1] ) : ?>
+							<label><?php echo esc_html( $f[0] ); ?><textarea name="<?php echo esc_attr( $key ); ?>" rows="3"><?php echo esc_textarea( $value ); ?></textarea></label>
 						<?php elseif ( 'select' === $f[1] ) : ?>
 							<label><?php echo esc_html( $f[0] ); ?><select name="<?php echo esc_attr( $key ); ?>"><?php foreach ( (array) $f[4] as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $value, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select></label>
 						<?php else : ?>

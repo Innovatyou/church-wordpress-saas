@@ -132,6 +132,7 @@ A full church-management dashboard on the **Church Admin** page (`[kcs_church_ad
 - **Prayer requests**, **Visits** ("Plan your visit" bookings with WhatsApp follow-up) and **Testimonies** (publish or remove)
 - **Notify partners**: by plan and status, by email and/or as an update on their dashboard (announcement, event or resource with a link)
 - **Website WhatsApp chat**: turn the floating "Chat with us" button on or off, and set the greeting, office hours and contacts (e.g. General enquiries, Prayer line, First-time visitors), each with its own number and pre-filled message (`{church}` and `{page}` are filled in automatically)
+- **Footer** (under *Website*): turn the footer off, choose a layout (four columns, centred or minimal one-line) and colours (dark, light or the church's main colour), show or hide each part (newsletter, about & social, service times, quick links, contact, copyright line) and edit the about and copyright text. The same options are under *Customize → Ministry OS Theme → Footer*. On platform plans without white label, the "Powered by" credit stays visible even when the footer is off
 - **Website**: banner video link, hide banner text, sound button, banner height and overlay, and an on/off switch for every website section
 - **Plans & currency**: international and local currency settings, and each plan's USD and local price, benefits, level and status
 - **Pastors & WhatsApp**: add pastors with WhatsApp numbers and choose which plans can reach them; the highest plan always reaches every pastor

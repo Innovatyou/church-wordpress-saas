@@ -127,7 +127,50 @@ function kingdom_website_settings() {
 	foreach ( kingdom_site_elements() as $key => $label ) {
 		$out[ $key ] = array( $label, 'checkbox', 'sections', true );
 	}
+	foreach ( kingdom_footer_settings() as $key => $f ) {
+		$out[ $key ] = array( $f[0], $f[1], 'footer', $f[2], $f[3] ?? array() );
+	}
 	return $out;
+}
+
+/**
+ * Footer settings (key => array( label, type, default, choices? )), shared by the Customizer
+ * and Church Admin → Website.
+ *
+ * @return array
+ */
+function kingdom_footer_settings() {
+	return array(
+		'kingdom_footer_show'         => array( __( 'Show the footer', 'kingdom' ), 'checkbox', true ),
+		'kingdom_footer_layout'       => array(
+			__( 'Footer layout', 'kingdom' ),
+			'select',
+			'columns',
+			array(
+				'columns'  => __( 'Four columns', 'kingdom' ),
+				'centered' => __( 'Centred', 'kingdom' ),
+				'minimal'  => __( 'Minimal (one slim line)', 'kingdom' ),
+			),
+		),
+		'kingdom_footer_colour'       => array(
+			__( 'Footer colours', 'kingdom' ),
+			'select',
+			'dark',
+			array(
+				'dark'  => __( 'Dark', 'kingdom' ),
+				'light' => __( 'Light', 'kingdom' ),
+				'brand' => __( 'Church main colour', 'kingdom' ),
+			),
+		),
+		'kingdom_footer_newsletter'   => array( __( 'Newsletter sign-up band', 'kingdom' ), 'checkbox', true ),
+		'kingdom_footer_show_about'   => array( __( 'Church name, about text and social icons', 'kingdom' ), 'checkbox', true ),
+		'kingdom_footer_show_times'   => array( __( 'Service times', 'kingdom' ), 'checkbox', true ),
+		'kingdom_footer_show_links'   => array( __( 'Quick links (footer menu)', 'kingdom' ), 'checkbox', true ),
+		'kingdom_footer_show_contact' => array( __( 'Address, phone and email', 'kingdom' ), 'checkbox', true ),
+		'kingdom_footer_show_bottom'  => array( __( 'Copyright line', 'kingdom' ), 'checkbox', true ),
+		'kingdom_footer_about'        => array( __( 'About text', 'kingdom' ), 'textarea', __( 'Raising a generation of believers who love God, love people and transform their world.', 'kingdom' ) ),
+		'kingdom_copyright'           => array( __( 'Copyright text (empty = © year and church name)', 'kingdom' ), 'text', '' ),
+	);
 }
 add_filter(
 	'kcs_website_settings',
@@ -224,7 +267,6 @@ function kingdom_site_elements() {
 		'kingdom_dark_toggle'       => __( 'Dark-mode button', 'kingdom' ),
 		'kingdom_live_badge'        => __( '“Live now” badge in the header', 'kingdom' ),
 		'kingdom_palette_switcher'  => __( 'Colour palette picker for visitors', 'kingdom' ),
-		'kingdom_footer_newsletter' => __( 'Footer newsletter band', 'kingdom' ),
 		'kingdom_to_top'            => __( 'Back-to-top button', 'kingdom' ),
 		'kingdom_mobile_nav'        => __( 'Bottom tab bar on phones', 'kingdom' ),
 	);
