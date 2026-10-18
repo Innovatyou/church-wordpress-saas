@@ -202,6 +202,7 @@ class KS_Platform {
 			array( __( 'Bot protection (Cloudflare Turnstile)', 'kingdom-saas' ), $set . ' → ' . __( 'Payments', 'kingdom-saas' ), $u( 'settings', 'set-payments' ), 'captcha spam turnstile signup' ),
 			array( __( 'Test mode', 'kingdom-saas' ), $set . ' → ' . __( 'Payments', 'kingdom-saas' ), $u( 'settings', 'set-payments' ), 'test simulated payment sandbox' ),
 			array( __( 'Bank accounts for bank transfer', 'kingdom-saas' ), $set . ' → ' . __( 'Bank transfer', 'kingdom-saas' ), $u( 'settings', 'set-bank' ), 'bank account number transfer offline' ),
+			array( __( 'Email sending (SMTP)', 'kingdom-saas' ), $set . ' → ' . __( 'Email sending (SMTP)', 'kingdom-saas' ), $u( 'settings', 'set-email' ), 'smtp email mail spam hostinger brevo gmail sender test email' ),
 			array( __( 'Search & sharing (SEO)', 'kingdom-saas' ), $set . ' → ' . __( 'Search & sharing (SEO)', 'kingdom-saas' ), $u( 'settings', 'set-seo' ), 'seo google search console bing analytics ga4 sitemap sharing image social' ),
 			array( __( 'Setup check', 'kingdom-saas' ), __( 'Network Admin → Ministry OS Cloud', 'kingdom-saas' ), network_admin_url( 'admin.php?page=kingdom-cloud' ), 'setup check health problems' ),
 		);
@@ -378,7 +379,8 @@ class KS_Platform {
 		$ref = wp_validate_redirect( wp_get_raw_referer(), '' );
 		$to  = $ref && false !== strpos( $ref, '/platform/' ) ? $ref : add_query_arg( 'tab', $tab, ks_platform_url( 'platform/' ) );
 		$bid = absint( $d['blog_id'] ?? 0 );
-		$msg = __( 'Saved.', 'kingdom-saas' );
+		$msg  = __( 'Saved.', 'kingdom-saas' );
+		$type = 'success';
 		switch ( $do ) {
 			case 'suspend':
 				KS_Tenants::update( $bid, array( 'status' => 'suspended', 'last_notice' => 'admin_blocked' ) );
@@ -462,15 +464,32 @@ class KS_Platform {
 				}
 				$msg = __( 'Plans saved.', 'kingdom-saas' );
 				break;
+			case 'test_email':
+				$rcpt = sanitize_email( $d['to'] ?? '' );
+				$ok   = is_email( $rcpt ) && KS_Email::send( $rcpt, __( 'Test email from your platform', 'kingdom-saas' ), '<p>' . esc_html__( 'It works! Emails from your platform and church websites are being delivered.', 'kingdom-saas' ) . '</p>' );
+				/* translators: %s: error from the mail server */
+				$msg  = $ok ? __( 'Test email sent. Check the inbox (and the spam folder).', 'kingdom-saas' ) : ( KS_Email::$last_error ? sprintf( __( 'The test email could not be sent: %s', 'kingdom-saas' ), KS_Email::$last_error ) : __( 'The test email could not be sent. Check the email sending settings.', 'kingdom-saas' ) );
+				$type = $ok ? 'success' : 'error';
+				break;
 			case 'save_settings':
 				$keys = array_keys( ks_default_settings() );
 				$vals = array();
 				foreach ( $keys as $k ) {
 					if ( in_array( $k, array( 'https', 'test_mode' ), true ) ) {
 						$vals[ $k ] = empty( $d[ $k ] ) ? '0' : '1';
+					} elseif ( 'smtp_pass' === $k ) {
+						if ( isset( $d[ $k ] ) && '' !== $d[ $k ] ) { // Empty keeps the saved password.
+							$vals[ $k ] = trim( str_replace( array( "\r", "\n", "\0" ), '', (string) $d[ $k ] ) );
+						}
 					} elseif ( isset( $d[ $k ] ) ) {
 						$vals[ $k ] = in_array( $k, array( 'bank_details', 'tagline', 'seo_description', 'seo_profiles' ), true ) ? sanitize_textarea_field( $d[ $k ] ) : sanitize_text_field( $d[ $k ] );
 					}
+				}
+				if ( isset( $vals['smtp_secure'] ) && ! in_array( $vals['smtp_secure'], array( 'ssl', 'tls', 'none' ), true ) ) {
+					$vals['smtp_secure'] = 'ssl';
+				}
+				if ( isset( $vals['smtp_from'] ) && '' !== $vals['smtp_from'] && ! is_email( $vals['smtp_from'] ) ) {
+					$vals['smtp_from'] = '';
 				}
 				if ( isset( $vals['color_mode'] ) && ! in_array( $vals['color_mode'], array( 'dark', 'light', 'auto' ), true ) ) {
 					$vals['color_mode'] = 'dark';
@@ -504,7 +523,7 @@ class KS_Platform {
 				$to  = add_query_arg( 'tab', 'churches', ks_platform_url( 'platform/' ) );
 				break;
 		}
-		self::back( $msg, 'success', $to );
+		self::back( $msg, $type, $to );
 	}
 
 	/**

@@ -186,6 +186,7 @@ add_filter( 'kcs_payment_gateways', function ( $g ) { $g['mine'] = new My_Gatewa
 > **Recurring partnerships** are handled with due dates plus reminder emails and a one-click "Give now" link. This works the same across every gateway. Card auto-debit (gateway-native subscriptions) is not included.
 
 ### Email notifications & newsletter
+- **Email sending (SMTP)**: *Settings → Email → Sending (SMTP)* sends through a real mailbox (Hostinger email `smtp.hostinger.com` 465 SSL, Gmail/Workspace 587 TLS with an app password, Zoho, Brevo…) so receipts and reminders reach inboxes. Saved passwords are never shown; *Send a test email* explains any error. On Ministry OS Cloud the platform mailbox is used when the church has not set its own.
 - Branded HTML emails: partner welcome, receipt, due-date reminder, admin new-partner and new-payment alerts, newsletter confirm and welcome, prayer received. All are editable with placeholders.
 - Newsletter with double opt-in, one-click unsubscribe (with `List-Unsubscribe` header), audiences (subscribers, all/active/overdue partners, everyone), scheduling, test sends, and optional auto-email when a sermon is published
 - Batch queue (default 50 per 5 minutes) with retries, to protect sender reputation

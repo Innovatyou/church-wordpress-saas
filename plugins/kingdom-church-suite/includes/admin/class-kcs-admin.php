@@ -784,7 +784,7 @@ class KCS_Admin {
 				<li><?php esc_html_e( 'Failed', 'kingdom-church-suite' ); ?>: <strong><?php echo (int) ( $queue->failed ?? 0 ); ?></strong></li>
 			</ul>
 			<p><a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcs_process_queue' ), 'kcs_process_queue' ) ); ?>"><?php esc_html_e( 'Send next batch now', 'kingdom-church-suite' ); ?></a></p>
-			<p class="description"><?php esc_html_e( 'Tip: for reliable delivery, install an SMTP plugin (e.g. WP Mail SMTP) with Mailgun, SendGrid, Amazon SES, Brevo or Postmark.', 'kingdom-church-suite' ); ?></p>
+			<p class="description"><?php esc_html_e( 'Tip: for reliable delivery, turn on “Send through my own mailbox (SMTP)” above with your church email (e.g. Hostinger email, Gmail, Zoho or Brevo).', 'kingdom-church-suite' ); ?></p>
 		</div>
 		</div></div>
 		<?php
@@ -1216,6 +1216,10 @@ class KCS_Admin {
 				echo '<input type="text" class="kcs-color" id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '">';
 				break;
 			case 'password':
+				if ( ! empty( $field['keep'] ) ) {
+					echo '<input type="password" autocomplete="new-password" class="regular-text" id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '" value="" placeholder="' . esc_attr( '' !== (string) $value ? __( '•••••••• saved — leave empty to keep', 'kingdom-church-suite' ) : '' ) . '">';
+					break;
+				}
 				echo '<input type="password" autocomplete="new-password" class="regular-text" id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '"> <button type="button" class="button kcs-reveal" data-target="' . esc_attr( $id ) . '">' . esc_html__( 'Show', 'kingdom-church-suite' ) . '</button>';
 				break;
 			case 'info':
@@ -1271,7 +1275,7 @@ curl -X POST -H "X-KCS-API-Key: YOUR_KEY" -H "Content-Type: application/json" \
 		self::guard( 'test_email', 'manage_options' );
 		$to = sanitize_email( wp_unslash( $_POST['to'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$ok = KCS_Email::send( $to, __( 'Test email from Church Suite', 'kingdom-church-suite' ), '<p>' . esc_html__( 'Your email settings are working. 🎉', 'kingdom-church-suite' ) . '</p><p><a class="btn" href="' . esc_url( home_url( '/' ) ) . '">' . esc_html__( 'Visit website', 'kingdom-church-suite' ) . '</a></p>' );
-		wp_safe_redirect( admin_url( 'admin.php?page=kcs-settings&tab=email&kcs_type=' . ( $ok ? 'success' : 'error' ) . '&kcs_notice=' . rawurlencode( $ok ? __( 'Test email sent.', 'kingdom-church-suite' ) : __( 'wp_mail() failed. Configure SMTP.', 'kingdom-church-suite' ) ) ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=kcs-settings&tab=email&kcs_type=' . ( $ok ? 'success' : 'error' ) . '&kcs_notice=' . rawurlencode( $ok ? __( 'Test email sent.', 'kingdom-church-suite' ) : ( KCS_Mailer::$last_error ? KCS_Mailer::$last_error : __( 'The email could not be sent. Check the SMTP settings.', 'kingdom-church-suite' ) ) ) ) );
 		exit;
 	}
 

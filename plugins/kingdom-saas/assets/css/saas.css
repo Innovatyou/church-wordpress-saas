@@ -321,3 +321,6 @@ body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-syste
 .ks-main [id^="set-"], #domain-settings { scroll-margin-top: 20px; }
 .is-found { animation: ks-found 2.6s ease; }
 @keyframes ks-found { 0%, 60% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--ks-brand) 50%, transparent); } 100% { box-shadow: none; } }
+.ks-inline-form { display: flex; flex-wrap: wrap; gap: .5rem; }
+.ks-inline-form input { flex: 1 1 220px; }
+.ks-test-mail { margin-top: 1rem; }

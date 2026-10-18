@@ -379,6 +379,21 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 					<?php endfor; ?>
 					<label><?php esc_html_e( 'Extra note for churches (optional)', 'kingdom-saas' ); ?><textarea name="bank_details" rows="2" placeholder="<?php esc_attr_e( 'e.g. Transfers are confirmed within one working day.', 'kingdom-saas' ); ?>"><?php echo esc_textarea( ks_get( 'bank_details' ) ); ?></textarea></label>
 				</fieldset>
+				<fieldset class="ks-card ks-form ks-span-2" id="set-email">
+					<legend><?php esc_html_e( 'Email sending (SMTP)', 'kingdom-saas' ); ?></legend>
+					<p class="ks-small"><?php esc_html_e( 'Send every email — yours and all churches’ (receipts, reminders, newsletters, password resets) — through a real mailbox so it reaches inboxes, not spam. A church can still use its own mailbox in Church Admin → Settings → Email. Emails go out from the address below with the church’s name, and replies go to the church.', 'kingdom-saas' ); ?></p>
+					<p class="ks-small"><?php esc_html_e( 'Hostinger email: smtp.hostinger.com · 465 · SSL · your full email address and its password. Brevo (free for 300 emails a day): smtp-relay.brevo.com · 587 · TLS. Gmail / Google Workspace: smtp.gmail.com · 587 · TLS with an app password. Leave the server empty to use the hosting’s default mail.', 'kingdom-saas' ); ?></p>
+					<div class="ks-grid ks-grid--2">
+						<label><?php esc_html_e( 'SMTP server', 'kingdom-saas' ); ?><input name="smtp_host" value="<?php echo esc_attr( ks_get( 'smtp_host' ) ); ?>" placeholder="smtp.hostinger.com" autocomplete="off"></label>
+						<div class="ks-grid ks-grid--2">
+							<label><?php esc_html_e( 'Port', 'kingdom-saas' ); ?><input type="number" name="smtp_port" value="<?php echo esc_attr( ks_get( 'smtp_port' ) ); ?>" min="1" max="65535"></label>
+							<label><?php esc_html_e( 'Encryption', 'kingdom-saas' ); ?><select name="smtp_secure"><?php foreach ( array( 'ssl' => 'SSL (465)', 'tls' => 'TLS (587)', 'none' => __( 'None', 'kingdom-saas' ) ) as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( ks_get( 'smtp_secure' ), $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select></label>
+						</div>
+						<label><?php esc_html_e( 'Username (usually the full email address)', 'kingdom-saas' ); ?><input name="smtp_user" value="<?php echo esc_attr( ks_get( 'smtp_user' ) ); ?>" autocomplete="off"></label>
+						<label><?php esc_html_e( 'Password', 'kingdom-saas' ); ?><input type="password" name="smtp_pass" value="" autocomplete="new-password" placeholder="<?php echo esc_attr( ks_get( 'smtp_pass' ) ? __( '•••••••• saved — leave empty to keep', 'kingdom-saas' ) : '' ); ?>"></label>
+						<label class="ks-span-2"><?php esc_html_e( 'Send from (an address of this mailbox, e.g. no-reply@yourplatform.com)', 'kingdom-saas' ); ?><input type="email" name="smtp_from" value="<?php echo esc_attr( ks_get( 'smtp_from' ) ); ?>" placeholder="<?php echo esc_attr( ks_get( 'smtp_user' ) ? ks_get( 'smtp_user' ) : 'no-reply@' . ks_get( 'base_domain' ) ); ?>"></label>
+					</div>
+				</fieldset>
 				<fieldset class="ks-card ks-form ks-span-2" id="set-seo">
 					<legend><?php esc_html_e( 'Search & sharing (SEO)', 'kingdom-saas' ); ?></legend>
 					<p class="ks-small"><?php esc_html_e( 'How your landing page appears on Google, WhatsApp and social media. Leave empty to use the built-in Nigeria-focused wording.', 'kingdom-saas' ); ?></p>
@@ -396,6 +411,12 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 				</fieldset>
 			</div>
 			<button class="ks-btn"><?php esc_html_e( 'Save settings', 'kingdom-saas' ); ?></button>
+		</form>
+		<form method="post" class="ks-card ks-form ks-test-mail">
+			<?php echo $f( 'test_email' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<h2><?php esc_html_e( 'Send a test email', 'kingdom-saas' ); ?></h2>
+			<p class="ks-small"><?php esc_html_e( 'Save your settings first, then send a test to check delivery.', 'kingdom-saas' ); ?></p>
+			<div class="ks-inline-form"><input type="email" name="to" value="<?php echo esc_attr( wp_get_current_user()->user_email ); ?>" aria-label="<?php esc_attr_e( 'Email address', 'kingdom-saas' ); ?>"><button class="ks-btn ks-btn--ghost"><?php esc_html_e( 'Send test', 'kingdom-saas' ); ?></button></div>
 		</form>
 <?php endif; ?>
 	</section>

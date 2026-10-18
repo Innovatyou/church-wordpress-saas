@@ -13,6 +13,71 @@ defined( 'ABSPATH' ) || exit;
 class KS_Email {
 
 	/**
+	 * Last sending error (for the platform's test email).
+	 *
+	 * @var string
+	 */
+	public static $last_error = '';
+
+	/**
+	 * Hooks: every site on the network sends through the platform mailbox (Settings → Email
+	 * sending) unless the church set up its own in Church Admin.
+	 */
+	public static function init() {
+		add_action( 'phpmailer_init', array( __CLASS__, 'smtp' ), 5 );
+		add_action(
+			'wp_mail_failed',
+			function ( $error ) {
+				self::$last_error = is_wp_error( $error ) ? $error->get_error_message() : '';
+			}
+		);
+	}
+
+	/**
+	 * Use the platform's SMTP mailbox.
+	 *
+	 * @param PHPMailer\PHPMailer\PHPMailer $mail Mailer.
+	 */
+	public static function smtp( $mail ) {
+		$host = trim( (string) ks_get( 'smtp_host' ) );
+		if ( '' === $host || ( class_exists( 'KCS_Mailer' ) && KCS_Mailer::church_config() ) ) {
+			return;
+		}
+		$cfg = array(
+			'host'   => $host,
+			'port'   => (int) ks_get( 'smtp_port' ),
+			'secure' => (string) ks_get( 'smtp_secure' ),
+			'user'   => trim( (string) ks_get( 'smtp_user' ) ),
+			'pass'   => (string) ks_get( 'smtp_pass' ),
+			'from'   => trim( (string) ks_get( 'smtp_from' ) ),
+		);
+		if ( class_exists( 'KCS_Mailer' ) ) {
+			KCS_Mailer::apply( $mail, $cfg );
+			return;
+		}
+		// Main site without Church Suite: the same settings, applied here.
+		$mail->isSMTP();
+		$mail->Host        = $cfg['host']; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$mail->Port        = $cfg['port'] ? $cfg['port'] : ( 'ssl' === $cfg['secure'] ? 465 : 587 ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$mail->SMTPSecure  = in_array( $cfg['secure'], array( 'ssl', 'tls' ), true ) ? $cfg['secure'] : ''; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$mail->SMTPAutoTLS = 'none' !== $cfg['secure']; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$mail->SMTPAuth    = '' !== $cfg['user']; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$mail->Username    = $cfg['user']; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$mail->Password    = $cfg['pass']; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$mail->Timeout     = 15; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$sender = is_email( $cfg['from'] ) ? $cfg['from'] : ( is_email( $cfg['user'] ) ? $cfg['user'] : '' );
+		if ( $sender && strtolower( (string) $mail->From ) !== strtolower( $sender ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			if ( is_email( $mail->From ) && ! $mail->getReplyToAddresses() ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				$mail->addReplyTo( $mail->From, $mail->FromName ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			}
+			$mail->setFrom( $sender, $mail->FromName, false ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		}
+		if ( $sender ) {
+			$mail->Sender = $sender; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		}
+	}
+
+	/**
 	 * Send a branded email.
 	 *
 	 * @param string $to      Recipient.

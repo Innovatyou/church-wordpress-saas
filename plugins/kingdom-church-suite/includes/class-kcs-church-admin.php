@@ -543,7 +543,8 @@ class KCS_Church_Admin {
 			case 'test_email':
 				$to   = sanitize_email( $d['to'] ?? '' );
 				$sent = is_email( $to ) && KCS_Email::send( $to, __( 'Test email from your church website', 'kingdom-church-suite' ), '<p>' . esc_html__( 'It works! Emails from your church website are being delivered.', 'kingdom-church-suite' ) . '</p>' );
-				$msg  = $sent ? __( 'Test email sent. Check the inbox (and the spam folder).', 'kingdom-church-suite' ) : __( 'The test email could not be sent. Check the email settings.', 'kingdom-church-suite' );
+				/* translators: %s: error from the mail server */
+				$msg  = $sent ? __( 'Test email sent. Check the inbox (and the spam folder).', 'kingdom-church-suite' ) : ( KCS_Mailer::$last_error ? sprintf( __( 'The test email could not be sent: %s Check the SMTP server, port, encryption, username and password.', 'kingdom-church-suite' ), KCS_Mailer::$last_error ) : __( 'The test email could not be sent. Check the email settings.', 'kingdom-church-suite' ) );
 				$type = $sent ? 'success' : 'error';
 				$view = 'settings';
 				break;
@@ -1939,6 +1940,10 @@ class KCS_Church_Admin {
 				echo '<label class="kca-colour"><input type="color" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ? $value : '#5b2a86' ) . '"> <span>' . esc_html( $field['label'] ) . '</span></label>' . $desc; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				return;
 			case 'password':
+				if ( ! empty( $field['keep'] ) ) { // Never printed back: empty keeps the saved one.
+					echo '<label>' . esc_html( $field['label'] ) . '<input type="password" autocomplete="new-password" name="' . esc_attr( $name ) . '" value="" placeholder="' . esc_attr( '' !== (string) $value ? __( '•••••••• saved — leave empty to keep', 'kingdom-church-suite' ) : '' ) . '">' . $desc . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+					return;
+				}
 				echo '<label>' . esc_html( $field['label'] ) . '<input type="password" autocomplete="new-password" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '" data-kcs-reveal>' . $desc . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				return;
 			default:

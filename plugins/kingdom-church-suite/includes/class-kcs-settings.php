@@ -104,6 +104,15 @@ class KCS_Settings {
 					'email_color'        => array( 'label' => __( 'Brand colour', 'kingdom-church-suite' ), 'type' => 'color', 'default' => '#5b2a86' ),
 					'email_footer'       => array( 'label' => __( 'Email footer text', 'kingdom-church-suite' ), 'type' => 'textarea' ),
 				),
+				__( 'Sending (SMTP)', 'kingdom-church-suite' ) => array(
+					'smtp_info'    => array( 'label' => __( 'Why?', 'kingdom-church-suite' ), 'type' => 'info', 'desc' => __( 'Send emails through a real mailbox so receipts and reminders reach inboxes, not spam. Leave this off to use your platform’s mailbox. Hostinger email: smtp.hostinger.com, port 465, SSL, your full email address and its password. Gmail or Google Workspace: smtp.gmail.com, port 587, TLS, with an app password. Zoho: smtp.zoho.com, 465, SSL. Brevo: smtp-relay.brevo.com, 587, TLS.', 'kingdom-church-suite' ) ),
+					'smtp_enabled' => array( 'label' => __( 'Send through my own mailbox (SMTP)', 'kingdom-church-suite' ), 'type' => 'checkbox', 'default' => '0' ),
+					'smtp_host'    => array( 'label' => __( 'SMTP server', 'kingdom-church-suite' ), 'type' => 'text', 'desc' => __( 'For example smtp.hostinger.com', 'kingdom-church-suite' ) ),
+					'smtp_port'    => array( 'label' => __( 'Port', 'kingdom-church-suite' ), 'type' => 'number', 'default' => '465' ),
+					'smtp_secure'  => array( 'label' => __( 'Encryption', 'kingdom-church-suite' ), 'type' => 'select', 'default' => 'ssl', 'options' => array( 'ssl' => __( 'SSL (port 465)', 'kingdom-church-suite' ), 'tls' => __( 'TLS (port 587)', 'kingdom-church-suite' ), 'none' => __( 'None', 'kingdom-church-suite' ) ) ),
+					'smtp_user'    => array( 'label' => __( 'Username (usually your full email address)', 'kingdom-church-suite' ), 'type' => 'text' ),
+					'smtp_pass'    => array( 'label' => __( 'Password', 'kingdom-church-suite' ), 'type' => 'password', 'keep' => true, 'desc' => __( 'Saved passwords are never shown. Leave empty to keep the saved one.', 'kingdom-church-suite' ) ),
+				),
 				__( 'Notifications', 'kingdom-church-suite' ) => array(
 					'notify_admin_partner' => array( 'label' => __( 'Email admin when a partner registers', 'kingdom-church-suite' ), 'type' => 'checkbox', 'default' => '1' ),
 					'notify_admin_payment' => array( 'label' => __( 'Email admin on every successful payment', 'kingdom-church-suite' ), 'type' => 'checkbox', 'default' => '1' ),
@@ -228,7 +237,10 @@ class KCS_Settings {
 				if ( 'info' === $field['type'] ) {
 					continue;
 				}
-				$raw              = isset( $input[ $key ] ) ? wp_unslash( $input[ $key ] ) : '';
+				$raw = isset( $input[ $key ] ) ? wp_unslash( $input[ $key ] ) : '';
+				if ( ! empty( $field['keep'] ) && '' === $raw ) {
+					continue; // Secret left empty: keep the saved one.
+				}
 				$settings[ $key ] = self::sanitize_field( $raw, $field );
 			}
 		}
@@ -246,6 +258,8 @@ class KCS_Settings {
 		switch ( $field['type'] ) {
 			case 'checkbox':
 				return $value ? '1' : '0';
+			case 'password':
+				return trim( str_replace( array( "\r", "\n", "\0" ), '', (string) $value ) ); // passwords may contain < > & …
 			case 'email':
 				return sanitize_email( $value );
 			case 'url':

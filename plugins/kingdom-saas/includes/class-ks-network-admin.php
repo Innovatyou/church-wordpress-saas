@@ -254,6 +254,9 @@ class KS_Network_Admin {
 		$out[] = $keys
 			? array( 'ok', __( 'A payment method is set up', 'kingdom-saas' ), '' )
 			: array( 'warn', __( 'No payment method yet', 'kingdom-saas' ), __( 'Add Paystack, Flutterwave or Stripe keys, or your bank accounts (Platform → Settings → Bank transfer).', 'kingdom-saas' ) );
+		$out[] = ks_get( 'smtp_host' )
+			? array( 'ok', __( 'Emails are sent through your mailbox (SMTP)', 'kingdom-saas' ), '' )
+			: array( 'warn', __( 'Emails use the hosting’s basic mail', 'kingdom-saas' ), __( 'Receipts, reminders and password resets may land in spam. Add a mailbox in Platform → Settings → Email sending (SMTP), e.g. a Hostinger email or Brevo, then send a test.', 'kingdom-saas' ) );
 		if ( ks_test_mode() ) {
 			$out[] = array( 'warn', __( 'Test mode is on', 'kingdom-saas' ), __( 'Churches can "pay" with a fake test payment. Turn it off in Platform → Settings before going live.', 'kingdom-saas' ) );
 		}

@@ -43,6 +43,7 @@ final class KCS_Plugin {
 
 		KCS_Post_Types::init();
 		KCS_Email::init();
+		KCS_Mailer::init();
 		KCS_Partners::init();
 		KCS_Payments::init();
 		KCS_Transfers::init();
