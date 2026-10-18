@@ -47,21 +47,68 @@ class KCS_Church_Admin {
 		 * @param array $views slug => array( label, icon ).
 		 */
 		return apply_filters( 'kcs_church_admin_views', array(
-			'overview'    => array( __( 'Overview', 'kingdom-church-suite' ), '◎' ),
+			'overview'    => array( __( 'Home', 'kingdom-church-suite' ), '⌂' ),
 			'partners'    => array( __( 'Partners', 'kingdom-church-suite' ), '♥' ),
-			'plans'       => array( __( 'Plans & currency', 'kingdom-church-suite' ), '◈' ),
-			'payments'    => array( __( 'Payments', 'kingdom-church-suite' ), '₦' ),
-			'transfers'   => array( __( 'Bank transfers', 'kingdom-church-suite' ), '⇄' ),
+			'plans'       => array( __( 'Partnership plans', 'kingdom-church-suite' ), '◈' ),
+			'payments'    => array( __( 'Giving received', 'kingdom-church-suite' ), '₦' ),
+			'transfers'   => array( __( 'Confirm bank transfers', 'kingdom-church-suite' ), '⇄' ),
 			'prayers'     => array( __( 'Prayer requests', 'kingdom-church-suite' ), '✦' ),
-			'visits'      => array( __( 'Visits', 'kingdom-church-suite' ), '⌂' ),
+			'visits'      => array( __( 'First-time visitors', 'kingdom-church-suite' ), '☺' ),
 			'testimonies' => array( __( 'Testimonies', 'kingdom-church-suite' ), '❝' ),
-			'notify'      => array( __( 'Notify partners', 'kingdom-church-suite' ), '✉' ),
+			'notify'      => array( __( 'Message partners', 'kingdom-church-suite' ), '✉' ),
 			'pastors'     => array( __( 'Pastors & WhatsApp', 'kingdom-church-suite' ), '☎' ),
-			'website'     => array( __( 'Website', 'kingdom-church-suite' ), '▣' ),
+			'website'     => array( __( 'Design & live stream', 'kingdom-church-suite' ), '▣' ),
 			'content'     => array( __( 'Pictures & text', 'kingdom-church-suite' ), '▧' ),
 			'newsletter'  => array( __( 'Newsletter', 'kingdom-church-suite' ), '✎' ),
 			'app'         => array( __( 'Church app', 'kingdom-church-suite' ), '▤' ),
 		) + ( current_user_can( 'manage_options' ) ? array( 'settings' => array( __( 'Settings', 'kingdom-church-suite' ), '⚙' ) ) : array() ) );
+	}
+
+	/**
+	 * Menu groups (title => view slugs). Views added by add-ons that are not listed go under Account.
+	 *
+	 * @return array
+	 */
+	public static function groups() {
+		return (array) apply_filters(
+			'kcs_church_admin_groups',
+			array(
+				''                                          => array( 'overview' ),
+				__( 'People', 'kingdom-church-suite' )      => array( 'partners', 'prayers', 'visits', 'testimonies' ),
+				__( 'Giving', 'kingdom-church-suite' )      => array( 'transfers', 'payments', 'plans' ),
+				__( 'Messages', 'kingdom-church-suite' )    => array( 'notify', 'newsletter', 'pastors' ),
+				__( 'Website & app', 'kingdom-church-suite' ) => array( 'content', 'website', 'app' ),
+				__( 'Account', 'kingdom-church-suite' )     => array( 'settings', 'subscription', 'domain' ),
+			)
+		);
+	}
+
+	/**
+	 * One plain sentence under each page title: what the page is for.
+	 *
+	 * @param string $view View.
+	 * @return string
+	 */
+	private static function describe( $view ) {
+		$d = array(
+			'partners'     => __( 'Everyone who has joined your partnership: their plan, payments and contact details.', 'kingdom-church-suite' ),
+			'prayers'      => __( 'Prayer requests sent from your website. Mark them as prayed for when done.', 'kingdom-church-suite' ),
+			'visits'       => __( 'People who booked a visit. Call or WhatsApp them to welcome them.', 'kingdom-church-suite' ),
+			'testimonies'  => __( 'Testimonies shared by members. Approve them to show them on your website.', 'kingdom-church-suite' ),
+			'transfers'    => __( 'Givers who paid by bank transfer. Check your bank account, then confirm or reject.', 'kingdom-church-suite' ),
+			'payments'     => __( 'Every tithe, offering and partnership payment received online.', 'kingdom-church-suite' ),
+			'plans'        => __( 'The partnership plans people can choose, their prices and currencies.', 'kingdom-church-suite' ),
+			'notify'       => __( 'Send an announcement to your partners by email and on their dashboard.', 'kingdom-church-suite' ),
+			'newsletter'   => __( 'Write and send email newsletters to your subscribers.', 'kingdom-church-suite' ),
+			'pastors'      => __( 'The WhatsApp chat button on your website and the pastors partners can reach.', 'kingdom-church-suite' ),
+			'content'      => __( 'Change your logo, photos, homepage words and contact details.', 'kingdom-church-suite' ),
+			'website'      => __( 'Colours, fonts, homepage banner, live stream and which sections show.', 'kingdom-church-suite' ),
+			'app'          => __( 'Your church app members install on their phones, and push notifications.', 'kingdom-church-suite' ),
+			'settings'     => __( 'Church details, service times, payment methods, emails and more.', 'kingdom-church-suite' ),
+			'subscription' => __( 'Your plan for this website and its payments.', 'kingdom-church-suite' ),
+			'domain'       => __( 'Use your own web address, such as yourchurch.org.', 'kingdom-church-suite' ),
+		);
+		return (string) apply_filters( 'kcs_church_admin_description', $d[ $view ] ?? '', $view );
 	}
 
 	/**
@@ -660,17 +707,49 @@ class KCS_Church_Admin {
 		<div class="kca" data-kca>
 			<aside class="kca__side">
 				<div class="kca__brand"><span class="kca__logo" aria-hidden="true"></span><span><strong><?php echo esc_html( kcs_get_option( 'church_name', get_bloginfo( 'name' ) ) ); ?></strong><small><?php esc_html_e( 'Church admin', 'kingdom-church-suite' ); ?></small></span></div>
-				<nav class="kca__nav" aria-label="<?php esc_attr_e( 'Dashboard sections', 'kingdom-church-suite' ); ?>">
-					<?php foreach ( $views as $slug => $v ) : ?>
-						<a href="<?php echo esc_url( self::url( $slug ) ); ?>"<?php echo $slug === $view ? ' aria-current="page"' : ''; ?>><span class="kca__ic" aria-hidden="true"><?php echo esc_html( $v[1] ); ?></span><?php echo esc_html( $v[0] ); ?><?php if ( ! empty( $counts[ $slug ] ) ) : ?><em><?php echo (int) $counts[ $slug ]; ?></em><?php endif; ?></a>
-					<?php endforeach; ?>
-				</nav>
-				<a class="kca__out" href="<?php echo esc_url( wp_logout_url( home_url( '/' ) ) ); ?>"><?php esc_html_e( 'Log out', 'kingdom-church-suite' ); ?></a>
+				<?php
+				$menu   = array();
+				$placed = array();
+				foreach ( self::groups() as $title => $slugs ) {
+					$menu[ $title ] = array_values( array_filter( (array) $slugs, function ( $sl ) use ( $views ) { return isset( $views[ $sl ] ); } ) );
+					$placed         = array_merge( $placed, $menu[ $title ] );
+				}
+				$extra = array_diff( array_keys( $views ), $placed );
+				if ( $extra ) {
+					$acc          = __( 'Account', 'kingdom-church-suite' );
+					$menu[ $acc ] = array_merge( $menu[ $acc ] ?? array(), $extra );
+				}
+				$todo = array_sum( $counts );
+				?>
+				<details class="kca__menu" data-kca-menu>
+					<summary><span class="kca__ic" aria-hidden="true"><?php echo esc_html( $views[ $view ][1] ); ?></span><span><small><?php esc_html_e( 'Menu', 'kingdom-church-suite' ); ?></small><?php echo esc_html( $views[ $view ][0] ); ?></span><?php if ( $todo ) : ?><em><?php echo (int) $todo; ?></em><?php endif; ?><b aria-hidden="true">☰</b></summary>
+					<nav class="kca__nav" aria-label="<?php esc_attr_e( 'Dashboard sections', 'kingdom-church-suite' ); ?>">
+						<?php foreach ( $menu as $title => $slugs ) : ?>
+							<?php if ( ! $slugs ) { continue; } ?>
+							<div class="kca__group">
+								<?php if ( '' !== $title ) : ?><p class="kca__gtitle"><?php echo esc_html( $title ); ?></p><?php endif; ?>
+								<?php foreach ( $slugs as $slug ) : ?>
+									<a href="<?php echo esc_url( self::url( $slug ) ); ?>"<?php echo $slug === $view ? ' aria-current="page"' : ''; ?>><span class="kca__ic" aria-hidden="true"><?php echo esc_html( $views[ $slug ][1] ); ?></span><?php echo esc_html( $views[ $slug ][0] ); ?><?php if ( ! empty( $counts[ $slug ] ) ) : ?><em><?php echo (int) $counts[ $slug ]; ?></em><?php endif; ?></a>
+								<?php endforeach; ?>
+							</div>
+						<?php endforeach; ?>
+						<div class="kca__group kca__group--end">
+							<a href="<?php echo esc_url( home_url( '/' ) ); ?>" target="_blank" rel="noopener"><span class="kca__ic" aria-hidden="true">↗</span><?php esc_html_e( 'View your website', 'kingdom-church-suite' ); ?></a>
+							<a href="<?php echo esc_url( wp_logout_url( home_url( '/' ) ) ); ?>"><span class="kca__ic" aria-hidden="true">⎋</span><?php esc_html_e( 'Log out', 'kingdom-church-suite' ); ?></a>
+						</div>
+					</nav>
+				</details>
+				<script>(function(m){if(m&&window.matchMedia&&matchMedia('(min-width: 960px)').matches){m.setAttribute('open','');}})(document.querySelector('[data-kca-menu]'));</script>
 			</aside>
 			<main class="kca__main">
 				<header class="kca__head">
-					<h2><?php echo esc_html( $views[ $view ][0] ); ?></h2>
-					<span class="kcs-muted"><?php echo esc_html( wp_get_current_user()->display_name ); ?> · <?php echo esc_html( date_i18n( get_option( 'date_format' ) ) ); ?></span>
+					<?php if ( 'overview' === $view ) : ?>
+						<h2><?php /* translators: %s: first name */ echo esc_html( sprintf( __( 'Welcome, %s', 'kingdom-church-suite' ), wp_get_current_user()->first_name ? wp_get_current_user()->first_name : wp_get_current_user()->display_name ) ); ?></h2>
+						<p class="kcs-muted"><?php echo esc_html( date_i18n( 'l, ' . get_option( 'date_format' ) ) ); ?></p>
+					<?php else : ?>
+						<h2><?php echo esc_html( $views[ $view ][0] ); ?></h2>
+						<?php if ( self::describe( $view ) ) : ?><p class="kcs-muted"><?php echo esc_html( self::describe( $view ) ); ?></p><?php endif; ?>
+					<?php endif; ?>
 				</header>
 				<?php if ( $flash ) : ?><div class="kcs-alert kcs-alert--<?php echo esc_attr( $flash[1] ); ?>" role="status"><?php echo esc_html( $flash[0] ); ?></div><?php endif; ?>
 				<?php
@@ -694,8 +773,12 @@ class KCS_Church_Admin {
 	 */
 	private static function badges() {
 		global $wpdb;
+		static $cache = null;
+		if ( null !== $cache ) {
+			return $cache;
+		}
 		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
-		return array(
+		return $cache = array(
 			'prayers'     => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'prayer_requests' ) . " WHERE status = 'new'" ),
 			'visits'      => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'visits' ) . " WHERE status = 'new'" ),
 			'payments'    => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'payments' ) . " WHERE status = 'review' AND gateway <> 'bank_transfer'" ),
@@ -725,14 +808,58 @@ class KCS_Church_Admin {
 		foreach ( $by_plan as $r ) {
 			$max = max( $max, (int) $r->c );
 		}
-		$waiting = KCS_Transfers::count_waiting();
 		?>
-		<?php if ( $waiting ) : ?>
-			<div class="kcs-alert kcs-alert--info"><a href="<?php echo esc_url( self::url( 'transfers' ) ); ?>"><?php /* translators: %d: number of transfers */ echo esc_html( sprintf( _n( '%d bank transfer is waiting for you to confirm.', '%d bank transfers are waiting for you to confirm.', $waiting, 'kingdom-church-suite' ), $waiting ) ); ?> <?php esc_html_e( 'Review now →', 'kingdom-church-suite' ); ?></a></div>
+		<?php
+		$counts = self::badges();
+		$attn   = array_filter(
+			array(
+				'transfers'   => array( $counts['transfers'], _n( '%d bank transfer to confirm', '%d bank transfers to confirm', $counts['transfers'], 'kingdom-church-suite' ) ),
+				'payments'    => array( $counts['payments'], _n( '%d payment to review', '%d payments to review', $counts['payments'], 'kingdom-church-suite' ) ),
+				'prayers'     => array( $counts['prayers'], _n( '%d new prayer request', '%d new prayer requests', $counts['prayers'], 'kingdom-church-suite' ) ),
+				'visits'      => array( $counts['visits'], _n( '%d first-time visitor to welcome', '%d first-time visitors to welcome', $counts['visits'], 'kingdom-church-suite' ) ),
+				'testimonies' => array( $counts['testimonies'], _n( '%d testimony to approve', '%d testimonies to approve', $counts['testimonies'], 'kingdom-church-suite' ) ),
+				'partners'    => array( $counts['partners'], _n( '%d partner is behind on payments', '%d partners are behind on payments', $counts['partners'], 'kingdom-church-suite' ) ),
+			),
+			function ( $a ) { return $a[0] > 0; }
+		);
+		$steps = current_user_can( 'manage_options' ) ? self::setup_steps() : array();
+		$done  = count( array_filter( wp_list_pluck( $steps, 'done' ) ) );
+		?>
+		<section class="kca-card kca-attn">
+			<h3><?php esc_html_e( 'Needs your attention', 'kingdom-church-suite' ); ?></h3>
+			<?php if ( $attn ) : ?>
+				<ul class="kca-todo">
+					<?php foreach ( $attn as $slug => $a ) : ?>
+						<li><a href="<?php echo esc_url( self::url( $slug, 'partners' === $slug ? array( 'status' => 'overdue' ) : array() ) ); ?>"><b><?php echo (int) $a[0]; ?></b><span><?php echo esc_html( sprintf( $a[1], $a[0] ) ); ?></span><i aria-hidden="true">→</i></a></li>
+					<?php endforeach; ?>
+				</ul>
+			<?php else : ?>
+				<p class="kca-clear"><span aria-hidden="true">✓</span> <?php esc_html_e( 'All caught up — nothing is waiting for you.', 'kingdom-church-suite' ); ?></p>
+			<?php endif; ?>
+		</section>
+		<?php if ( $steps && $done < count( $steps ) ) : ?>
+			<section class="kca-card kca-setup">
+				<div class="kca-setup__head">
+					<h3><?php esc_html_e( 'Get your website ready', 'kingdom-church-suite' ); ?></h3>
+					<span class="kcs-muted"><?php /* translators: 1: done, 2: total */ echo esc_html( sprintf( __( '%1$d of %2$d done', 'kingdom-church-suite' ), $done, count( $steps ) ) ); ?></span>
+				</div>
+				<div class="kca-progress" role="progressbar" aria-valuemin="0" aria-valuemax="<?php echo (int) count( $steps ); ?>" aria-valuenow="<?php echo (int) $done; ?>"><i style="--w:<?php echo esc_attr( round( $done / count( $steps ) * 100 ) ); ?>%"></i></div>
+				<ol class="kca-steps">
+					<?php foreach ( $steps as $st ) : ?>
+						<li class="<?php echo $st['done'] ? 'is-done' : ''; ?>"><a href="<?php echo esc_url( $st['url'] ); ?>"><span class="kca-steps__tick" aria-hidden="true"><?php echo $st['done'] ? '✓' : ''; ?></span><span><strong><?php echo esc_html( $st['title'] ); ?></strong><small><?php echo esc_html( $st['why'] ); ?></small></span><?php if ( ! $st['done'] ) : ?><i aria-hidden="true">→</i><?php endif; ?></a></li>
+					<?php endforeach; ?>
+				</ol>
+			</section>
 		<?php endif; ?>
+		<div class="kca-quick">
+			<a class="kcs-btn" href="<?php echo esc_url( self::url( 'notify' ) ); ?>">✉ <?php esc_html_e( 'Message partners', 'kingdom-church-suite' ); ?></a>
+			<a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( self::url( 'content' ) ); ?>">▧ <?php esc_html_e( 'Change pictures & text', 'kingdom-church-suite' ); ?></a>
+			<a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( home_url( '/' ) ); ?>" target="_blank" rel="noopener">↗ <?php esc_html_e( 'View your website', 'kingdom-church-suite' ); ?></a>
+		</div>
+		<h3 class="kca-sub"><?php esc_html_e( 'At a glance', 'kingdom-church-suite' ); ?></h3>
 		<div class="kca-kpis">
 			<a class="kca-kpi" href="<?php echo esc_url( self::url( 'partners', array( 'status' => 'active' ) ) ); ?>"><span><?php esc_html_e( 'Active partners', 'kingdom-church-suite' ); ?></span><strong><?php echo (int) $stats['partners_by_status']['active']; ?></strong><small><?php echo (int) $stats['partners_total']; ?> <?php esc_html_e( 'total', 'kingdom-church-suite' ); ?></small></a>
-			<a class="kca-kpi kca-kpi--warn" href="<?php echo esc_url( self::url( 'partners', array( 'status' => 'overdue' ) ) ); ?>"><span><?php esc_html_e( 'Overdue (locked)', 'kingdom-church-suite' ); ?></span><strong><?php echo (int) $stats['partners_by_status']['overdue']; ?></strong><small><?php echo (int) $stats['partners_by_status']['pending']; ?> <?php esc_html_e( 'awaiting first payment', 'kingdom-church-suite' ); ?></small></a>
+			<a class="kca-kpi kca-kpi--warn" href="<?php echo esc_url( self::url( 'partners', array( 'status' => 'overdue' ) ) ); ?>"><span><?php esc_html_e( 'Behind on payments', 'kingdom-church-suite' ); ?></span><strong><?php echo (int) $stats['partners_by_status']['overdue']; ?></strong><small><?php echo (int) $stats['partners_by_status']['pending']; ?> <?php esc_html_e( 'awaiting first payment', 'kingdom-church-suite' ); ?></small></a>
 			<a class="kca-kpi" href="<?php echo esc_url( self::url( 'payments', array( 'status' => 'completed' ) ) ); ?>"><span><?php esc_html_e( 'Received this month', 'kingdom-church-suite' ); ?></span><strong><?php echo esc_html( $sum( $stats['revenue_this_month'] ) ); ?></strong><small><?php echo esc_html( $sum( $stats['revenue_all_time'] ) ); ?> <?php esc_html_e( 'all time', 'kingdom-church-suite' ); ?></small></a>
 			<a class="kca-kpi" href="<?php echo esc_url( self::url( 'prayers' ) ); ?>"><span><?php esc_html_e( 'New prayer requests', 'kingdom-church-suite' ); ?></span><strong><?php echo (int) $stats['new_prayers']; ?></strong><small><?php esc_html_e( 'waiting for the prayer team', 'kingdom-church-suite' ); ?></small></a>
 		</div>
@@ -754,10 +881,59 @@ class KCS_Church_Admin {
 					<?php endforeach; ?>
 					<?php if ( ! $by_plan ) : ?><p class="kcs-muted"><?php esc_html_e( 'No active partners yet.', 'kingdom-church-suite' ); ?></p><?php endif; ?>
 				</div>
-				<p><a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( self::url( 'notify' ) ); ?>"><?php esc_html_e( 'Send a notification', 'kingdom-church-suite' ); ?></a></p>
 			</section>
 		</div>
 		<?php
+	}
+
+	/**
+	 * First things a new church should do, each linking to the exact place.
+	 *
+	 * @return array[] title, why, url, done.
+	 */
+	private static function setup_steps() {
+		$schedule = (string) kcs_get_option( 'service_schedule' );
+		$default  = "Sunday|08:00|First Service\nSunday|10:30|Second Service\nWednesday|18:00|Midweek Bible Study\nFriday|21:00|Prayer Night";
+		$wa       = KCS_WhatsApp_Chat::get();
+		$steps    = array(
+			array(
+				'title' => __( 'Add your church logo', 'kingdom-church-suite' ),
+				'why'   => __( 'It shows at the top of every page and in your church app.', 'kingdom-church-suite' ),
+				'url'   => self::url( 'content' ) . '#group-pictures',
+				'done'  => (bool) get_theme_mod( 'custom_logo' ),
+			),
+			array(
+				'title' => __( 'Set your service times', 'kingdom-church-suite' ),
+				'why'   => __( 'Visitors see when to come, and the countdown to your next service.', 'kingdom-church-suite' ),
+				'url'   => self::url( 'settings', array( 'tab' => 'general' ) ) . '#service-times',
+				'done'  => '' !== trim( $schedule ) && str_replace( "\r", '', trim( $schedule ) ) !== $default,
+			),
+			array(
+				'title' => __( 'Add your address and phone number', 'kingdom-church-suite' ),
+				'why'   => __( 'So people can find you, and Google can show your church on the map.', 'kingdom-church-suite' ),
+				'url'   => self::url( 'settings', array( 'tab' => 'general' ) ),
+				'done'  => '' !== trim( (string) kcs_get_option( 'church_address' ) ) && '' !== trim( (string) kcs_get_option( 'church_phone' ) ),
+			),
+			array(
+				'title' => __( 'Turn on online giving', 'kingdom-church-suite' ),
+				'why'   => __( 'Receive tithes, offerings and partnership by card or bank transfer.', 'kingdom-church-suite' ),
+				'url'   => self::url( 'settings', array( 'tab' => 'payments' ) ),
+				'done'  => (bool) KCS_Payments::enabled_gateways(),
+			),
+			array(
+				'title' => __( 'Connect your YouTube channel', 'kingdom-church-suite' ),
+				'why'   => __( 'Your website shows the service live, by itself, whenever you stream.', 'kingdom-church-suite' ),
+				'url'   => self::url( 'website' ) . '#group-media',
+				'done'  => '' !== trim( (string) get_theme_mod( 'kingdom_ytlive_channel', '' ) ) || '' !== trim( (string) kcs_get_option( 'yt_channel_id' ) ),
+			),
+			array(
+				'title' => __( 'Add a WhatsApp number', 'kingdom-church-suite' ),
+				'why'   => __( 'Visitors can chat with your church team in one tap.', 'kingdom-church-suite' ),
+				'url'   => self::url( 'pastors' ),
+				'done'  => ! empty( $wa['contacts'] ),
+			),
+		);
+		return (array) apply_filters( 'kcs_church_admin_setup_steps', $steps );
 	}
 
 	/**
@@ -1374,7 +1550,7 @@ class KCS_Church_Admin {
 					continue;
 				}
 				?>
-				<section class="kca-card kcs-form">
+				<section class="kca-card kcs-form" id="group-<?php echo esc_attr( $group ); ?>">
 					<h3><?php echo esc_html( $title ); ?></h3>
 					<?php if ( 'banner' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'Paste a YouTube, Vimeo or MP4 link to play it, muted and looping, behind the homepage banner. Leave it empty to use the banner image.', 'kingdom-church-suite' ); ?></p>
@@ -1453,7 +1629,7 @@ class KCS_Church_Admin {
 		$opts = get_option( 'kcs_settings', array() );
 		$intro = array(
 			'general'    => __( 'Church details, service times, pages and partnership options.', 'kingdom-church-suite' ),
-			'payments'   => __( 'Turn on the payment methods you use and paste their keys. Every payment is checked with the provider before it counts as paid. Bank transfer accounts are managed under Bank transfers.', 'kingdom-church-suite' ),
+			'payments'   => __( 'Turn on the payment methods you use and paste their keys. Every payment is checked with the provider before it counts as paid. Bank transfer account numbers are added under Confirm bank transfers.', 'kingdom-church-suite' ),
 			'email'      => __( 'Who emails come from, who is notified, and reminders.', 'kingdom-church-suite' ),
 			'templates'  => __( 'The emails givers and partners receive. Words in {braces} are filled in automatically.', 'kingdom-church-suite' ),
 			'livestream' => __( 'Your YouTube channel and live stream options.', 'kingdom-church-suite' ),

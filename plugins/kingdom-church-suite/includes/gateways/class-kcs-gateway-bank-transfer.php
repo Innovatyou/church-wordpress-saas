@@ -43,7 +43,7 @@ class KCS_Gateway_Bank_Transfer extends KCS_Gateway {
 				'desc'  => did_action( 'init' ) && function_exists( 'kcs_page_url' ) ? sprintf(
 					/* translators: %s: link to Church Admin */
 					__( 'Add your account details in %s. Givers see them after choosing bank transfer.', 'kingdom-church-suite' ),
-					'<a href="' . esc_url( add_query_arg( 'view', 'transfers', kcs_page_url( 'church_admin' ) ) ) . '">' . esc_html__( 'Church Admin → Bank transfers', 'kingdom-church-suite' ) . '</a>'
+					'<a href="' . esc_url( add_query_arg( 'view', 'transfers', kcs_page_url( 'church_admin' ) ) ) . '">' . esc_html__( 'Church Admin → Confirm bank transfers', 'kingdom-church-suite' ) . '</a>'
 				) : '',
 			),
 			'for_partnership' => array( 'label' => __( 'Allow for partnership', 'kingdom-church-suite' ), 'type' => 'checkbox', 'default' => '1' ),

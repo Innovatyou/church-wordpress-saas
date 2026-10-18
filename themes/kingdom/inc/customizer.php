@@ -155,7 +155,7 @@ function kingdom_customize_register( $wp ) {
 	$add( 'kingdom_hero', 'kingdom_hero_height', __( 'Banner height', 'kingdom' ), 'select', 'full', array( 'full' => __( 'Full screen', 'kingdom' ), 'tall' => __( 'Tall (80%)', 'kingdom' ), 'medium' => __( 'Medium (60%)', 'kingdom' ), 'video' => __( 'Fit the video (16:9)', 'kingdom' ) ) );
 
 	// Show / hide sections.
-	$wp->get_section( 'kingdom_sections' )->description = __( 'Untick a section to remove it from every page of the website. Church staff can also change these in Church Admin → Website.', 'kingdom' );
+	$wp->get_section( 'kingdom_sections' )->description = __( 'Untick a section to remove it from every page of the website. Church staff can also change these in Church Admin → Design & live stream.', 'kingdom' );
 	foreach ( kingdom_available_sections() as $slug => $label ) {
 		$add( 'kingdom_sections', 'kingdom_show_' . $slug, $label, 'checkbox', true );
 	}

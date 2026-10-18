@@ -56,9 +56,9 @@ There are also dedicated templates for single and archive views of sermons (vide
 **Sections** (`template-parts/sections/`) can be reordered on a plain front page via *Customize → Homepage Sections*:
 `hero` (6 variants), `service-times`, `welcome`, `live`, `countdown`, `sermons`, `events`, `ministries`, `stats`, `partnership`, `give`, `leadership`, `testimonies`, `verse`, `prayer`, `blog`, `newsletter`, `visit`, `contact`, `cta`.
 
-**Branding & colours**: 9 ready-made palettes (Royal Purple, Ocean Blue, Emerald Grace, Crimson Fire, Sunrise, Midnight, Rose of Sharon, River Jordan, Heritage Gold) or **custom brand colours** (pick any main, highlight and dark colour — also in *Church Admin → Website → Church colours*, no code). The optional visitor colour picker offers the palettes plus **Custom**, a free colour picker for main and highlight colours (text on buttons switches between white and dark automatically so it stays readable); light logo for dark mode and transparent headers; tagline, motto and button style (pill, rounded, square). Set these in *Customize → Church Branding & Colour Palettes*.
+**Branding & colours**: 9 ready-made palettes (Royal Purple, Ocean Blue, Emerald Grace, Crimson Fire, Sunrise, Midnight, Rose of Sharon, River Jordan, Heritage Gold) or **custom brand colours** (pick any main, highlight and dark colour — also in *Church Admin → Design & live stream → Church colours*, no code). The optional visitor colour picker offers the palettes plus **Custom**, a free colour picker for main and highlight colours (text on buttons switches between white and dark automatically so it stays readable); light logo for dark mode and transparent headers; tagline, motto and button style (pill, rounded, square). Set these in *Customize → Church Branding & Colour Palettes*.
 
-**Church fonts**: 38 Google fonts (classic serif, modern sans and bold display) with 13 ready-made pairings — Classic, Traditional, Heritage, Elegant, Warm, Editorial, Modern, Friendly, Fresh, Youth, Bold, Grace and Simple — or any heading and body font you like. Change them in *Church Admin → Website → Church fonts* (with a live preview) or the Customizer. Choose "Device fonts only" to load nothing from Google.
+**Church fonts**: 38 Google fonts (classic serif, modern sans and bold display) with 13 ready-made pairings — Classic, Traditional, Heritage, Elegant, Warm, Editorial, Modern, Friendly, Fresh, Youth, Bold, Grace and Simple — or any heading and body font you like. Change them in *Church Admin → Design & live stream → Church fonts* (with a live preview) or the Customizer. Choose "Device fonts only" to load nothing from Google.
 
 **Mobile menu**: a full-screen menu in the church colours with the church logo, large menu items with boxed arrows that slide open sub-menus (with Back), quick actions (Watch live, Partner login, Church admin for staff, Install app, Notifications) ending in a bold Give button, then Contact us (service times, phone, address with map link, email) and Follow us. It works with the keyboard and screen readers, and switches to a dark background in dark mode.
 
@@ -68,7 +68,7 @@ There are also dedicated templates for single and archive views of sermons (vide
 
 **Social connect**: branded cards for Facebook, Instagram, YouTube, X, TikTok, WhatsApp and Telegram, with a church hashtag, plus share buttons on every sermon, event and post.
 
-**Show / hide sections**: every homepage section (announcement strip, welcome, stats, gallery, sermons, events, partnership, testimonies, visit us, social, newsletter, and so on), plus the top bar, footer newsletter and mobile tab bar, can be switched off under *Appearance → Customize → Show / Hide Sections* or in *Church Admin → Website*. No code needed.
+**Show / hide sections**: every homepage section (announcement strip, welcome, stats, gallery, sermons, events, partnership, testimonies, visit us, social, newsletter, and so on), plus the top bar, footer newsletter and mobile tab bar, can be switched off under *Appearance → Customize → Show / Hide Sections* or in *Church Admin → Design & live stream*. No code needed.
 
 **YouTube live stream section (always live)**: paste your YouTube **channel link or @handle** once (for example `https://www.youtube.com/@yourchurch`). The website then:
 - finds your channel ID by itself (no need to look up `UC…`);
@@ -79,7 +79,7 @@ There are also dedicated templates for single and archive views of sermons (vide
 - **switches open pages automatically** when the stream starts or ends, with no refresh needed (`GET /wp-json/kingdom/v1/live`).
 - **shows how many people are watching** ("Live now · 1,234 watching"), the same number YouTube shows, refreshed every minute. It can be switched off. People watching on your website use YouTube's own player, so they **count in your YouTube live viewer numbers and views** like viewers on YouTube itself. (Muted autoplay views may not count until the viewer taps play, so autoplay is off by default.)
 
-No API key is needed: the theme reads your channel's public live page. For the most reliable detection, add a free YouTube Data API key (or reuse the one in Church Suite settings). Church Admin → Website shows whether the channel is connected and its current status, with a "Check now" link. Without a channel, the section simply shows the one video you enter.
+No API key is needed: the theme reads your channel's public live page. For the most reliable detection, add a free YouTube Data API key (or reuse the one in Church Suite settings). Church Admin → Design & live stream shows whether the channel is connected and its current status, with a "Check now" link. Without a channel, the section simply shows the one video you enter.
 
 **Videos section**: a large player with a side list. Add up to 4 YouTube or Vimeo links with titles, or leave them empty to show your latest sermon videos. Videos open in a pop-up player.
 
@@ -87,7 +87,7 @@ No API key is needed: the theme reads your channel's public live page. For the m
 
 **Every section has an on/off switch**: all homepage sections, plus site elements (top bar, header Give button, search, dark-mode button, live badge, colour picker, footer newsletter, back-to-top button, phone tab bar).
 
-**Video homepage banner**: under *Customize → Homepage Banner (image or video)* or *Church Admin → Website*, paste a YouTube, Vimeo or MP4/WebM link to use a video as the banner background. It plays muted and on a loop, and the banner image shows while it loads. Options:
+**Video homepage banner**: under *Customize → Homepage Banner (image or video)* or *Church Admin → Design & live stream*, paste a YouTube, Vimeo or MP4/WebM link to use a video as the banner background. It plays muted and on a loop, and the banner image shows while it loads. Options:
 - **Hide all banner text**: show the video on its own. A hidden heading is kept for screen readers and SEO.
 - **"Watch with sound" button**: opens the YouTube video with sound in a pop-up.
 - **Banner height**: full screen, tall, medium, or the video's own 16:9 shape.
@@ -109,7 +109,7 @@ Other theme features: three header styles (classic, centered, transparent over h
 - Daily cron emails reminders N days before the due date and flags partners **overdue** after 7 days' grace
 
 ### Local and international partners (USD by default)
-- Every plan has an **international price** (USD by default) and a **local price** (e.g. NGN), set under *Church Admin → Plans & currency* or *Church Suite → Plans*
+- Every plan has an **international price** (USD by default) and a **local price** (e.g. NGN), set under *Church Admin → Partnership plans* or *Church Suite → Plans*
 - The partnership page, registration form, partner dashboard, Give page and Tithe & Offering page show an **International / Local** switch. International (USD) is selected by default and visitors can tap Local
 - A partner's choice decides the currency of their commitment, renewals and receipts. Partners can switch later from **Upgrade plan → Pay in …**, and church admins can change it on the partner's record ("Partner type")
 - Payment methods follow the currency automatically: for example PayPal and Stripe for USD; Paystack, Flutterwave and bank transfer for NGN
@@ -120,17 +120,19 @@ Other theme features: three header styles (classic, centered, transparent over h
 - `[kcs_tithe]` (page created automatically; the theme's **Tithe & Offering** page template adds the scripture, giving explanations and an FAQ around it)
 - Giving types as cards: Tithe, Offering, Thanksgiving, First Fruit and Seed (editable under *Settings → Giving & partnership → Tithe & Offering page options*). Link to a type with `?type=offering` or `[kcs_tithe type="offering"]`
 - International (USD) / Local switch with quick amounts for each currency, a 10% **tithe calculator**, an optional prayer note, and an emailed receipt
-- **Paystack is the featured payment method**: shown first, marked "Recommended" and preselected for both USD and local givers (card, bank transfer, USSD, QR or mobile money). Change or turn off the featured method under *Church Admin → Plans & currency* or *Settings → Giving & partnership*. Add your Paystack keys under *Church Suite → Settings → Payments*; to take USD through Paystack, USD must also be enabled on your Paystack account
-- *Church Admin → Payments* shows this month's totals per purpose (tithe, offering, partnership…) and filters payments by purpose
+- **Paystack is the featured payment method**: shown first, marked "Recommended" and preselected for both USD and local givers (card, bank transfer, USSD, QR or mobile money). Change or turn off the featured method under *Church Admin → Partnership plans* or *Settings → Giving & partnership*. Add your Paystack keys under *Church Suite → Settings → Payments*; to take USD through Paystack, USD must also be enabled on your Paystack account
+- *Church Admin → Giving received* shows this month's totals per purpose (tithe, offering, partnership…) and filters payments by purpose
 
 ### Church Admin dashboard (front end, no wp-admin)
+- **Simple layout**: a grouped menu (People · Giving · Messages · Website & app · Account) with plain names; on phones it is one *Menu* button that opens the full list. Every page starts with one sentence saying what it is for.
+- **Home**: *Needs your attention* (bank transfers to confirm, new prayer requests, first-time visitors, testimonies to approve, partners behind on payments — or "All caught up"), a *Get your website ready* checklist with progress (logo, service times, address and phone, online giving, YouTube, WhatsApp — each links to the exact place), quick actions and the month at a glance.
 A full church-management dashboard on the **Church Admin** page (`[kcs_church_admin]`), built for church staff with the **Church Admin** role. That role never sees WordPress: logging in goes straight to the dashboard, and wp-admin redirects back to it.
 - **Overview**: active vs overdue (locked) partners, money received, payments due this week, partners by plan
 - **Partners**: search, filter, edit details, plan, amount, status and due date; WhatsApp a partner
 - **Payments**: mark payments received (unlocks the partner and sends the receipt), re-check gateway payments
 - **Bank transfers**: turn on offline giving by adding up to 3 bank accounts (bank, account name, number, currency, optional sort code/IBAN/SWIFT), choose whether it is offered for partnership and/or tithes, offerings and other giving, and choose who can confirm (church administrators only by default, or all staff). Givers see the account for their currency and the reference to use (with copy buttons), then press **I have made this transfer** and can attach a receipt (JPG, PNG or PDF, kept private). The church is emailed, the transfer waits under *Bank transfers* until someone allowed confirms it (receipt sent, partner renewed) or rejects it with a reason (the giver is emailed)
 - **Prayer requests**, **Visits** ("Plan your visit" bookings with WhatsApp follow-up) and **Testimonies** (publish or remove)
-- **Notify partners**: by plan and status, by email and/or as an update on their dashboard (announcement, event or resource with a link)
+- **Message partners**: by plan and status, by email and/or as an update on their dashboard (announcement, event or resource with a link)
 - **Website WhatsApp chat**: turn the floating "Chat with us" button on or off, and set the greeting, office hours and contacts (e.g. General enquiries, Prayer line, First-time visitors), each with its own number and pre-filled message (`{church}` and `{page}` are filled in automatically)
 - **Pictures & text**: upload the logo, white logo, homepage banner, pastor, building, stats and gallery photos (with captions) straight from a phone, edit the homepage banner and welcome texts, and the address, phone, email, map and social links
 - **Newsletter**: write to subscribers, partners or everyone (with a test email first), see recent emails, search, unsubscribe or delete subscribers and download them as CSV
@@ -200,7 +202,7 @@ Every church site is also an installable app, with **its own name, logo and chur
 - **Feels native**: full-screen with no browser bars, safe-area padding for notched phones, a back button in the header, pull to refresh, a page-loading bar, external links open outside the app, and shortcuts (long-press the icon) to Give, Watch live, Prayer and the partner dashboard.
 - **Works offline**: public pages people visit are saved; with no connection they open instantly, and anything else shows a branded offline page with service times. Admin, dashboards, checkout and logged-in pages are never saved.
 - **Push notifications** (Android and iPhone iOS 16.4+ from the Home Screen app): a *Turn on notifications* button in the menu, and a one-time offer inside the app. **Automatic "We're live" notification** when the YouTube stream starts (checked every 5 minutes in the background). Self-hosted Web Push (VAPID + RFC 8291 encryption), no Firebase account or fees; sent in parallel in the background; removed devices are cleaned up automatically.
-- **Church Admin → Church app**: turn the app on/off, app name and short name, optional icon, install invitation and live-notification switches, the number of phones with notifications, **send a notification to every phone**, and delivery history. *Notify partners* can also send to partners' phones.
+- **Church Admin → Church app**: turn the app on/off, app name and short name, optional icon, install invitation and live-notification switches, the number of phones with notifications, **send a notification to every phone**, and delivery history. *Message partners* can also send to partners' phones.
 
 ### Other digital features
 Sermons (series, speakers, topics, video, audio, notes), **podcast RSS feed** for Apple Podcasts and Spotify (`/feed/sermon-podcast/`), events with `.ics` and Google Calendar links, ministries, leadership, testimonies, prayer requests and an "I prayed" prayer wall, a public testimony submission form (`[kcs_testimony_form]`, moderated), social connect buttons (`[kcs_social]`) and verse of the day, and a signed outgoing webhook to CRMs or Zapier.

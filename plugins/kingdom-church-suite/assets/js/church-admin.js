@@ -63,3 +63,13 @@
 		input.insertAdjacentElement('afterend', b);
 	});
 })();
+
+// Menu: always open as a sidebar on wide screens; a tap-to-open panel on phones.
+(function () {
+	var menu = document.querySelector('[data-kca-menu]');
+	if (!menu || !window.matchMedia) { return; }
+	var wide = window.matchMedia('(min-width: 960px)');
+	function sync() { if (wide.matches) { menu.setAttribute('open', ''); } else { menu.removeAttribute('open'); } }
+	sync();
+	if (wide.addEventListener) { wide.addEventListener('change', sync); }
+})();
