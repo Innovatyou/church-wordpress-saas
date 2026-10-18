@@ -200,6 +200,15 @@ class KS_Platform {
 					self::back( __( 'This payment was already handled.', 'kingdom-saas' ), 'error', $to );
 				}
 				break;
+			case 'save_domain_settings':
+				$ip = trim( sanitize_text_field( (string) ( $d['server_ip'] ?? '' ) ) );
+				if ( '' !== $ip && ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+					self::back( __( 'That server IP does not look right. Use the numbers only, for example 203.0.113.10.', 'kingdom-saas' ), 'error', $to );
+				}
+				$cname = strtolower( trim( preg_replace( '#^https?://#', '', sanitize_text_field( (string) ( $d['cname_target'] ?? '' ) ) ), '/ ' ) );
+				ks_set( array( 'server_ip' => $ip, 'cname_target' => $cname ) );
+				$msg = __( 'Domain settings saved.', 'kingdom-saas' );
+				break;
 			case 'domain_verify':
 				$r   = KS_Domains::verify( absint( $d['id'] ?? 0 ) );
 				$msg = is_wp_error( $r ) ? $r->get_error_message() : __( 'Domain connected.', 'kingdom-saas' );

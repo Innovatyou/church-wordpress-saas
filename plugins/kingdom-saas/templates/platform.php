@@ -201,9 +201,24 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 		</div>
 
 <?php elseif ( 'domains' === $tab ) : ?>
+		<form method="post" class="ks-card ks-form">
+			<?php echo $f( 'save_domain_settings' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<h2><?php esc_html_e( 'Domain settings', 'kingdom-saas' ); ?></h2>
+			<p class="ks-muted"><?php esc_html_e( 'Churches on plans with custom domains connect theirs in Church Admin → Custom domain. These values decide the DNS records they are told to add.', 'kingdom-saas' ); ?></p>
+			<div class="ks-grid ks-grid--2">
+				<label><?php esc_html_e( 'Server IP (for A records)', 'kingdom-saas' ); ?><input name="server_ip" value="<?php echo esc_attr( ks_get( 'server_ip' ) ); ?>" placeholder="203.0.113.10" inputmode="decimal"><small class="ks-small"><?php esc_html_e( 'Your hosting IP address. On Hostinger: hPanel → Websites → your site → Dashboard (Plan details).', 'kingdom-saas' ); ?></small></label>
+				<label><?php esc_html_e( 'CNAME target (optional)', 'kingdom-saas' ); ?><input name="cname_target" value="<?php echo esc_attr( ks_get( 'cname_target' ) ); ?>" placeholder="<?php echo esc_attr( ks_get( 'base_domain' ) ); ?>"><small class="ks-small"><?php esc_html_e( 'Leave empty to use your platform domain.', 'kingdom-saas' ); ?></small></label>
+			</div>
+			<button class="ks-btn"><?php esc_html_e( 'Save domain settings', 'kingdom-saas' ); ?></button>
+		</form>
 		<div class="ks-card">
-			<p class="ks-muted"><?php /* translators: %s: endpoint */ printf( esc_html__( 'Point churches’ domains at this server. For automatic https on custom domains, use Caddy with on-demand TLS and set its "ask" URL to %s (see deploy/Caddyfile).', 'kingdom-saas' ), '<code>' . esc_html( get_rest_url( get_main_site_id(), 'ks/v1/tls' ) ) . '</code>' ); ?></p>
+			<h2><?php esc_html_e( 'After a church adds a domain', 'kingdom-saas' ); ?></h2>
+			<p><strong><?php esc_html_e( 'Shared hosting (Hostinger, cPanel, Plesk):', 'kingdom-saas' ); ?></strong> <?php esc_html_e( 'add the church’s domain to your hosting as a parked (alias) domain of your platform, pointing to the same folder, then install the free SSL certificate for it and its www. Hostinger: hPanel → Websites → your site → Domains → Parked domains, then Security → SSL.', 'kingdom-saas' ); ?></p>
+			<p class="ks-small"><?php /* translators: %s: endpoint */ printf( esc_html__( 'Your own server (VPS): use Caddy with on-demand TLS and set its "ask" URL to %s (see deploy/Caddyfile) — new domains then get https automatically.', 'kingdom-saas' ), '<code>' . esc_html( get_rest_url( get_main_site_id(), 'ks/v1/tls' ) ) . '</code>' ); ?></p>
 		</div>
+		<?php if ( ! KS_Domains::all() ) : ?>
+		<p class="ks-muted"><?php esc_html_e( 'No church has added a custom domain yet.', 'kingdom-saas' ); ?></p>
+		<?php else : ?>
 		<div class="ks-table">
 			<table>
 				<thead><tr><th><?php esc_html_e( 'Domain', 'kingdom-saas' ); ?></th><th><?php esc_html_e( 'Church', 'kingdom-saas' ); ?></th><th><?php esc_html_e( 'Status', 'kingdom-saas' ); ?></th><th></th></tr></thead>
@@ -223,6 +238,7 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 				</tbody>
 			</table>
 		</div>
+		<?php endif; ?>
 
 <?php elseif ( 'plans' === $tab ) : ?>
 		<form method="post" class="ks-plan-edit">
