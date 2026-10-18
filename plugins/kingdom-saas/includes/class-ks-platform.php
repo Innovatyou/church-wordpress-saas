@@ -27,7 +27,7 @@ class KS_Platform {
 		// Our own log-in page instead of the WordPress one.
 		add_filter( 'login_url', array( __CLASS__, 'login_url' ), 20, 2 );
 		add_action( 'login_init', array( __CLASS__, 'leave_wp_login' ), 1 );
-		add_action( 'login_enqueue_scripts', array( __CLASS__, 'login_style' ), 20 );
+		add_action( 'login_head', array( __CLASS__, 'login_style' ), 20 );
 		add_filter( 'kcs_replace_wp_login', '__return_false' );
 		add_filter( 'login_headerurl', 'ks_platform_url', 20, 0 );
 		add_filter(
