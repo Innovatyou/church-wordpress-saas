@@ -10,12 +10,13 @@ defined( 'ABSPATH' ) || exit;
 $img   = content_url( 'themes/kingdom/assets/img/' );
 $local = strtoupper( (string) ks_get( 'local_currency' ) );
 $trial = (int) ks_get( 'trial_days' );
+$view  = $local ? 'local' : 'international';
 ?>
 <section class="ks-hero">
 	<div class="ks-wrap ks-hero__in">
 		<div>
-			<span class="ks-eyebrow"><?php esc_html_e( 'For churches & ministries', 'kingdom-saas' ); ?></span>
-			<h1><?php esc_html_e( 'Your church online — website, partners and giving in one place', 'kingdom-saas' ); ?></h1>
+			<span class="ks-eyebrow"><?php esc_html_e( 'For churches & ministries in Nigeria and beyond', 'kingdom-saas' ); ?></span>
+			<h1><?php esc_html_e( 'Church website, online giving & church app — in one place', 'kingdom-saas' ); ?></h1>
 			<p class="ks-lead"><?php echo esc_html( ks_get( 'tagline' ) ); ?></p>
 			<div class="ks-cta">
 				<a class="ks-btn ks-btn--lg" href="<?php echo esc_url( ks_platform_url( 'signup/' ) ); ?>"><?php /* translators: %d: days */ printf( esc_html__( 'Start your %d-day free trial', 'kingdom-saas' ), (int) $trial ); ?></a>
@@ -64,13 +65,45 @@ $trial = (int) ks_get( 'trial_days' );
 	</div>
 </section>
 
+<section class="ks-band" id="nigeria">
+	<div class="ks-wrap">
+		<header class="ks-head"><span class="ks-eyebrow"><?php esc_html_e( 'Made for Nigerian churches', 'kingdom-saas' ); ?></span><h2><?php esc_html_e( 'Built for how churches in Nigeria give, gather and grow', 'kingdom-saas' ); ?></h2></header>
+		<div class="ks-grid ks-grid--3">
+			<?php
+			$ng = array(
+				array( '₦', __( 'Giving in naira', 'kingdom-saas' ), __( 'Tithes, offerings, seeds and partnership in naira with Paystack or Flutterwave — card, transfer and USSD — and in dollars for members abroad.', 'kingdom-saas' ) ),
+				array( '🏦', __( 'Bank transfers, confirmed', 'kingdom-saas' ), __( 'Show your church account numbers. Members say when they have paid and your treasurer confirms it in one tap.', 'kingdom-saas' ) ),
+				array( '✆', __( 'WhatsApp everywhere', 'kingdom-saas' ), __( 'First-timers, partners and prayer requests reach your team on WhatsApp — the way your members already talk.', 'kingdom-saas' ) ),
+				array( '📶', __( 'Light on data', 'kingdom-saas' ), __( 'Fast pages that work on any smartphone and on slow networks, with a church app that still opens when the network is poor.', 'kingdom-saas' ) ),
+				array( '⛪', __( 'Every denomination', 'kingdom-saas' ), __( 'Pentecostal, Anglican, Catholic, Baptist, Methodist and independent churches, parishes and ministries.', 'kingdom-saas' ) ),
+				array( '📍', __( 'Across Nigeria', 'kingdom-saas' ), __( 'Lagos, Abuja, Port Harcourt, Ibadan, Enugu, Benin City, Kano, Uyo, Warri — and Nigerian churches in the diaspora.', 'kingdom-saas' ) ),
+			);
+			foreach ( $ng as $f ) :
+				?>
+				<article class="ks-card ks-feature"><span class="ks-feature__ic" aria-hidden="true"><?php echo esc_html( $f[0] ); ?></span><h3><?php echo esc_html( $f[1] ); ?></h3><p><?php echo esc_html( $f[2] ); ?></p></article>
+			<?php endforeach; ?>
+		</div>
+	</div>
+</section>
+
+<section class="ks-band ks-band--alt" id="solutions">
+	<div class="ks-wrap">
+		<header class="ks-head"><span class="ks-eyebrow"><?php esc_html_e( 'Explore', 'kingdom-saas' ); ?></span><h2><?php esc_html_e( 'Everything your church needs online', 'kingdom-saas' ); ?></h2></header>
+		<div class="ks-grid ks-grid--3 ks-links">
+			<?php foreach ( KS_SEO::solutions() as $slug => $s ) : ?>
+				<a class="ks-card ks-link-card" href="<?php echo esc_url( ks_platform_url( $slug . '/' ) ); ?>"><strong><?php echo esc_html( $s['eyebrow'] ); ?></strong><span><?php echo esc_html( $s['desc'] ); ?></span><em aria-hidden="true">→</em></a>
+			<?php endforeach; ?>
+		</div>
+	</div>
+</section>
+
 <section class="ks-band" id="pricing">
-	<div class="ks-wrap ks-pricing" data-ks-prices data-r="international" data-i="month">
+	<div class="ks-wrap ks-pricing" data-ks-prices data-r="<?php echo esc_attr( $view ); ?>" data-i="month">
 		<header class="ks-head"><span class="ks-eyebrow"><?php esc_html_e( 'Pricing', 'kingdom-saas' ); ?></span><h2><?php esc_html_e( 'Simple plans that grow with your church', 'kingdom-saas' ); ?></h2><p class="ks-lead"><?php /* translators: %d: days */ printf( esc_html__( 'Every plan starts with a %d-day free trial.', 'kingdom-saas' ), (int) $trial ); ?></p></header>
 		<div class="ks-toggles">
 			<div class="ks-seg" role="radiogroup" aria-label="<?php esc_attr_e( 'Currency', 'kingdom-saas' ); ?>">
-				<label><input type="radio" name="ks_region_view" value="international" checked><span>🌍 <?php esc_html_e( 'International', 'kingdom-saas' ); ?> <b>USD</b></span></label>
-				<?php if ( $local ) : ?><label><input type="radio" name="ks_region_view" value="local"><span>📍 <?php echo esc_html( ks_get( 'local_label' ) ); ?> <b><?php echo esc_html( $local ); ?></b></span></label><?php endif; ?>
+				<label><input type="radio" name="ks_region_view" value="international" <?php checked( $view, 'international' ); ?>><span>🌍 <?php esc_html_e( 'International', 'kingdom-saas' ); ?> <b>USD</b></span></label>
+				<?php if ( $local ) : ?><label><input type="radio" name="ks_region_view" value="local" <?php checked( $view, 'local' ); ?>><span>📍 <?php echo esc_html( ks_get( 'local_label' ) ); ?> <b><?php echo esc_html( $local ); ?></b></span></label><?php endif; ?>
 			</div>
 			<div class="ks-seg" role="radiogroup" aria-label="<?php esc_attr_e( 'Billing period', 'kingdom-saas' ); ?>">
 				<label><input type="radio" name="ks_interval_view" value="month" checked><span><?php esc_html_e( 'Monthly', 'kingdom-saas' ); ?></span></label>
@@ -103,10 +136,9 @@ $trial = (int) ks_get( 'trial_days' );
 	<div class="ks-wrap ks-narrow">
 		<header class="ks-head"><span class="ks-eyebrow"><?php esc_html_e( 'Questions', 'kingdom-saas' ); ?></span><h2><?php esc_html_e( 'Frequently asked', 'kingdom-saas' ); ?></h2></header>
 		<div class="ks-faq">
-			<details><summary><?php esc_html_e( 'Do I need technical skills?', 'kingdom-saas' ); ?></summary><p><?php esc_html_e( 'No. Your site is ready with pages, colours and sample content. You change text, photos and settings from the Church Admin dashboard.', 'kingdom-saas' ); ?></p></details>
-			<details><summary><?php esc_html_e( 'Who receives the tithes and partnership payments?', 'kingdom-saas' ); ?></summary><p><?php esc_html_e( 'Your church does. You connect your own Paystack, Flutterwave, Stripe or PayPal account, so money goes straight to your church account.', 'kingdom-saas' ); ?></p></details>
-			<details><summary><?php esc_html_e( 'Can I use my own domain?', 'kingdom-saas' ); ?></summary><p><?php esc_html_e( 'Yes, on Growth and Ministry. Add your domain in Church Admin → Custom domain, follow the DNS steps, and we connect it with free https.', 'kingdom-saas' ); ?></p></details>
-			<details><summary><?php esc_html_e( 'What happens after the free trial?', 'kingdom-saas' ); ?></summary><p><?php esc_html_e( 'Choose a plan and pay by card, bank transfer or USSD. If you do not, your site stays online for a short grace period and is then paused — your content is kept safe.', 'kingdom-saas' ); ?></p></details>
+			<?php foreach ( KS_SEO::landing_faqs() as $q ) : ?>
+				<details><summary><?php echo esc_html( $q[0] ); ?></summary><p><?php echo esc_html( $q[1] ); ?></p></details>
+			<?php endforeach; ?>
 		</div>
 	</div>
 </section>

@@ -63,7 +63,7 @@ class KS_Provisioner {
 	 * @return bool
 	 */
 	private static function path_taken( $name ) {
-		$reserved = array_merge( function_exists( 'get_subdirectory_reserved_names' ) ? get_subdirectory_reserved_names() : array( 'page', 'comments', 'blog', 'files', 'feed', 'wp-admin', 'wp-content', 'wp-includes', 'wp-json', 'embed' ), array( 'signup', 'platform', 'billing', 'test-checkout', 'church-admin', 'partner-dashboard', 'partner-login', 'give', 'well-known', 'category', 'tag', 'author', 'search', 'sitemap', 'robots', 'xmlrpc' ) );
+		$reserved = array_merge( function_exists( 'get_subdirectory_reserved_names' ) ? get_subdirectory_reserved_names() : array( 'page', 'comments', 'blog', 'files', 'feed', 'wp-admin', 'wp-content', 'wp-includes', 'wp-json', 'embed' ), array( 'signup', 'platform', 'billing', 'test-checkout', 'church-admin', 'partner-dashboard', 'partner-login', 'give', 'well-known', 'category', 'tag', 'author', 'search', 'sitemap', 'robots', 'xmlrpc', 'login' ), KS_SEO::slugs() );
 		if ( in_array( $name, $reserved, true ) ) {
 			return true;
 		}

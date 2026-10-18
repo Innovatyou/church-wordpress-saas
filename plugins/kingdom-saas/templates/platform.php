@@ -327,6 +327,21 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 					<?php endfor; ?>
 					<label><?php esc_html_e( 'Extra note for churches (optional)', 'kingdom-saas' ); ?><textarea name="bank_details" rows="2" placeholder="<?php esc_attr_e( 'e.g. Transfers are confirmed within one working day.', 'kingdom-saas' ); ?>"><?php echo esc_textarea( ks_get( 'bank_details' ) ); ?></textarea></label>
 				</fieldset>
+				<fieldset class="ks-card ks-form ks-span-2">
+					<legend><?php esc_html_e( 'Search & sharing (SEO)', 'kingdom-saas' ); ?></legend>
+					<p class="ks-small"><?php esc_html_e( 'How your landing page appears on Google, WhatsApp and social media. Leave empty to use the built-in Nigeria-focused wording.', 'kingdom-saas' ); ?></p>
+					<div class="ks-grid ks-grid--2">
+						<label><?php esc_html_e( 'Home page title (about 60 characters)', 'kingdom-saas' ); ?><input name="seo_title" maxlength="90" value="<?php echo esc_attr( ks_get( 'seo_title' ) ); ?>" placeholder="<?php echo esc_attr( ks_get( 'platform_name' ) . ' — ' . __( 'Church Website, App & Online Giving for Nigerian Churches', 'kingdom-saas' ) ); ?>"></label>
+						<label><?php esc_html_e( 'Sharing image URL (1200 × 630)', 'kingdom-saas' ); ?><input type="url" name="seo_image" value="<?php echo esc_attr( ks_get( 'seo_image' ) ); ?>" placeholder="https://…/share.jpg"></label>
+						<label class="ks-span-2"><?php esc_html_e( 'Home page description (about 155 characters)', 'kingdom-saas' ); ?><textarea name="seo_description" rows="2" maxlength="300"><?php echo esc_textarea( ks_get( 'seo_description' ) ); ?></textarea></label>
+						<label><?php esc_html_e( 'Google Search Console verification code', 'kingdom-saas' ); ?><input name="seo_google" value="<?php echo esc_attr( ks_get( 'seo_google' ) ); ?>" placeholder="<?php esc_attr_e( 'Only the content="…" value', 'kingdom-saas' ); ?>" autocomplete="off"></label>
+						<label><?php esc_html_e( 'Bing Webmaster verification code', 'kingdom-saas' ); ?><input name="seo_bing" value="<?php echo esc_attr( ks_get( 'seo_bing' ) ); ?>" autocomplete="off"></label>
+						<label><?php esc_html_e( 'Google Analytics 4 measurement ID', 'kingdom-saas' ); ?><input name="seo_ga4" value="<?php echo esc_attr( ks_get( 'seo_ga4' ) ); ?>" placeholder="G-XXXXXXXXXX" autocomplete="off"></label>
+						<label><?php esc_html_e( 'Business phone (with +234)', 'kingdom-saas' ); ?><input name="seo_phone" value="<?php echo esc_attr( ks_get( 'seo_phone' ) ); ?>" placeholder="+234 800 000 0000"></label>
+						<label class="ks-span-2"><?php esc_html_e( 'Your social profiles (one link per line: Facebook, Instagram, X, LinkedIn, YouTube, Google Business Profile)', 'kingdom-saas' ); ?><textarea name="seo_profiles" rows="3"><?php echo esc_textarea( ks_get( 'seo_profiles' ) ); ?></textarea></label>
+					</div>
+					<p class="ks-small"><?php esc_html_e( 'Sitemap to submit in Search Console:', 'kingdom-saas' ); ?> <code><?php echo esc_html( home_url( '/wp-sitemap.xml' ) ); ?></code></p>
+				</fieldset>
 			</div>
 			<button class="ks-btn"><?php esc_html_e( 'Save settings', 'kingdom-saas' ); ?></button>
 		</form>

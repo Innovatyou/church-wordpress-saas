@@ -50,6 +50,14 @@ function ks_default_settings() {
 		'test_mode'       => '0',
 		'turnstile_site'  => '',
 		'turnstile_secret' => '',
+		'seo_title'       => '',
+		'seo_description' => '',
+		'seo_image'       => '',
+		'seo_google'      => '',
+		'seo_bing'        => '',
+		'seo_ga4'         => '',
+		'seo_phone'       => '',
+		'seo_profiles'    => '',
 		'reserved'        => 'www,mail,ftp,admin,administrator,api,app,platform,billing,support,help,docs,status,blog,static,assets,cdn,dev,staging,test,root,webmail,smtp,ns1,ns2',
 	);
 }

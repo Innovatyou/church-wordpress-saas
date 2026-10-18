@@ -181,8 +181,16 @@ class KS_Platform {
 			$route = 'landing';
 		}
 		// Only known pages; anything else (including "./platform" or "../x") is a normal 404.
-		if ( ! $route || ! in_array( $route, array( 'landing', 'signup', 'platform', 'test-checkout', 'login' ), true ) ) {
+		if ( ! $route || ! in_array( $route, array( 'landing', 'signup', 'platform', 'test-checkout', 'login', 'solution' ), true ) ) {
 			return;
+		}
+		$solution = '';
+		if ( 'solution' === $route ) {
+			$solution  = sanitize_key( get_query_var( 'ks_solution' ) );
+			$solutions = KS_SEO::solutions();
+			if ( ! isset( $solutions[ $solution ] ) ) {
+				return;
+			}
 		}
 		if ( 'login' === $route && is_user_logged_in() ) {
 			add_filter( 'allowed_redirect_hosts', array( 'KS_REST', 'allow_site_host' ) );
@@ -194,6 +202,10 @@ class KS_Platform {
 			exit;
 		}
 		$vars = array( 'flash' => self::flash() );
+		if ( $solution ) {
+			$vars['slug']     = $solution;
+			$vars['solution'] = $solutions[ $solution ];
+		}
 		if ( 'test-checkout' === $route ) {
 			$vars['invoice'] = KS_Billing::invoice( sanitize_text_field( wp_unslash( $_GET['reference'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			if ( ! ks_test_mode() || ! $vars['invoice'] ) {
@@ -377,7 +389,7 @@ class KS_Platform {
 					if ( in_array( $k, array( 'https', 'test_mode' ), true ) ) {
 						$vals[ $k ] = empty( $d[ $k ] ) ? '0' : '1';
 					} elseif ( isset( $d[ $k ] ) ) {
-						$vals[ $k ] = in_array( $k, array( 'bank_details', 'tagline' ), true ) ? sanitize_textarea_field( $d[ $k ] ) : sanitize_text_field( $d[ $k ] );
+						$vals[ $k ] = in_array( $k, array( 'bank_details', 'tagline', 'seo_description', 'seo_profiles' ), true ) ? sanitize_textarea_field( $d[ $k ] ) : sanitize_text_field( $d[ $k ] );
 					}
 				}
 				if ( isset( $vals['color_mode'] ) && ! in_array( $vals['color_mode'], array( 'dark', 'light', 'auto' ), true ) ) {

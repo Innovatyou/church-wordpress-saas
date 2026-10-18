@@ -283,3 +283,19 @@ body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-syste
 .ks-login__head h1 { font-size: 1.8rem; margin: .4rem 0 0; }
 .ks-login__head p { margin: 0; }
 .ks-btn--block { width: 100%; justify-content: center; }
+
+/* Solution pages, explore links, footer links (SEO) */
+.ks-hero--solution { text-align: center; }
+.ks-hero--solution .ks-cta { justify-content: center; }
+.ks-hero--solution h1 { font-size: clamp(1.9rem, 5vw, 3rem); }
+.ks-crumbs { font-size: .85rem; color: var(--ks-muted); margin-bottom: 1rem; }
+.ks-crumbs a { color: inherit; }
+.ks-links { align-items: stretch; }
+.ks-link-card { display: flex; flex-direction: column; gap: .45rem; text-decoration: none; color: inherit; position: relative; padding-right: 2.6rem; transition: transform .15s, border-color .15s; }
+.ks-link-card span { color: var(--ks-muted); font-size: .92rem; }
+.ks-link-card em { position: absolute; right: 1.1rem; top: 1.1rem; font-style: normal; color: var(--ks-brand); font-weight: 800; }
+.ks-link-card:hover, .ks-link-card:focus-visible { transform: translateY(-2px); border-color: var(--ks-brand); }
+:root[data-theme="dark"] .ks-link-card em { color: color-mix(in srgb, var(--ks-brand) 45%, #fff); }
+.ks-ticks--wide { max-width: 640px; margin: 0 auto; gap: .8rem; }
+.ks-foot__links { display: flex; flex-wrap: wrap; gap: .6rem 1.2rem; flex: 1 1 100%; order: 3; font-size: .9rem; }
+.ks-foot__links a { color: var(--ks-muted); }

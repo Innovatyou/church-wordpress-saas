@@ -3,7 +3,7 @@
  * Plugin Name:       Ministry OS Cloud (SaaS)
  * Plugin URI:        https://example.com/kingdom-cloud
  * Description:       Sell Ministry OS websites as a service: church sign-up with free trial, a site per church (yourplatform.com/church or church.yourplatform.com), custom domains, subscription billing (Paystack, Flutterwave, Stripe, bank transfer), plan limits, automatic suspension and a platform dashboard. Sets up WordPress Multisite for you (Tools → Ministry OS Cloud setup).
- * Version:           1.8.1
+ * Version:           1.9.0
  * Update URI:        https://github.com/Innovatyou/church-wordpress-saas
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'KS_VERSION', '1.8.1' );
+define( 'KS_VERSION', '1.9.0' );
 define( 'KS_DB_VERSION', '1.1.0' );
 define( 'KS_FILE', __FILE__ );
 define( 'KS_PATH', plugin_dir_path( __FILE__ ) );
@@ -45,6 +45,7 @@ require_once KS_PATH . 'includes/class-ks-login.php';
 require_once KS_PATH . 'includes/class-ks-rest.php';
 require_once KS_PATH . 'includes/class-ks-church-admin.php';
 require_once KS_PATH . 'includes/class-ks-platform.php';
+require_once KS_PATH . 'includes/class-ks-seo.php';
 require_once KS_PATH . 'includes/class-ks-network-admin.php';
 require_once KS_PATH . 'includes/class-ks-network-setup.php';
 
@@ -62,6 +63,7 @@ add_action(
 		KS_Domains::init();
 		KS_Church_Admin::init();
 		KS_Platform::init();
+		KS_SEO::init();
 		KS_Provisioner::init();
 		KS_Network_Admin::init();
 	},
