@@ -130,6 +130,54 @@ function kingdom_website_settings() {
 	foreach ( kingdom_footer_settings() as $key => $f ) {
 		$out[ $key ] = array( $f[0], $f[1], 'footer', $f[2], $f[3] ?? array() );
 	}
+	// Pictures & logo.
+	$out['custom_logo']        = array( __( 'Church logo', 'kingdom' ), 'image_id', 'pictures', 0 );
+	$out['kingdom_logo_light'] = array( __( 'White logo (for dark headers and dark mode, optional)', 'kingdom' ), 'image', 'pictures', '' );
+	foreach ( kingdom_image_slots() as $slot => $info ) {
+		$out[ $slot ] = array( $info[0] . ( $info[2] ? ' — ' . $info[2] : '' ), 'image', 'pictures', '' );
+		if ( 0 === strpos( $slot, 'kingdom_gallery_' ) ) {
+			$out[ $slot . '_caption' ] = array( $info[0] . ' — ' . __( 'caption', 'kingdom' ), 'text', 'pictures', '' );
+		}
+	}
+	$out['kingdom_gallery_title']     = array( __( 'Gallery title', 'kingdom' ), 'text', 'pictures', __( 'Life at church', 'kingdom' ) );
+	$out['kingdom_page_header_image'] = array( __( 'Header picture on inner pages (optional)', 'kingdom' ), 'image', 'pictures', '' );
+	// Homepage text.
+	$texts = array(
+		'kingdom_hero_eyebrow'     => array( __( 'Banner: small label', 'kingdom' ), 'text', __( 'Welcome home', 'kingdom' ) ),
+		'kingdom_hero_title'       => array( __( 'Banner: title', 'kingdom' ), 'text', __( 'A place to belong, believe and become', 'kingdom' ) ),
+		'kingdom_hero_text'        => array( __( 'Banner: text', 'kingdom' ), 'textarea', __( 'Join us this Sunday — in person or online — and experience the love of Jesus with a family that cares.', 'kingdom' ) ),
+		'kingdom_hero_btn1_text'   => array( __( 'Banner: main button text', 'kingdom' ), 'text', __( 'Plan your visit', 'kingdom' ) ),
+		'kingdom_hero_btn1_url'    => array( __( 'Banner: main button link (optional)', 'kingdom' ), 'url', '' ),
+		'kingdom_hero_btn2_text'   => array( __( 'Banner: second button text', 'kingdom' ), 'text', __( 'Watch online', 'kingdom' ) ),
+		'kingdom_hero_btn2_url'    => array( __( 'Banner: second button link (optional)', 'kingdom' ), 'url', '' ),
+		'kingdom_welcome_eyebrow'  => array( __( 'Welcome: small label', 'kingdom' ), 'text', __( 'Welcome', 'kingdom' ) ),
+		'kingdom_welcome_title'    => array( __( 'Welcome: title', 'kingdom' ), 'text', __( 'You are not here by accident', 'kingdom' ) ),
+		'kingdom_welcome_text'     => array( __( 'Welcome: message', 'kingdom' ), 'textarea', __( 'We are a family of believers passionate about Jesus, prayer and the Word. Whether you are exploring faith for the first time or looking for a church home, there is a place for you here.', 'kingdom' ) ),
+		'kingdom_pastor_name'      => array( __( 'Pastor name', 'kingdom' ), 'text', __( 'Pastor John & Mary Doe', 'kingdom' ) ),
+		'kingdom_pastor_role'      => array( __( 'Pastor role', 'kingdom' ), 'text', __( 'Lead Pastors', 'kingdom' ) ),
+		'kingdom_welcome_btn_text' => array( __( 'Welcome: button text', 'kingdom' ), 'text', __( 'Our story', 'kingdom' ) ),
+		'kingdom_welcome_btn_url'  => array( __( 'Welcome: button link (optional)', 'kingdom' ), 'url', '' ),
+	);
+	foreach ( $texts as $key => $f ) {
+		$out[ $key ] = array( $f[0], $f[1], 'texts', $f[2] );
+	}
+	// Contact & social.
+	$contact = array(
+		'kingdom_address'           => array( __( 'Address', 'kingdom' ), 'textarea' ),
+		'kingdom_phone'             => array( __( 'Phone', 'kingdom' ), 'text' ),
+		'kingdom_email'             => array( __( 'Email', 'kingdom' ), 'email' ),
+		'kingdom_map'               => array( __( 'Google Maps embed link (Google Maps → Share → Embed a map → copy only the src link)', 'kingdom' ), 'url' ),
+		'kingdom_social_facebook'   => array( 'Facebook', 'url' ),
+		'kingdom_social_instagram'  => array( 'Instagram', 'url' ),
+		'kingdom_social_youtube'    => array( 'YouTube', 'url' ),
+		'kingdom_social_x'          => array( 'X (Twitter)', 'url' ),
+		'kingdom_social_tiktok'     => array( 'TikTok', 'url' ),
+		'kingdom_social_whatsapp'   => array( 'WhatsApp (https://wa.me/number)', 'url' ),
+		'kingdom_social_telegram'   => array( 'Telegram', 'url' ),
+	);
+	foreach ( $contact as $key => $f ) {
+		$out[ $key ] = array( $f[0], $f[1], 'contact', '' );
+	}
 	return $out;
 }
 

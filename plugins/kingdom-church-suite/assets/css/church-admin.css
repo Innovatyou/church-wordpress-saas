@@ -125,3 +125,27 @@ details.kca-card > summary::-webkit-details-marker { display: none; }
 .kca-account { margin: 0 0 1rem; padding: 1rem; border-radius: 12px; border: 1px solid var(--kcs-border); }
 .kca-account legend { padding: 0 .4rem; font-weight: 700; }
 .kca-account details summary { cursor: pointer; color: var(--kcs-primary); font-size: .9rem; margin: .25rem 0 .5rem; }
+
+/* Settings, pictures, newsletter */
+.kca-tabs { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .4rem; margin-bottom: .75rem; scrollbar-width: thin; }
+.kca-tabs a { flex: none; padding: .55rem .9rem; border-radius: 999px; border: 1px solid var(--kcs-border); background: var(--kcs-surface); color: var(--kcs-text); text-decoration: none; font-weight: 600; font-size: .9rem; white-space: nowrap; }
+.kca-tabs a[aria-current="page"] { background: var(--kcs-primary); border-color: var(--kcs-primary); color: var(--kcs-primary-contrast); }
+.kca-settings { display: grid; gap: 1rem; }
+.kca-setting-group > summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.kca-setting-group > summary::-webkit-details-marker { display: none; }
+.kca-setting-group > summary::after { content: '▾'; color: var(--kcs-muted); }
+.kca-setting-group[open] > summary { margin-bottom: 1rem; }
+.kca-setting-group label small, .kca-setting-group > small { display: block; margin-top: .3rem; font-weight: 400; }
+.kca-setting-info { padding: .75rem 1rem; border-radius: 10px; background: var(--kcs-surface-2); font-size: .9rem; overflow-wrap: anywhere; }
+.kca-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; }
+.kca-reveal { margin-top: .35rem; border: 0; background: none; cursor: pointer; font-size: 1rem; }
+.kca-inline-form { display: flex; gap: .5rem; flex-wrap: wrap; }
+.kca-inline-form input { flex: 1 1 200px; }
+.kca-gap { margin-top: 1rem; }
+.kca-image { display: grid; gap: .5rem; padding: .75rem 0; border-bottom: 1px solid var(--kcs-border); }
+.kca-image:last-of-type { border-bottom: 0; }
+.kca-image__label { font-weight: 600; font-size: .92rem; }
+.kca-image__preview { width: 100%; max-width: 320px; max-height: 180px; object-fit: cover; border-radius: 10px; border: 1px solid var(--kcs-border); background: var(--kcs-surface-2); }
+.kca-image__btns { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .35rem; }
+.kca-image__btns .kcs-btn { padding: .5em .9em; font-size: .85rem; }
+.kca-image__preview[hidden], .kca-image__btns [hidden] { display: none !important; }

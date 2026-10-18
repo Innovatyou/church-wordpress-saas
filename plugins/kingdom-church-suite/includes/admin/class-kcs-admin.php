@@ -17,6 +17,8 @@ class KCS_Admin {
 	 */
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
+		add_action( 'admin_init', array( __CLASS__, 'open_church_admin' ) );
+		add_action( 'admin_bar_menu', array( __CLASS__, 'admin_bar' ), 40 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'notices' ) );
 		foreach ( array( 'save_partner', 'partner_bulk', 'payment_action', 'save_plan', 'delete_plan', 'save_campaign', 'subscriber_action', 'import_subscribers', 'send_email', 'prayer_action', 'save_settings', 'export', 'test_email', 'regenerate_api_key', 'process_queue' ) as $action ) {
@@ -37,10 +39,42 @@ class KCS_Admin {
 	}
 
 	/**
+	 * "Church Admin" in the toolbar, on the website and in wp-admin.
+	 *
+	 * @param WP_Admin_Bar $bar Toolbar.
+	 */
+	public static function admin_bar( $bar ) {
+		if ( ! current_user_can( 'manage_kcs' ) || ! (int) kcs_get_option( 'page_church_admin', 0 ) ) {
+			return;
+		}
+		$bar->add_node(
+			array(
+				'id'    => 'kcs-church-admin',
+				'title' => '<span class="ab-icon dashicons dashicons-heart" style="margin-top:2px"></span>' . esc_html__( 'Church Admin', 'kingdom-church-suite' ),
+				'href'  => kcs_page_url( 'church_admin' ),
+			)
+		);
+	}
+
+	/**
+	 * The wp-admin menu item "Church Admin" opens the phone-friendly dashboard on the website.
+	 */
+	public static function open_church_admin() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- navigation only.
+		$page = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : '';
+		// The old overview page now opens the new dashboard (add &classic=1 to see the old one).
+		if ( ( 'kcs-open-church-admin' === $page || ( 'kcs-dashboard' === $page && empty( $_GET['classic'] ) ) ) && current_user_can( 'manage_kcs' ) && (int) kcs_get_option( 'page_church_admin', 0 ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			wp_safe_redirect( kcs_page_url( 'church_admin' ) );
+			exit;
+		}
+	}
+
+	/**
 	 * Menu.
 	 */
 	public static function menu() {
 		$cap = 'manage_kcs';
+		add_menu_page( __( 'Church Admin', 'kingdom-church-suite' ), __( 'Church Admin ↗', 'kingdom-church-suite' ), $cap, 'kcs-open-church-admin', '__return_null', 'dashicons-smartphone', 2 );
 		add_menu_page( __( 'Church Suite', 'kingdom-church-suite' ), __( 'Church Suite', 'kingdom-church-suite' ), $cap, 'kcs-dashboard', array( __CLASS__, 'page_dashboard' ), 'dashicons-heart', 3 );
 		add_submenu_page( 'kcs-dashboard', __( 'Dashboard', 'kingdom-church-suite' ), __( 'Dashboard', 'kingdom-church-suite' ), $cap, 'kcs-dashboard', array( __CLASS__, 'page_dashboard' ) );
 		add_submenu_page( 'kcs-dashboard', __( 'Partners', 'kingdom-church-suite' ), __( 'Partners', 'kingdom-church-suite' ), $cap, 'kcs-partners', array( __CLASS__, 'page_partners' ) );
@@ -179,6 +213,9 @@ class KCS_Admin {
 		$max = max( 1, max( $months ) );
 
 		self::header( __( 'Church Suite Dashboard', 'kingdom-church-suite' ) );
+		if ( (int) kcs_get_option( 'page_church_admin', 0 ) ) {
+			echo '<div class="notice notice-info inline" style="display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;padding:12px 14px;margin:12px 0 18px"><span style="flex:1 1 260px">' . esc_html__( 'The new Church Admin dashboard does everything here and more (bank transfers, website, church app, notifications) and works well on phones.', 'kingdom-church-suite' ) . '</span><a class="button button-primary" href="' . esc_url( kcs_page_url( 'church_admin' ) ) . '">' . esc_html__( 'Open Church Admin', 'kingdom-church-suite' ) . '</a></div>';
+		}
 		?>
 		<div class="kcs-cards">
 			<div class="kcs-card"><span><?php esc_html_e( 'Total partners', 'kingdom-church-suite' ); ?></span><strong><?php echo (int) $stats['partners_total']; ?></strong><small><?php echo (int) $stats['partners_by_status']['active']; ?> <?php esc_html_e( 'active', 'kingdom-church-suite' ); ?> · <?php echo (int) $stats['partners_by_status']['overdue']; ?> <?php esc_html_e( 'overdue', 'kingdom-church-suite' ); ?></small></div>

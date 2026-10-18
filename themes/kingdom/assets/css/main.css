@@ -703,6 +703,7 @@ body:not(.k-3d) .k-hero__scene { display: none; }
 /* App-style dashboards */
 .k-app { padding-block: clamp(1.25rem, 3vw, 2.5rem) clamp(2rem, 5vw, 4rem); }
 .is-dashboard .k-palette, .is-dashboard .k-whatsapp { display: none; }
+.is-dashboard-admin .k-topbar, .is-dashboard-admin .k-footer__newsletter { display: none !important; }
 .is-dashboard-admin .k-tabbar { display: none !important; }
 .is-dashboard-admin.has-mobile-nav { padding-bottom: env(safe-area-inset-bottom); }
 .is-dashboard-admin .k-header__actions .k-nav-toggle { display: inline-grid !important; }

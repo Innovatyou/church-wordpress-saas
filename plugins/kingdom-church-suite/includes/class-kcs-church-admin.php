@@ -58,8 +58,10 @@ class KCS_Church_Admin {
 			'notify'      => array( __( 'Notify partners', 'kingdom-church-suite' ), '✉' ),
 			'pastors'     => array( __( 'Pastors & WhatsApp', 'kingdom-church-suite' ), '☎' ),
 			'website'     => array( __( 'Website', 'kingdom-church-suite' ), '▣' ),
+			'content'     => array( __( 'Pictures & text', 'kingdom-church-suite' ), '▧' ),
+			'newsletter'  => array( __( 'Newsletter', 'kingdom-church-suite' ), '✎' ),
 			'app'         => array( __( 'Church app', 'kingdom-church-suite' ), '▤' ),
-		) );
+		) + ( current_user_can( 'manage_options' ) ? array( 'settings' => array( __( 'Settings', 'kingdom-church-suite' ), '⚙' ) ) : array() ) );
 	}
 
 	/**
@@ -75,7 +77,9 @@ class KCS_Church_Admin {
 	 * Church Admin users never see wp-admin.
 	 */
 	public static function keep_out_of_wp_admin() {
-		if ( wp_doing_ajax() || ( defined( 'DOING_CRON' ) && DOING_CRON ) ) {
+		global $pagenow;
+		// File downloads (exports, receipts) and media uploads go through these wp-admin files.
+		if ( wp_doing_ajax() || ( defined( 'DOING_CRON' ) && DOING_CRON ) || in_array( $pagenow, array( 'admin-post.php', 'async-upload.php' ), true ) ) {
 			return;
 		}
 		$user = wp_get_current_user();
@@ -94,7 +98,16 @@ class KCS_Church_Admin {
 	 * @return string
 	 */
 	public static function login_redirect( $redirect, $requested, $user ) {
-		if ( $user instanceof WP_User && in_array( 'kcs_church_admin', (array) $user->roles, true ) ) {
+		if ( ! $user instanceof WP_User || ! (int) kcs_get_option( 'page_church_admin', 0 ) ) {
+			return $redirect;
+		}
+		if ( in_array( 'kcs_church_admin', (array) $user->roles, true ) ) {
+			return kcs_page_url( 'church_admin' );
+		}
+		// Church owners and staff use the new dashboard too, unless they asked for a particular wp-admin page.
+		// The platform owner (super admin) keeps wp-admin.
+		$default = '' === (string) $requested || in_array( untrailingslashit( (string) $requested ), array( untrailingslashit( admin_url() ), untrailingslashit( admin_url( 'index.php' ) ) ), true );
+		if ( $default && user_can( $user, 'manage_kcs' ) && ! is_super_admin( $user->ID ) ) {
 			return kcs_page_url( 'church_admin' );
 		}
 		return $redirect;
@@ -108,7 +121,15 @@ class KCS_Church_Admin {
 	 */
 	public static function admin_bar( $show ) {
 		$user = wp_get_current_user();
-		return in_array( 'kcs_church_admin', (array) $user->roles, true ) && ! current_user_can( 'edit_posts' ) ? false : $show;
+		if ( in_array( 'kcs_church_admin', (array) $user->roles, true ) && ! current_user_can( 'edit_posts' ) ) {
+			return false;
+		}
+		// The new dashboard is a full app: no WordPress toolbar on it (the platform owner keeps theirs).
+		$page = (int) kcs_get_option( 'page_church_admin', 0 );
+		if ( $page && ! is_admin() && did_action( 'wp' ) && is_page( $page ) && ! is_super_admin() ) {
+			return false;
+		}
+		return $show;
 	}
 
 	/**
@@ -117,6 +138,21 @@ class KCS_Church_Admin {
 	public static function assets() {
 		if ( is_singular() && has_shortcode( (string) get_post_field( 'post_content', get_queried_object_id() ), 'kcs_church_admin' ) ) {
 			wp_enqueue_style( 'kcs-church-admin', KCS_URL . 'assets/css/church-admin.css', array( 'kcs-public' ), KCS_VERSION );
+			if ( current_user_can( 'upload_files' ) ) {
+				wp_enqueue_media();
+			}
+			wp_enqueue_script( 'kcs-church-admin', KCS_URL . 'assets/js/church-admin.js', array(), KCS_VERSION, true );
+			wp_localize_script(
+				'kcs-church-admin',
+				'kcsChurchAdmin',
+				array(
+					'choose' => __( 'Choose picture', 'kingdom-church-suite' ),
+					'change' => __( 'Change', 'kingdom-church-suite' ),
+					'remove' => __( 'Remove', 'kingdom-church-suite' ),
+					'title'  => __( 'Choose a picture', 'kingdom-church-suite' ),
+					'use'    => __( 'Use this picture', 'kingdom-church-suite' ),
+				)
+			);
 		}
 	}
 
@@ -392,7 +428,12 @@ class KCS_Church_Admin {
 				break;
 
 			case 'website_save':
+				// Only the groups shown on the submitted page are saved (unticked boxes elsewhere stay as they are).
+				$groups = array_map( 'sanitize_key', (array) ( $d['groups'] ?? array() ) );
 				foreach ( (array) apply_filters( 'kcs_website_settings', array() ) as $key => $f ) {
+					if ( $groups && ! in_array( $f[2], $groups, true ) ) {
+						continue;
+					}
 					$raw = $d[ $key ] ?? '';
 					switch ( $f[1] ) {
 						case 'checkbox':
@@ -413,13 +454,107 @@ class KCS_Church_Admin {
 						case 'textarea':
 							$value = sanitize_textarea_field( $raw );
 							break;
+						case 'image':
+							$value = esc_url_raw( $raw );
+							break;
+						case 'image_id':
+							$value = absint( $raw );
+							break;
+						case 'email':
+							$value = sanitize_email( $raw );
+							break;
 						default:
 							$value = sanitize_text_field( $raw );
 					}
 					set_theme_mod( $key, $value );
 				}
 				$msg  = __( 'Website updated.', 'kingdom-church-suite' );
-				$view = 'website';
+				$view = in_array( $view, array( 'website', 'content' ), true ) ? $view : 'website';
+				break;
+
+			case 'settings_save':
+				if ( ! current_user_can( 'manage_options' ) ) {
+					$msg  = __( 'Only church administrators can change settings.', 'kingdom-church-suite' );
+					$type = 'error';
+					break;
+				}
+				$tab = sanitize_key( $d['tab'] ?? 'general' );
+				if ( isset( KCS_Settings::tabs()[ $tab ] ) ) {
+					KCS_Settings::save_tab( $tab, isset( $_POST['kcs'] ) && is_array( $_POST['kcs'] ) ? $_POST['kcs'] : array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized per field in save_tab.
+					if ( 'general' === $tab ) {
+						flush_rewrite_rules();
+					}
+				}
+				$msg  = __( 'Settings saved.', 'kingdom-church-suite' );
+				$view = 'settings';
+				if ( empty( $d['return'] ) ) {
+					$d['return'] = self::url( 'settings', array( 'tab' => $tab ) );
+				}
+				break;
+
+			case 'test_email':
+				$to   = sanitize_email( $d['to'] ?? '' );
+				$sent = is_email( $to ) && KCS_Email::send( $to, __( 'Test email from your church website', 'kingdom-church-suite' ), '<p>' . esc_html__( 'It works! Emails from your church website are being delivered.', 'kingdom-church-suite' ) . '</p>' );
+				$msg  = $sent ? __( 'Test email sent. Check the inbox (and the spam folder).', 'kingdom-church-suite' ) : __( 'The test email could not be sent. Check the email settings.', 'kingdom-church-suite' );
+				$type = $sent ? 'success' : 'error';
+				$view = 'settings';
+				break;
+
+			case 'campaign_save':
+				$c = $id ? KCS_Newsletter::get_campaign( $id ) : null;
+				if ( $c && in_array( $c->status, array( 'sending', 'sent' ), true ) ) {
+					$msg  = __( 'Sent emails cannot be changed.', 'kingdom-church-suite' );
+					$type = 'error';
+					break;
+				}
+				if ( '' === trim( (string) ( $d['subject'] ?? '' ) ) || '' === trim( wp_strip_all_tags( (string) ( $d['content'] ?? '' ) ) ) ) {
+					$msg  = __( 'Add a subject and a message.', 'kingdom-church-suite' );
+					$type = 'error';
+					break;
+				}
+				$d['content'] = wpautop( make_clickable( esc_html( (string) $d['content'] ) ) );
+				$id           = KCS_Newsletter::save_campaign( $d, $id );
+				$doing        = sanitize_key( $d['do'] ?? 'save' );
+				$view         = 'newsletter';
+				if ( 'test' === $doing ) {
+					$c    = KCS_Newsletter::get_campaign( $id );
+					$user = wp_get_current_user();
+					$vars = array( 'name' => $user->display_name, 'first_name' => $user->first_name ? $user->first_name : $user->display_name, 'email' => $user->user_email, 'unsubscribe_url' => home_url( '/' ) );
+					KCS_Email::send( $user->user_email, '[TEST] ' . KCS_Email::replace( $c->subject, $vars, false ), KCS_Email::replace( $c->content, $vars ), array( 'preheader' => $c->preheader, 'unsubscribe_url' => home_url( '/' ) ) );
+					/* translators: %s: email */
+					$msg         = sprintf( __( 'Test sent to %s.', 'kingdom-church-suite' ), $user->user_email );
+					$d['return'] = self::url( 'newsletter', array( 'edit' => $id ) );
+				} elseif ( 'send' === $doing ) {
+					$count = KCS_Newsletter::send_campaign( $id );
+					if ( is_wp_error( $count ) ) {
+						$msg  = $count->get_error_message();
+						$type = 'error';
+					} elseif ( ! $count ) {
+						$msg  = __( 'There is no one in that list yet, so nothing was sent. The email is saved as a draft.', 'kingdom-church-suite' );
+						$type = 'error';
+						global $wpdb;
+						$wpdb->update( kcs_table( 'campaigns' ), array( 'status' => 'draft' ), array( 'id' => $id ) );
+					} else {
+						/* translators: %d: count */
+						$msg = sprintf( _n( 'Sending to %d person. It goes out in the background over the next few minutes.', 'Sending to %d people. It goes out in the background over the next few minutes.', $count, 'kingdom-church-suite' ), $count );
+					}
+					$d['return'] = self::url( 'newsletter' );
+				} else {
+					$msg         = __( 'Draft saved.', 'kingdom-church-suite' );
+					$d['return'] = self::url( 'newsletter', array( 'edit' => $id ) );
+				}
+				break;
+
+			case 'subscriber_status':
+				global $wpdb;
+				$st = sanitize_key( $d['status'] ?? '' );
+				if ( in_array( $st, array( 'subscribed', 'unsubscribed' ), true ) ) {
+					$wpdb->update( kcs_table( 'subscribers' ), array( 'status' => $st ), array( 'id' => $id ) );
+				} elseif ( 'delete' === $st ) {
+					$wpdb->delete( kcs_table( 'subscribers' ), array( 'id' => $id ) );
+				}
+				$msg  = __( 'Subscriber updated.', 'kingdom-church-suite' );
+				$view = 'newsletter';
 				break;
 
 			case 'app_save':
@@ -1168,7 +1303,7 @@ class KCS_Church_Admin {
 				<label><?php esc_html_e( 'Name', 'kingdom-church-suite' ); ?><input name="name" required value="<?php echo esc_attr( $edit['name'] ?? '' ); ?>" placeholder="Pastor Emeka Obi"></label>
 				<label><?php esc_html_e( 'Role', 'kingdom-church-suite' ); ?><input name="role" value="<?php echo esc_attr( $edit['role'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Partnership pastor', 'kingdom-church-suite' ); ?>"></label>
 				<label><?php esc_html_e( 'WhatsApp number with country code', 'kingdom-church-suite' ); ?><input name="phone" required inputmode="tel" value="<?php echo esc_attr( $edit['phone'] ?? '' ); ?>" placeholder="2348012345678"></label>
-				<label><?php esc_html_e( 'Photo URL (optional)', 'kingdom-church-suite' ); ?><input type="url" name="photo" value="<?php echo esc_attr( $edit['photo'] ?? '' ); ?>"></label>
+				<label><?php esc_html_e( 'Photo (optional)', 'kingdom-church-suite' ); ?><input type="url" name="photo" value="<?php echo esc_attr( $edit['photo'] ?? '' ); ?>"<?php echo current_user_can( 'upload_files' ) ? ' data-kcs-media="url"' : ''; ?>></label>
 				<fieldset><legend><?php esc_html_e( 'Available to plans', 'kingdom-church-suite' ); ?></legend>
 					<div class="kca-chips">
 						<?php foreach ( $plans as $pl ) : ?>
@@ -1185,25 +1320,53 @@ class KCS_Church_Admin {
 	}
 
 	/**
-	 * Website: show/hide sections and the homepage banner (settings provided by the active theme).
+	 * Website: colours, fonts, banner, sections and footer (settings provided by the active theme).
 	 */
 	private static function view_website() {
+		self::website_form(
+			array(
+				'brand'    => __( 'Church colours', 'kingdom-church-suite' ),
+				'fonts'    => __( 'Church fonts', 'kingdom-church-suite' ),
+				'banner'   => __( 'Homepage banner', 'kingdom-church-suite' ),
+				'media'    => __( 'Live stream, video & audio', 'kingdom-church-suite' ),
+				'sections' => __( 'Show or hide sections', 'kingdom-church-suite' ),
+				'footer'   => __( 'Footer', 'kingdom-church-suite' ),
+			),
+			'website'
+		);
+	}
+
+	/**
+	 * Pictures & text: logo, website pictures, homepage texts, contact details and social links.
+	 */
+	private static function view_content() {
+		self::website_form(
+			array(
+				'pictures' => __( 'Pictures & logo', 'kingdom-church-suite' ),
+				'texts'    => __( 'Homepage text', 'kingdom-church-suite' ),
+				'contact'  => __( 'Contact & social', 'kingdom-church-suite' ),
+			),
+			'content'
+		);
+	}
+
+	/**
+	 * A form for some of the theme's website settings.
+	 *
+	 * @param array  $groups group => title.
+	 * @param string $view   View to return to.
+	 */
+	private static function website_form( $groups, $view ) {
 		$fields = (array) apply_filters( 'kcs_website_settings', array() );
 		if ( ! $fields ) {
 			echo '<p class="kcs-muted">' . esc_html__( 'The active theme does not offer website settings here. Use Appearance → Customize instead.', 'kingdom-church-suite' ) . '</p>';
 			return;
 		}
-		$groups = array(
-			'brand'    => __( 'Church colours', 'kingdom-church-suite' ),
-			'fonts'    => __( 'Church fonts', 'kingdom-church-suite' ),
-			'banner'   => __( 'Homepage banner', 'kingdom-church-suite' ),
-			'media'    => __( 'Live stream, video & audio', 'kingdom-church-suite' ),
-			'sections' => __( 'Show or hide sections', 'kingdom-church-suite' ),
-			'footer'   => __( 'Footer', 'kingdom-church-suite' ),
-		);
+		$can_upload = current_user_can( 'upload_files' );
 		?>
 		<form method="post" class="kca-cols">
-			<?php echo self::fields( 'website_save', 'website' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<?php echo self::fields( 'website_save', $view ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<?php foreach ( array_keys( $groups ) as $g ) : ?><input type="hidden" name="groups[]" value="<?php echo esc_attr( $g ); ?>"><?php endforeach; ?>
 			<?php foreach ( $groups as $group => $title ) : ?>
 				<?php
 				if ( ! array_filter( $fields, function ( $f ) use ( $group ) { return $f[2] === $group; } ) ) {
@@ -1221,6 +1384,12 @@ class KCS_Church_Admin {
 					<?php elseif ( 'fonts' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'Choose a ready-made pairing (a heading font and a body text font that look good together), or Custom to pick your own. The preview updates as you choose.', 'kingdom-church-suite' ); ?></p>
 						<?php self::font_preview(); ?>
+					<?php elseif ( 'pictures' === $group ) : ?>
+						<p class="kcs-muted"><?php esc_html_e( 'Upload your own photos from your phone or computer. Remove a photo to go back to the built-in illustration. Wide photos work best for the banner.', 'kingdom-church-suite' ); ?></p>
+					<?php elseif ( 'texts' === $group ) : ?>
+						<p class="kcs-muted"><?php esc_html_e( 'The words on your homepage banner and welcome section. Button links are optional: leave them empty to use the usual pages.', 'kingdom-church-suite' ); ?></p>
+					<?php elseif ( 'contact' === $group ) : ?>
+						<p class="kcs-muted"><?php esc_html_e( 'Shown in the menu, the footer and the contact section. Leave a social link empty to hide its icon.', 'kingdom-church-suite' ); ?></p>
 					<?php elseif ( 'footer' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'Turn the footer off, pick its layout and colours, and choose what it shows. Social links, address and phone come from your contact details; quick links come from the footer menu.', 'kingdom-church-suite' ); ?></p>
 					<?php elseif ( 'sections' === $group ) : ?>
@@ -1241,18 +1410,234 @@ class KCS_Church_Admin {
 							<label class="kca-colour"><input type="color" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>"> <span><?php echo esc_html( $f[0] ); ?> <code><?php echo esc_html( $value ); ?></code></span></label>
 						<?php elseif ( 'textarea' === $f[1] ) : ?>
 							<label><?php echo esc_html( $f[0] ); ?><textarea name="<?php echo esc_attr( $key ); ?>" rows="3"><?php echo esc_textarea( $value ); ?></textarea></label>
+						<?php elseif ( in_array( $f[1], array( 'image', 'image_id' ), true ) ) : ?>
+							<?php $preview = 'image_id' === $f[1] ? ( $value ? (string) wp_get_attachment_image_url( (int) $value, 'medium' ) : '' ) : (string) $value; ?>
+							<div class="kca-image" data-kcs-media-field>
+								<span class="kca-image__label"><?php echo esc_html( $f[0] ); ?></span>
+								<img class="kca-image__preview" src="<?php echo esc_url( $preview ); ?>" alt=""<?php echo $preview ? '' : ' hidden'; ?>>
+								<?php if ( $can_upload ) : ?>
+									<input type="hidden" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ? $value : '' ); ?>" data-kcs-media="<?php echo 'image_id' === $f[1] ? 'id' : 'url'; ?>">
+								<?php elseif ( 'image' === $f[1] ) : ?>
+									<input type="url" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>" placeholder="https://…/photo.jpg">
+								<?php endif; ?>
+							</div>
+						<?php elseif ( 'email' === $f[1] ) : ?>
+							<label><?php echo esc_html( $f[0] ); ?><input type="email" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>"></label>
 						<?php elseif ( 'select' === $f[1] ) : ?>
 							<label><?php echo esc_html( $f[0] ); ?><select name="<?php echo esc_attr( $key ); ?>"><?php foreach ( (array) $f[4] as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $value, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select></label>
 						<?php else : ?>
-							<label><?php echo esc_html( $f[0] ); ?><input type="<?php echo 'url' === $f[1] ? 'url' : ( 'number' === $f[1] ? 'number' : 'text' ); ?>" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>"<?php echo 'number' === $f[1] ? ' min="0" max="90"' : ''; ?><?php echo 'url' === $f[1] ? ' placeholder="' . esc_attr( false !== strpos( $key, 'audio' ) ? 'https://…/message.mp3' : 'https://youtu.be/…' ) . '"' : ''; ?>></label>
+							<label><?php echo esc_html( $f[0] ); ?><input type="<?php echo 'url' === $f[1] ? 'url' : ( 'number' === $f[1] ? 'number' : 'text' ); ?>" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>"<?php echo 'number' === $f[1] ? ' min="0" max="90"' : ''; ?><?php echo 'url' === $f[1] && preg_match( '/video|youtube|audio|live/', $key ) ? ' placeholder="' . esc_attr( false !== strpos( $key, 'audio' ) ? 'https://…/message.mp3' : 'https://youtu.be/…' ) . '"' : ''; ?>></label>
 						<?php endif; ?>
 					<?php endforeach; ?>
 					<?php if ( 'sections' === $group ) : ?></div><?php endif; ?>
-					<button class="kcs-btn"><?php esc_html_e( 'Save website', 'kingdom-church-suite' ); ?></button>
+					<button class="kcs-btn"><?php esc_html_e( 'Save', 'kingdom-church-suite' ); ?></button>
 				</section>
 			<?php endforeach; ?>
 		</form>
 		<p><a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( home_url( '/' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View website', 'kingdom-church-suite' ); ?></a></p>
+		<?php
+	}
+
+	/**
+	 * Settings: everything from Church Suite → Settings in wp-admin (church administrators only).
+	 */
+	private static function view_settings() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			echo '<div class="kcs-alert kcs-alert--info">' . esc_html__( 'Only church administrators can change settings.', 'kingdom-church-suite' ) . '</div>';
+			return;
+		}
+		$tabs = (array) apply_filters( 'kcs_church_admin_settings_tabs', KCS_Settings::tabs() );
+		$tab  = isset( $_GET['tab'] ) && isset( $tabs[ sanitize_key( $_GET['tab'] ) ] ) ? sanitize_key( $_GET['tab'] ) : 'general'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$all  = KCS_Settings::schema();
+		$opts = get_option( 'kcs_settings', array() );
+		$intro = array(
+			'general'    => __( 'Church details, service times, pages and partnership options.', 'kingdom-church-suite' ),
+			'payments'   => __( 'Turn on the payment methods you use and paste their keys. Every payment is checked with the provider before it counts as paid. Bank transfer accounts are managed under Bank transfers.', 'kingdom-church-suite' ),
+			'email'      => __( 'Who emails come from, who is notified, and reminders.', 'kingdom-church-suite' ),
+			'templates'  => __( 'The emails givers and partners receive. Words in {braces} are filled in automatically.', 'kingdom-church-suite' ),
+			'livestream' => __( 'Your YouTube channel and live stream options.', 'kingdom-church-suite' ),
+			'seo'        => __( 'How your website appears on Google and when shared on WhatsApp or Facebook.', 'kingdom-church-suite' ),
+			'api'        => __( 'For connecting other systems (CRM, mobile app, Zapier). Most churches can skip this.', 'kingdom-church-suite' ),
+		);
+		$collapse = in_array( $tab, array( 'payments', 'templates' ), true );
+		?>
+		<nav class="kca-tabs" aria-label="<?php esc_attr_e( 'Settings sections', 'kingdom-church-suite' ); ?>">
+			<?php foreach ( $tabs as $k => $l ) : ?>
+				<a href="<?php echo esc_url( self::url( 'settings', array( 'tab' => $k ) ) ); ?>"<?php echo $k === $tab ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $l ); ?></a>
+			<?php endforeach; ?>
+		</nav>
+		<?php if ( isset( $intro[ $tab ] ) ) : ?><p class="kcs-muted"><?php echo esc_html( $intro[ $tab ] ); ?></p><?php endif; ?>
+		<form method="post" class="kca-settings">
+			<?php echo self::fields( 'settings_save', 'settings' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<input type="hidden" name="tab" value="<?php echo esc_attr( $tab ); ?>">
+			<?php foreach ( (array) ( $all[ $tab ] ?? array() ) as $section => $fields ) : ?>
+				<?php
+				$enabled = false;
+				foreach ( $fields as $key => $field ) {
+					if ( '_enabled' === substr( $key, -8 ) && '1' === (string) ( $opts[ $key ] ?? '' ) ) {
+						$enabled = true;
+					}
+				}
+				?>
+				<?php if ( $collapse ) : ?>
+					<details class="kca-card kcs-form kca-setting-group">
+						<summary><strong><?php echo esc_html( $section ); ?></strong><?php if ( 'payments' === $tab ) : ?> <span class="kcs-badge kcs-badge--<?php echo $enabled ? 'completed' : 'cancelled'; ?>"><?php echo $enabled ? esc_html__( 'On', 'kingdom-church-suite' ) : esc_html__( 'Off', 'kingdom-church-suite' ); ?></span><?php endif; ?></summary>
+				<?php else : ?>
+					<section class="kca-card kcs-form kca-setting-group">
+						<h3><?php echo esc_html( $section ); ?></h3>
+				<?php endif; ?>
+				<?php
+				foreach ( $fields as $key => $field ) {
+					self::setting_field( $key, $field, $opts );
+				}
+				?>
+				<button class="kcs-btn"><?php esc_html_e( 'Save settings', 'kingdom-church-suite' ); ?></button>
+				<?php echo $collapse ? '</details>' : '</section>'; ?>
+			<?php endforeach; ?>
+		</form>
+		<?php if ( 'email' === $tab ) : ?>
+			<form method="post" class="kca-card kcs-form">
+				<?php echo self::fields( 'test_email', 'settings' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<h3><?php esc_html_e( 'Send a test email', 'kingdom-church-suite' ); ?></h3>
+				<div class="kca-inline-form"><input type="email" name="to" value="<?php echo esc_attr( wp_get_current_user()->user_email ); ?>" aria-label="<?php esc_attr_e( 'Email address', 'kingdom-church-suite' ); ?>"><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Send test', 'kingdom-church-suite' ); ?></button></div>
+			</form>
+		<?php endif; ?>
+		<?php
+	}
+
+	/**
+	 * One settings field.
+	 *
+	 * @param string $key   Key.
+	 * @param array  $field Field definition from KCS_Settings::schema().
+	 * @param array  $opts  Saved settings.
+	 */
+	private static function setting_field( $key, $field, $opts ) {
+		$value = isset( $opts[ $key ] ) ? $opts[ $key ] : ( $field['default'] ?? '' );
+		$name  = 'kcs[' . $key . ']';
+		$desc  = ! empty( $field['desc'] ) ? '<small class="kcs-muted">' . wp_kses_post( $field['desc'] ) . '</small>' : '';
+		switch ( $field['type'] ) {
+			case 'info':
+				if ( $desc ) {
+					echo '<div class="kca-setting-info"><strong>' . esc_html( $field['label'] ) . '</strong> ' . $desc . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				}
+				return;
+			case 'checkbox':
+				echo '<label class="kcs-check"><input type="checkbox" name="' . esc_attr( $name ) . '" value="1" ' . checked( (string) $value, '1', false ) . '> ' . esc_html( $field['label'] ) . '</label>' . $desc; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				return;
+			case 'textarea':
+			case 'code':
+			case 'editor':
+				echo '<label>' . esc_html( $field['label'] ) . '<textarea name="' . esc_attr( $name ) . '" rows="' . ( 'textarea' === $field['type'] ? 3 : 7 ) . '"' . ( 'textarea' === $field['type'] ? '' : ' class="kca-code"' ) . '>' . esc_textarea( (string) $value ) . '</textarea>' . $desc . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				return;
+			case 'select':
+				echo '<label>' . esc_html( $field['label'] ) . '<select name="' . esc_attr( $name ) . '">';
+				foreach ( (array) $field['options'] as $k => $l ) {
+					echo '<option value="' . esc_attr( $k ) . '" ' . selected( (string) $value, (string) $k, false ) . '>' . esc_html( $l ) . '</option>';
+				}
+				echo '</select>' . $desc . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				return;
+			case 'color':
+				echo '<label class="kca-colour"><input type="color" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ? $value : '#5b2a86' ) . '"> <span>' . esc_html( $field['label'] ) . '</span></label>' . $desc; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				return;
+			case 'password':
+				echo '<label>' . esc_html( $field['label'] ) . '<input type="password" autocomplete="new-password" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '" data-kcs-reveal>' . $desc . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				return;
+			default:
+				$type  = in_array( $field['type'], array( 'email', 'url', 'number' ), true ) ? $field['type'] : 'text';
+				$media = 'url' === $type && preg_match( '/logo|icon|image|photo/', $key ) && current_user_can( 'upload_files' ) ? ' data-kcs-media="url"' : '';
+				echo '<label>' . esc_html( $field['label'] ) . '<input type="' . esc_attr( $type ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '"' . ( 'number' === $type ? ' step="any"' : '' ) . $media . '>' . $desc . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		}
+	}
+
+	/**
+	 * Newsletter: write to subscribers and partners, and manage subscribers.
+	 */
+	private static function view_newsletter() {
+		global $wpdb;
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$edit   = isset( $_GET['edit'] ) ? KCS_Newsletter::get_campaign( absint( $_GET['edit'] ) ) : null;
+		$search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+		$page   = max( 1, absint( $_GET['pg'] ?? 1 ) );
+		// phpcs:enable
+		if ( $edit && in_array( $edit->status, array( 'sending', 'sent' ), true ) ) {
+			$edit = null;
+		}
+		$t      = kcs_table( 'subscribers' );
+		$counts = array();
+		foreach ( $wpdb->get_results( "SELECT status, COUNT(*) c FROM $t GROUP BY status" ) as $r ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$counts[ $r->status ] = (int) $r->c;
+		}
+		$where = $search ? $wpdb->prepare( 'WHERE email LIKE %s OR name LIKE %s', '%' . $wpdb->esc_like( $search ) . '%', '%' . $wpdb->esc_like( $search ) . '%' ) : '';
+		$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $t $where" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared
+		$subs  = $wpdb->get_results( "SELECT * FROM $t $where ORDER BY id DESC LIMIT 25 OFFSET " . ( ( $page - 1 ) * 25 ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared
+		$sent  = $wpdb->get_results( 'SELECT * FROM ' . kcs_table( 'campaigns' ) . ' ORDER BY id DESC LIMIT 10' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		?>
+		<div class="kca-kpis">
+			<div class="kca-kpi"><span><?php esc_html_e( 'Subscribers', 'kingdom-church-suite' ); ?></span><strong><?php echo (int) ( $counts['subscribed'] ?? 0 ); ?></strong><small><?php echo (int) ( $counts['pending'] ?? 0 ); ?> <?php esc_html_e( 'waiting to confirm', 'kingdom-church-suite' ); ?></small></div>
+			<div class="kca-kpi"><span><?php esc_html_e( 'Unsubscribed', 'kingdom-church-suite' ); ?></span><strong><?php echo (int) ( $counts['unsubscribed'] ?? 0 ); ?></strong></div>
+		</div>
+		<div class="kca-cols">
+			<form method="post" class="kca-card kcs-form">
+				<?php echo self::fields( 'campaign_save', 'newsletter', $edit ? $edit->id : 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<h3><?php echo $edit ? esc_html__( 'Edit draft', 'kingdom-church-suite' ) : esc_html__( 'Write an email', 'kingdom-church-suite' ); ?></h3>
+				<label><?php esc_html_e( 'Send to', 'kingdom-church-suite' ); ?><select name="audience"><?php foreach ( KCS_Newsletter::audiences() as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $edit ? $edit->audience : 'subscribers', $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select></label>
+				<label><?php esc_html_e( 'Subject', 'kingdom-church-suite' ); ?><input name="subject" required maxlength="200" value="<?php echo esc_attr( $edit ? $edit->subject : '' ); ?>"></label>
+				<label><?php esc_html_e( 'Preview line (optional)', 'kingdom-church-suite' ); ?><input name="preheader" maxlength="200" value="<?php echo esc_attr( $edit ? $edit->preheader : '' ); ?>" placeholder="<?php esc_attr_e( 'Shown after the subject in the inbox', 'kingdom-church-suite' ); ?>"></label>
+				<label><?php esc_html_e( 'Message', 'kingdom-church-suite' ); ?><textarea name="content" rows="9" required><?php echo esc_textarea( $edit ? trim( wp_strip_all_tags( str_replace( array( '</p>', '<br>', '<br />' ), array( "\n\n", "\n", "\n" ), $edit->content ) ) ) : '' ); ?></textarea><small class="kcs-muted"><?php esc_html_e( 'Write {first_name} to greet each person by name. Links are made clickable.', 'kingdom-church-suite' ); ?></small></label>
+				<div class="kca-actions">
+					<button class="kcs-btn" name="do" value="send" onclick="return confirm('<?php echo esc_js( __( 'Send this email now?', 'kingdom-church-suite' ) ); ?>')"><?php esc_html_e( 'Send now', 'kingdom-church-suite' ); ?></button>
+					<button class="kcs-btn kcs-btn--ghost" name="do" value="test"><?php esc_html_e( 'Send me a test', 'kingdom-church-suite' ); ?></button>
+					<button class="kcs-btn kcs-btn--ghost" name="do" value="save"><?php esc_html_e( 'Save draft', 'kingdom-church-suite' ); ?></button>
+				</div>
+			</form>
+			<section class="kca-card">
+				<h3><?php esc_html_e( 'Recent emails', 'kingdom-church-suite' ); ?></h3>
+				<ul class="kca-list">
+					<?php foreach ( $sent as $c ) : ?>
+						<li>
+							<?php if ( in_array( $c->status, array( 'draft', 'scheduled' ), true ) ) : ?>
+								<a href="<?php echo esc_url( self::url( 'newsletter', array( 'edit' => $c->id ) ) ); ?>"><strong><?php echo esc_html( $c->subject ); ?></strong><small><?php echo esc_html( KCS_Newsletter::audiences()[ $c->audience ] ?? $c->audience ); ?></small></a>
+							<?php else : ?>
+								<span><strong><?php echo esc_html( $c->subject ); ?></strong><small><?php /* translators: 1: sent, 2: total */ echo esc_html( sprintf( __( '%1$d of %2$d sent', 'kingdom-church-suite' ), (int) $c->sent_count, (int) $c->total ) . ' · ' . mysql2date( get_option( 'date_format' ), $c->sent_at ? $c->sent_at : $c->created_at ) ); ?></small></span>
+							<?php endif; ?>
+							<?php echo kcs_status_badge( $c->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						</li>
+					<?php endforeach; ?>
+					<?php if ( ! $sent ) : ?><li class="kcs-muted"><?php esc_html_e( 'Nothing sent yet.', 'kingdom-church-suite' ); ?></li><?php endif; ?>
+				</ul>
+			</section>
+		</div>
+		<section class="kca-card kca-gap">
+			<h3><?php esc_html_e( 'Subscribers', 'kingdom-church-suite' ); ?></h3>
+			<form class="kca-filters" method="get">
+				<input type="hidden" name="view" value="newsletter">
+				<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search name or email…', 'kingdom-church-suite' ); ?>" aria-label="<?php esc_attr_e( 'Search subscribers', 'kingdom-church-suite' ); ?>">
+				<button class="kcs-btn"><?php esc_html_e( 'Search', 'kingdom-church-suite' ); ?></button>
+				<a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcs_export&type=subscribers' ), 'kcs_export' ) ); ?>"><?php esc_html_e( 'Download CSV', 'kingdom-church-suite' ); ?></a>
+			</form>
+			<div class="kca-table">
+				<table>
+					<thead><tr><th><?php esc_html_e( 'Subscriber', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Status', 'kingdom-church-suite' ); ?></th><th></th></tr></thead>
+					<tbody>
+					<?php foreach ( $subs as $sub ) : ?>
+						<tr>
+							<td data-label="<?php esc_attr_e( 'Subscriber', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( $sub->name ? $sub->name : $sub->email ); ?></strong><small><?php echo esc_html( $sub->email . ' · ' . mysql2date( get_option( 'date_format' ), $sub->created_at ) ); ?></small></td>
+							<td data-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>"><?php echo kcs_status_badge( $sub->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
+							<td class="kca-actions">
+								<form method="post" class="kca-inline"><?php echo self::fields( 'subscriber_status', 'newsletter', $sub->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+									<?php if ( 'unsubscribed' !== $sub->status ) : ?><button class="kcs-btn kcs-btn--ghost" name="status" value="unsubscribed"><?php esc_html_e( 'Unsubscribe', 'kingdom-church-suite' ); ?></button><?php else : ?><button class="kcs-btn kcs-btn--ghost" name="status" value="subscribed"><?php esc_html_e( 'Resubscribe', 'kingdom-church-suite' ); ?></button><?php endif; ?>
+									<button class="kcs-btn kcs-btn--ghost" name="status" value="delete" onclick="return confirm('<?php echo esc_js( __( 'Delete this subscriber?', 'kingdom-church-suite' ) ); ?>')"><?php esc_html_e( 'Delete', 'kingdom-church-suite' ); ?></button>
+								</form>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+					<?php if ( ! $subs ) : ?><tr><td colspan="3" class="kcs-muted"><?php esc_html_e( 'No subscribers yet. People join from the newsletter box on your website.', 'kingdom-church-suite' ); ?></td></tr><?php endif; ?>
+					</tbody>
+				</table>
+			</div>
+			<?php self::pager( $total, 25, $page, array( 'view' => 'newsletter', 's' => $search ) ); ?>
+		</section>
 		<?php
 	}
 
@@ -1364,7 +1749,7 @@ class KCS_Church_Admin {
 				<label class="kcs-check"><input type="checkbox" name="pwa_live_push" value="1" <?php checked( '1', (string) kcs_get_option( 'pwa_live_push', '1' ) ); ?>> <?php esc_html_e( 'Notify every phone automatically when the YouTube live stream starts', 'kingdom-church-suite' ); ?></label>
 				<label><?php esc_html_e( 'App name', 'kingdom-church-suite' ); ?><input name="pwa_name" value="<?php echo esc_attr( kcs_get_option( 'pwa_name', '' ) ); ?>" placeholder="<?php echo esc_attr( kcs_get_option( 'church_name', get_bloginfo( 'name' ) ) ); ?>"></label>
 				<label><?php esc_html_e( 'Name under the icon (max 14 letters)', 'kingdom-church-suite' ); ?><input name="pwa_short_name" maxlength="14" value="<?php echo esc_attr( kcs_get_option( 'pwa_short_name', '' ) ); ?>"></label>
-				<label><?php esc_html_e( 'App icon image URL (optional — square, at least 512×512)', 'kingdom-church-suite' ); ?><input type="url" name="pwa_icon" value="<?php echo esc_attr( kcs_get_option( 'pwa_icon', '' ) ); ?>" placeholder="<?php esc_attr_e( 'Leave empty to use your church logo', 'kingdom-church-suite' ); ?>"></label>
+				<label><?php esc_html_e( 'App icon image URL (optional — square, at least 512×512)', 'kingdom-church-suite' ); ?><input type="url" name="pwa_icon"<?php echo current_user_can( 'upload_files' ) ? ' data-kcs-media="url"' : ''; ?> value="<?php echo esc_attr( kcs_get_option( 'pwa_icon', '' ) ); ?>" placeholder="<?php esc_attr_e( 'Leave empty to use your church logo', 'kingdom-church-suite' ); ?>"></label>
 				<button class="kcs-btn"><?php esc_html_e( 'Save app settings', 'kingdom-church-suite' ); ?></button>
 				<details class="kca-help"><summary><?php esc_html_e( 'How members install the app', 'kingdom-church-suite' ); ?></summary>
 					<p><strong>Android:</strong> <?php esc_html_e( 'open the website in Chrome and tap “Install app” (in the menu or the invitation at the bottom).', 'kingdom-church-suite' ); ?></p>
