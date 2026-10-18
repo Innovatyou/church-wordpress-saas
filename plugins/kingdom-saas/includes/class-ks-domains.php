@@ -168,15 +168,37 @@ class KS_Domains {
 		if ( ! KS_Tenants::feature( 'custom_domain', $d->blog_id ) ) {
 			return new WP_Error( 'ks_plan', __( 'Your plan does not include custom domains.', 'kingdom-saas' ) );
 		}
-		// Ownership (TXT token) is always required; HTTP or DNS only shows the domain reaches us.
-		$ok = self::txt_check( $d ) && ( self::http_check( $d ) || self::points_here( $d->domain ) );
+		// Ownership (TXT token) is always required, and the domain must really open this WordPress:
+		// DNS alone is not enough on shared hosting, where the domain must also be added to the
+		// hosting account (parked domain) before it serves anything.
+		$owner = self::txt_check( $d );
+		$reach = $owner && self::http_check( $d );
 		$wpdb->update( ks_table( 'domains' ), array( 'checked_at' => current_time( 'mysql', true ) ), array( 'id' => $id ) );
-		if ( ! $ok ) {
+		if ( ! $owner || ( ! $reach && ! self::points_here( $d->domain ) ) ) {
 			$msg = __( 'We could not see both DNS records yet (the TXT record and the address pointing to us). DNS changes can take up to 24 hours — we check again automatically.', 'kingdom-saas' );
+			self::step_back( $d );
 			$wpdb->update( ks_table( 'domains' ), array( 'status' => 'pending', 'last_error' => $msg ), array( 'id' => $id ) );
 			return new WP_Error( 'ks_dns', $msg );
 		}
-		$wpdb->update( ks_table( 'domains' ), array( 'status' => 'verified', 'last_error' => '', 'verified_at' => current_time( 'mysql', true ) ), array( 'id' => $id ) );
+		if ( ! $reach ) {
+			$msg = __( 'DNS is correct. The platform is now adding the domain to its hosting — this usually takes less than a day, and the domain connects automatically.', 'kingdom-saas' );
+			self::step_back( $d );
+			$wpdb->update( ks_table( 'domains' ), array( 'status' => 'pending', 'last_error' => $msg ), array( 'id' => $id ) );
+			self::tell_platform( $d, 'hosting' );
+			return new WP_Error( 'ks_hosting', $msg );
+		}
+		// Owned and reaching us: verified (so a TLS proxy may issue its certificate).
+		$wpdb->update( ks_table( 'domains' ), array( 'status' => 'verified', 'last_error' => '', 'verified_at' => $d->verified_at ? $d->verified_at : current_time( 'mysql', true ) ), array( 'id' => $id ) );
+		if ( 'https' === ks_scheme() && ! self::https_check( $d ) ) {
+			$msg = __( 'Domain connected — waiting for its SSL certificate (https). Your platform address keeps working until then; we switch automatically.', 'kingdom-saas' );
+			self::step_back( $d );
+			$wpdb->update( ks_table( 'domains' ), array( 'last_error' => $msg ), array( 'id' => $id ) );
+			self::tell_platform( $d, 'ssl' );
+			return new WP_Error( 'ks_ssl', $msg );
+		}
+		if ( (int) $d->is_primary ) {
+			return true;
+		}
 		self::make_primary( $id );
 		$sub = KS_Tenants::get( $d->blog_id );
 		if ( $sub ) {
@@ -199,8 +221,89 @@ class KS_Domains {
 	 * @return bool
 	 */
 	private static function http_check( $d ) {
-		$res = wp_safe_remote_get( 'http://' . $d->domain . '/.well-known/ks-domain-check', array( 'timeout' => 10, 'redirection' => 0, 'sslverify' => false ) );
+		foreach ( array( 'http', 'https' ) as $scheme ) {
+			$res = wp_safe_remote_get( $scheme . '://' . $d->domain . '/.well-known/ks-domain-check', array( 'timeout' => 10, 'redirection' => 0, 'sslverify' => false ) );
+			if ( ! is_wp_error( $res ) && trim( wp_remote_retrieve_body( $res ) ) === $d->token ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * What a domain is waiting for from the platform owner, if anything.
+	 *
+	 * @param object $d Domain row.
+	 * @return string hosting|ssl|'' .
+	 */
+	public static function waiting_on_platform( $d ) {
+		if ( (int) $d->is_primary ) {
+			return '';
+		}
+		$sent = (array) get_site_option( 'ks_domain_notices', array() );
+		$step = 'verified' === $d->status ? 'ssl' : 'hosting';
+		return isset( $sent[ $d->id . ':' . $d->domain . ':' . $step ] ) ? $step : '';
+	}
+
+	/**
+	 * A main-address domain that stopped working: put the church back on its platform address
+	 * so visitors are not sent to a domain that does not open.
+	 *
+	 * @param object $d Domain row.
+	 */
+	private static function step_back( $d ) {
+		global $wpdb;
+		if ( (int) $d->is_primary ) {
+			self::revert( $d->blog_id );
+			$wpdb->update( ks_table( 'domains' ), array( 'is_primary' => 0 ), array( 'id' => (int) $d->id ) );
+		}
+	}
+
+	/**
+	 * Does the domain open this WordPress over https with a valid certificate?
+	 *
+	 * @param object $d Domain row.
+	 * @return bool
+	 */
+	private static function https_check( $d ) {
+		$res = wp_safe_remote_get( 'https://' . $d->domain . '/.well-known/ks-domain-check', array( 'timeout' => 10, 'redirection' => 0, 'sslverify' => true ) );
 		return ! is_wp_error( $res ) && trim( wp_remote_retrieve_body( $res ) ) === $d->token;
+	}
+
+	/**
+	 * Email the platform owner (once per domain and step) when a domain needs adding to the
+	 * hosting account or its SSL certificate.
+	 *
+	 * @param object $d    Domain row.
+	 * @param string $step hosting|ssl.
+	 */
+	private static function tell_platform( $d, $step ) {
+		$sent = (array) get_site_option( 'ks_domain_notices', array() );
+		$key  = $d->id . ':' . $d->domain . ':' . $step;
+		if ( isset( $sent[ $key ] ) ) {
+			return;
+		}
+		$sent[ $key ] = time();
+		update_site_option( 'ks_domain_notices', array_slice( $sent, -200, null, true ) );
+		$sub    = KS_Tenants::get( $d->blog_id );
+		$church = $sub ? $sub->church_name : '#' . $d->blog_id;
+		$bare   = preg_replace( '/^www\./', '', $d->domain );
+		if ( 'hosting' === $step ) {
+			/* translators: 1: domain, 2: church */
+			$subject = sprintf( __( 'Action needed: add %1$s to your hosting (%2$s)', 'kingdom-saas' ), $d->domain, $church );
+			/* translators: 1: church, 2: domain */
+			$body = '<p>' . esc_html( sprintf( __( '%1$s pointed %2$s to your platform and the DNS is correct, but your hosting does not serve that domain yet.', 'kingdom-saas' ), $church, $d->domain ) ) . '</p>'
+				/* translators: 1: domain, 2: www domain */
+				. '<p>' . esc_html( sprintf( __( 'Add %1$s as a parked (alias) domain of your platform, pointing to the same folder, then install the free SSL certificate for %1$s and %2$s. Hostinger: hPanel → Websites → your platform → Domains → Parked domains, then Security → SSL.', 'kingdom-saas' ), $bare, 'www.' . $bare ) ) . '</p>'
+				. '<p>' . esc_html__( 'The church keeps its platform address until then, and the domain connects automatically within 12 hours (or press Check DNS in Platform → Domains).', 'kingdom-saas' ) . '</p>';
+		} else {
+			/* translators: 1: domain, 2: church */
+			$subject = sprintf( __( 'Action needed: SSL certificate for %1$s (%2$s)', 'kingdom-saas' ), $d->domain, $church );
+			/* translators: 1: domain, 2: www domain */
+			$body = '<p>' . esc_html( sprintf( __( '%1$s reaches your platform, but https does not work for it yet. Install the free SSL certificate for %1$s and %2$s (Hostinger: hPanel → Security → SSL).', 'kingdom-saas' ), $bare, 'www.' . $bare ) ) . '</p>'
+				. '<p>' . esc_html__( 'The church keeps its platform address until https works, then switches automatically.', 'kingdom-saas' ) . '</p>';
+		}
+		KS_Email::send( get_site_option( 'admin_email' ), $subject, $body, array( __( 'Open Domains', 'kingdom-saas' ), ks_platform_url( 'platform/?tab=domains' ) ) );
 	}
 
 	/**
@@ -323,11 +426,12 @@ class KS_Domains {
 	public static function recheck_pending() {
 		global $wpdb;
 		foreach ( self::all() as $d ) {
-			if ( 'pending' !== $d->status ) {
+			// Pending claims, and verified domains still waiting for https before they switch.
+			if ( 'pending' !== $d->status && ! ( 'verified' === $d->status && ! (int) $d->is_primary ) ) {
 				continue;
 			}
-			// Claims never verified within 7 days are dropped.
-			if ( strtotime( $d->created_at . ' UTC' ) < time() - 7 * DAY_IN_SECONDS ) {
+			// Claims whose owner never proved it (TXT record) within 7 days are dropped.
+			if ( 'pending' === $d->status && strtotime( $d->created_at . ' UTC' ) < time() - 7 * DAY_IN_SECONDS && ! self::txt_check( $d ) ) {
 				$wpdb->delete( ks_table( 'domains' ), array( 'id' => (int) $d->id ) );
 				continue;
 			}

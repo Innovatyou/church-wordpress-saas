@@ -212,7 +212,8 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 			<button class="ks-btn"><?php esc_html_e( 'Save domain settings', 'kingdom-saas' ); ?></button>
 		</form>
 		<div class="ks-card">
-			<h2><?php esc_html_e( 'After a church adds a domain', 'kingdom-saas' ); ?></h2>
+			<h2><?php esc_html_e( 'After a church adds a domain — your step', 'kingdom-saas' ); ?></h2>
+			<p><?php esc_html_e( 'The church only changes its DNS. Its site lives on your hosting, so you add the domain there; you get an email when a domain is waiting for you. The church keeps its platform address until the domain really opens its site (with https), then switches automatically.', 'kingdom-saas' ); ?></p>
 			<p><strong><?php esc_html_e( 'Shared hosting (Hostinger, cPanel, Plesk):', 'kingdom-saas' ); ?></strong> <?php esc_html_e( 'add the church’s domain to your hosting as a parked (alias) domain of your platform, pointing to the same folder, then install the free SSL certificate for it and its www. Hostinger: hPanel → Websites → your site → Domains → Parked domains, then Security → SSL.', 'kingdom-saas' ); ?></p>
 			<p class="ks-small"><?php /* translators: %s: endpoint */ printf( esc_html__( 'Your own server (VPS): use Caddy with on-demand TLS and set its "ask" URL to %s (see deploy/Caddyfile) — new domains then get https automatically.', 'kingdom-saas' ), '<code>' . esc_html( get_rest_url( get_main_site_id(), 'ks/v1/tls' ) ) . '</code>' ); ?></p>
 		</div>
@@ -226,7 +227,16 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 				<?php foreach ( KS_Domains::all() as $dm ) : ?>
 					<?php $s = KS_Tenants::get( $dm->blog_id ); ?>
 					<tr>
-						<td data-label="<?php esc_attr_e( 'Domain', 'kingdom-saas' ); ?>"><strong><?php echo esc_html( $dm->domain ); ?></strong><small><?php echo $dm->is_primary ? esc_html__( 'Main address', 'kingdom-saas' ) : esc_html( $dm->last_error ); ?></small></td>
+						<?php $ks_wait = KS_Domains::waiting_on_platform( $dm ); ?>
+						<td data-label="<?php esc_attr_e( 'Domain', 'kingdom-saas' ); ?>"><strong><?php echo esc_html( $dm->domain ); ?></strong>
+							<?php if ( 'hosting' === $ks_wait ) : ?>
+								<small class="ks-wait"><?php /* translators: %s: domain */ printf( esc_html__( 'Action needed: DNS is correct — add %s to your hosting as a parked domain (Hostinger: Domains → Parked domains) and install its SSL, then press Check DNS.', 'kingdom-saas' ), esc_html( preg_replace( '/^www\./', '', $dm->domain ) ) ); ?></small>
+							<?php elseif ( 'ssl' === $ks_wait ) : ?>
+								<small class="ks-wait"><?php esc_html_e( 'Action needed: the domain reaches the platform but https does not work yet — install its free SSL certificate (Hostinger: Security → SSL), then press Check DNS.', 'kingdom-saas' ); ?></small>
+							<?php else : ?>
+								<small><?php echo $dm->is_primary ? esc_html__( 'Main address', 'kingdom-saas' ) : esc_html( $dm->last_error ); ?></small>
+							<?php endif; ?>
+						</td>
 						<td data-label="<?php esc_attr_e( 'Church', 'kingdom-saas' ); ?>"><?php echo esc_html( $s ? $s->church_name : '#' . $dm->blog_id ); ?></td>
 						<td data-label="<?php esc_attr_e( 'Status', 'kingdom-saas' ); ?>"><?php echo wp_kses_post( ks_badge( $dm->status ) ); ?></td>
 						<td class="ks-row-actions">

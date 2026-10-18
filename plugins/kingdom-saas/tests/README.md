@@ -31,6 +31,7 @@ node e2e-custom-domain.js "<login link>" $SCRATCH/saas   # add/verify/remove/re-
 node e2e-platform.js $SCRATCH     # plan limits, trial → payment due → suspended → paid, platform actions
 node e2e-plan-changes.js $SCRATCH # white-label, downgrade disconnects domain, upgrade reconnects
 wp eval-file gateways.php         # Paystack/Stripe checkout, webhooks (signatures), tampering, cancel, reminders
+wp eval-file domains.php          # domain switches only once it really opens the site (hosting + https); owner emails (edits /etc/hosts)
 ```
 
 `mu-plugins/gateway-mock.php` fakes Paystack and Stripe API replies so payments can be tested

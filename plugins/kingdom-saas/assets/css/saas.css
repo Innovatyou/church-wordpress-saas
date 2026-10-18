@@ -299,3 +299,4 @@ body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-syste
 .ks-ticks--wide { max-width: 640px; margin: 0 auto; gap: .8rem; }
 .ks-foot__links { display: flex; flex-wrap: wrap; gap: .6rem 1.2rem; flex: 1 1 100%; order: 3; font-size: .9rem; }
 .ks-foot__links a { color: var(--ks-muted); }
+.ks-wait { display: block; margin-top: .3rem; color: var(--ks-warn, #b7791f); font-weight: 600; }
