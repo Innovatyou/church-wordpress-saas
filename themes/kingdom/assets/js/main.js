@@ -273,13 +273,16 @@
 		};
 		document.addEventListener('click', function (e) {
 			var trigger = e.target.closest('[data-video], [data-video-src]');
+			// Only real video buttons (with a video) open the player.
+			if (trigger && !(trigger.dataset.videoSrc || /^[A-Za-z0-9_-]{11}$/.test(trigger.dataset.video || ''))) { trigger = null; }
 			if (trigger) {
 				e.preventDefault();
 				var iframe = document.createElement('iframe');
 				// data-video = YouTube ID; data-video-src = any embed URL (e.g. Vimeo).
 				iframe.src = trigger.dataset.videoSrc || 'https://www.youtube.com/embed/' + encodeURIComponent(trigger.dataset.video) + '?autoplay=1&rel=0';
-				iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+				iframe.allow = 'autoplay; encrypted-media; picture-in-picture; web-share';
 				iframe.allowFullscreen = true;
+				iframe.referrerPolicy = 'strict-origin-when-cross-origin'; // YouTube refuses embeds that do not say which site they are on
 				body.innerHTML = '';
 				body.appendChild(iframe);
 				modalOpener = trigger;
@@ -317,7 +320,7 @@
 		}
 		function apply(s) {
 			if (!s || !s.state || s.state === 'none') { return; }
-			var changed = s.state !== sec.dataset.state || (s.video_id || '') !== sec.dataset.video;
+			var changed = s.state !== sec.dataset.state || (s.video_id || '') !== sec.dataset.ytliveVideo;
 			sec.dataset.state = s.state; sec.dataset.starts = s.starts_at || 0;
 			sec.className = sec.className.replace(/\bis-(live|upcoming|offline)\b/g, '') + ' is-' + s.state;
 			if (label) { label.textContent = s.label; }
@@ -331,7 +334,7 @@
 					if (s.chat) { chat.appendChild(frame(s.chat, 'Live chat')); }
 					grid.classList.toggle('has-chat', !!s.chat);
 				}
-				sec.dataset.video = s.video_id || '';
+				sec.dataset.ytliveVideo = s.video_id || '';
 			}
 			tick();
 		}

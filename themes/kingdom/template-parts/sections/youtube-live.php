@@ -17,7 +17,7 @@ $kingdom_title = get_theme_mod( 'kingdom_ytlive_title', __( 'Worship with us liv
 ?>
 <section class="k-section k-section--dark k-ytlive is-<?php echo esc_attr( $kingdom_live['state'] ); ?>" id="live"
 	<?php if ( 'channel' === $kingdom_live['mode'] ) : ?>
-		data-ytlive="<?php echo esc_url( rest_url( 'kingdom/v1/live' ) ); ?>" data-state="<?php echo esc_attr( $kingdom_live['state'] ); ?>" data-video="<?php echo esc_attr( $kingdom_live['video_id'] ); ?>" data-starts="<?php echo (int) $kingdom_live['starts_at']; ?>"
+		data-ytlive="<?php echo esc_url( rest_url( 'kingdom/v1/live' ) ); ?>" data-state="<?php echo esc_attr( $kingdom_live['state'] ); ?>" data-ytlive-video="<?php echo esc_attr( $kingdom_live['video_id'] ); ?>" data-starts="<?php echo (int) $kingdom_live['starts_at']; ?>"
 	<?php endif; ?>>
 	<div class="k-container">
 		<?php kingdom_section_heading( __( 'Church online', 'kingdom' ), $kingdom_title, __( 'Join the service from anywhere in the world.', 'kingdom' ) ); ?>
