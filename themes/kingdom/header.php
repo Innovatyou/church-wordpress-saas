@@ -54,8 +54,8 @@ if ( ! $cta_url && kingdom_plugin_active() ) {
 				<?php if ( kingdom_plugin_active() && current_user_can( 'manage_kcs' ) ) : ?>
 					<a href="<?php echo esc_url( kcs_page_url( 'church_admin' ) ); ?>"><?php esc_html_e( 'Church admin', 'kingdom' ); ?></a>
 				<?php endif; ?>
-				<?php if ( kingdom_plugin_active() ) : ?>
-					<a href="<?php echo esc_url( is_user_logged_in() && kcs_is_partner() ? kcs_page_url( 'partner_dashboard' ) : kcs_page_url( 'partner_login' ) ); ?>"><?php echo is_user_logged_in() && kcs_is_partner() ? esc_html__( 'My partner dashboard', 'kingdom' ) : esc_html__( 'Partner login', 'kingdom' ); ?></a>
+				<?php if ( kingdom_plugin_active() && is_user_logged_in() && kcs_is_partner() ) : ?>
+					<a href="<?php echo esc_url( kcs_page_url( 'partner_dashboard' ) ); ?>"><?php esc_html_e( 'My partner dashboard', 'kingdom' ); ?></a>
 				<?php endif; ?>
 				<?php foreach ( $social as $net => $url ) : ?>
 					<a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener" aria-label="<?php echo esc_attr( ucfirst( $net ) ); ?>" class="k-hide-sm"><?php echo kingdom_icon( $net ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></a>

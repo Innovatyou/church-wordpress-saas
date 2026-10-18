@@ -711,9 +711,22 @@ function kingdom_menu_tree( $location = 'primary' ) {
 		}
 	}
 	if ( ! $items ) {
-		// No menu yet: top-level pages and their sub-pages, like the desktop fallback.
-		$current = is_page() ? get_queried_object_id() : 0;
-		foreach ( get_pages( array( 'sort_column' => 'menu_order,post_title' ) ) as $pg ) {
+		// No menu yet: Home, then the site's pages (minus system pages), like the desktop fallback.
+		$current    = is_page() ? get_queried_object_id() : 0;
+		$items[ -1 ] = array(
+			'id'       => -1,
+			'parent'   => 0,
+			'title'    => __( 'Home', 'kingdom' ),
+			'url'      => home_url( '/' ),
+			'target'   => '',
+			'current'  => is_front_page(),
+			'ancestor' => false,
+			'children' => array(),
+		);
+		foreach ( get_pages( array( 'sort_column' => 'menu_order,post_title', 'exclude' => kingdom_hidden_menu_pages() ) ) as $pg ) {
+			if ( (int) get_option( 'page_on_front' ) === (int) $pg->ID ) {
+				continue;
+			}
 			$items[ (int) $pg->ID ] = array(
 				'id'       => (int) $pg->ID,
 				'parent'   => (int) $pg->post_parent,
@@ -795,9 +808,34 @@ function kingdom_drawer_panel( $item, $parent ) {
  * Fallback for the primary menu: list published pages.
  */
 function kingdom_fallback_menu() {
-	echo '<ul class="k-menu">';
-	wp_list_pages( array( 'title_li' => '', 'depth' => 2 ) );
+	$exclude = kingdom_hidden_menu_pages();
+	if ( get_option( 'page_on_front' ) ) {
+		$exclude[] = (int) get_option( 'page_on_front' );
+	}
+	echo '<ul class="k-menu"><li class="page_item' . ( is_front_page() ? ' current_page_item' : '' ) . '"><a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html__( 'Home', 'kingdom' ) . '</a></li>';
+	wp_list_pages( array( 'title_li' => '', 'depth' => 2, 'exclude' => implode( ',', $exclude ) ) );
 	echo '</ul>';
+}
+
+/**
+ * Pages left out of the automatic menu (used until the church builds its own menu): system pages
+ * such as Thank You, Church Admin, Partner Login and Partner Dashboard, plus WordPress's sample page.
+ * Staff and partners reach their dashboards from the buttons in the menu instead.
+ *
+ * @return int[]
+ */
+function kingdom_hidden_menu_pages() {
+	$ids = array();
+	if ( kingdom_plugin_active() ) {
+		foreach ( array( 'thank_you', 'church_admin', 'partner_dashboard', 'partner_login' ) as $key ) {
+			$ids[] = (int) kcs_get_option( 'page_' . $key, 0 );
+		}
+	}
+	global $wpdb;
+	// WordPress's "Sample Page" (and copies such as sample-page-2).
+	$ids = array_merge( $ids, array_map( 'intval', $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'page' AND post_name REGEXP '^sample-page(-[0-9]+)?$'" ) ) );
+	$ids[] = (int) get_option( 'wp_page_for_privacy_policy' );
+	return array_values( array_filter( array_unique( (array) apply_filters( 'kingdom_hidden_menu_pages', $ids ) ) ) );
 }
 
 /**
