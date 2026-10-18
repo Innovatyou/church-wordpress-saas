@@ -16,6 +16,8 @@ $kingdom_image   = get_theme_mod( 'kingdom_hero_image' );
 if ( ! $kingdom_image && is_page() && has_post_thumbnail() ) {
 	$kingdom_image = get_the_post_thumbnail_url( null, 'kingdom-hero' );
 }
+// The floating cross and bubbles decorate the built-in illustration only, not a church's own photo.
+$kingdom_own_photo = (bool) $kingdom_image;
 if ( ! $kingdom_image ) {
 	$kingdom_image = kingdom_image( 'kingdom_hero_image' );
 }
@@ -105,7 +107,7 @@ $kingdom_buttons = function () use ( $kingdom_b1t, $kingdom_b1u, $kingdom_b2t, $
 				<button type="button" class="k-hero__sound" data-video="<?php echo esc_attr( $kingdom_bg['id'] ); ?>"><?php echo kingdom_icon( 'play' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php esc_html_e( 'Watch with sound', 'kingdom' ); ?></button>
 			<?php endif; ?>
 		<?php else : ?>
-		<?php if ( ! $kingdom_bg ) : ?>
+		<?php if ( ! $kingdom_bg && ! $kingdom_own_photo ) : ?>
 		<div class="k-hero__scene" aria-hidden="true" data-parallax>
 			<span class="k-orb k-orb--1"></span><span class="k-orb k-orb--2"></span><span class="k-orb k-orb--3"></span>
 			<span class="k-cross3d"><i></i><i></i></span>
