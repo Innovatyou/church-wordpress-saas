@@ -14,6 +14,7 @@ $titles = array(
 	'landing'       => $name . ' — ' . __( 'Church websites, partner portal & online giving', 'kingdom-saas' ),
 	'signup'        => __( 'Start your free trial', 'kingdom-saas' ) . ' — ' . $name,
 	'platform'      => __( 'Platform dashboard', 'kingdom-saas' ) . ' — ' . $name,
+	'login'         => __( 'Log in', 'kingdom-saas' ) . ' — ' . $name,
 	'test-checkout' => __( 'Test checkout', 'kingdom-saas' ) . ' — ' . $name,
 );
 $color  = sanitize_hex_color( ks_get( 'brand_color' ) ) ? sanitize_hex_color( ks_get( 'brand_color' ) ) : '#5b2a86';

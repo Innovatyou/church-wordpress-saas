@@ -220,7 +220,7 @@ class KS_Provisioner {
 			/* translators: %s: church */
 			sprintf( __( 'Your new website for %s is ready', 'kingdom-saas' ), $church ),
 			'<p>' . esc_html__( 'Your church website, partner portal and Church Admin dashboard are live.', 'kingdom-saas' ) . '</p>'
-			. '<p><strong>' . esc_html__( 'Website:', 'kingdom-saas' ) . '</strong> ' . esc_html( KS_Tenants::url( $blog_id ) ) . '<br><strong>' . esc_html__( 'Log in:', 'kingdom-saas' ) . '</strong> ' . esc_html( get_site_url( $blog_id, 'wp-login.php' ) ) . '<br><strong>' . esc_html__( 'Email:', 'kingdom-saas' ) . '</strong> ' . esc_html( $email ) . '</p>'
+			. '<p><strong>' . esc_html__( 'Website:', 'kingdom-saas' ) . '</strong> ' . esc_html( KS_Tenants::url( $blog_id ) ) . '<br><strong>' . esc_html__( 'Log in:', 'kingdom-saas' ) . '</strong> ' . esc_html( KS_Tenants::admin_url( $blog_id ) ) . '<br><strong>' . esc_html__( 'Email:', 'kingdom-saas' ) . '</strong> ' . esc_html( $email ) . '</p>'
 			/* translators: 1: days, 2: date */
 			. ( 'trialing' === $sub->status ? '<p>' . esc_html( sprintf( __( 'Your free trial lasts %1$d days, until %2$s. Choose a plan any time from Church Admin → Subscription.', 'kingdom-saas' ), $days, date_i18n( get_option( 'date_format' ), strtotime( $trial . ' UTC' ) ) ) ) . '</p>' : '' ),
 			array( __( 'Open Church Admin', 'kingdom-saas' ), KS_Tenants::admin_url( $blog_id ) )

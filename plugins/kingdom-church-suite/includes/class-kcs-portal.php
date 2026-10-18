@@ -25,6 +25,12 @@ class KCS_Portal {
 	public static function init() {
 		add_action( 'template_redirect', array( __CLASS__, 'handle_forms' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'partner_home' ), 20 );
+		// The church's own log-in page replaces the WordPress login screen.
+		add_filter( 'login_url', array( __CLASS__, 'login_url' ), 10, 2 );
+		add_action( 'login_init', array( __CLASS__, 'leave_wp_login' ), 1 );
+		add_action( 'login_enqueue_scripts', array( __CLASS__, 'login_style' ) );
+		add_filter( 'login_headerurl', array( __CLASS__, 'login_logo_url' ) );
+		add_filter( 'login_headertext', array( __CLASS__, 'login_logo_text' ) );
 		add_action( 'admin_init', array( __CLASS__, 'block_admin' ) );
 		add_filter( 'show_admin_bar', array( __CLASS__, 'admin_bar' ) );
 		add_filter( 'login_redirect', array( __CLASS__, 'login_redirect' ), 10, 3 );
@@ -98,6 +104,112 @@ class KCS_Portal {
 			return kcs_page_url( 'partner_dashboard' );
 		}
 		return $redirect;
+	}
+
+	/**
+	 * Use the church's log-in page instead of wp-login.php?
+	 *
+	 * @return bool
+	 */
+	public static function replace_wp_login() {
+		$page = (int) kcs_get_option( 'page_partner_login', 0 );
+		return (bool) apply_filters( 'kcs_replace_wp_login', $page && 'publish' === get_post_status( $page ) );
+	}
+
+	/**
+	 * Log-in links point to the church's log-in page.
+	 *
+	 * @param string $url      Default URL.
+	 * @param string $redirect Where to go after logging in.
+	 * @return string
+	 */
+	public static function login_url( $url, $redirect = '' ) {
+		if ( ! self::replace_wp_login() ) {
+			return $url;
+		}
+		$login = kcs_page_url( 'partner_login' );
+		return $redirect ? add_query_arg( 'redirect_to', rawurlencode( $redirect ), $login ) : $login;
+	}
+
+	/**
+	 * Opening wp-login.php to log in goes to the church's log-in page. Password resets, log-out and
+	 * the "session expired" pop-up in wp-admin keep using wp-login.php (restyled with the church's look).
+	 */
+	public static function leave_wp_login() {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$action = isset( $_REQUEST['action'] ) ? sanitize_key( $_REQUEST['action'] ) : 'login';
+		if ( ! self::replace_wp_login() || 'GET' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || 'login' !== $action || isset( $_GET['interim-login'] ) || isset( $_GET['checkemail'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			return;
+		}
+		$to = kcs_page_url( 'partner_login' );
+		if ( ! empty( $_GET['redirect_to'] ) ) {
+			$to = add_query_arg( 'redirect_to', rawurlencode( esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) ), $to );
+		}
+		if ( ! empty( $_GET['loggedout'] ) ) {
+			$to = add_query_arg( 'kcs_out', 1, $to );
+		}
+		// phpcs:enable
+		wp_safe_redirect( $to );
+		exit;
+	}
+
+	/**
+	 * CSS that gives the remaining wp-login.php screens (forgot / reset password) a branded look.
+	 *
+	 * @param string $color Brand colour.
+	 * @param string $mode  dark|light.
+	 * @param string $logo  Optional logo URL (otherwise the name from login_headertext is shown).
+	 * @return string
+	 */
+	public static function login_screen_css( $color, $mode = 'light', $logo = '' ) {
+		$color = sanitize_hex_color( $color ) ? sanitize_hex_color( $color ) : '#5b2a86';
+		$dark  = 'dark' === $mode;
+		$bg    = $dark ? '#120f17' : '#f6f3fa';
+		$card  = $dark ? '#1c1723' : '#ffffff';
+		$text  = $dark ? '#f3eff8' : '#1d1724';
+		$muted = $dark ? '#b3abbe' : '#6b6476';
+		$line  = $dark ? '#332a3f' : '#e7e1ee';
+		$css   = 'body.login{background:radial-gradient(circle at 20% 0%,' . $color . '33,transparent 55%),' . $bg . ';color:' . $text . ';font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}'
+			. '.login h1 a{background:none!important;width:auto!important;height:auto!important;text-indent:0!important;font-size:1.5rem;font-weight:800;color:' . $text . '!important;line-height:1.2;overflow:visible}'
+			. ( $logo ? '.login h1 a{background:url(' . esc_url( $logo ) . ') center top/contain no-repeat!important;height:80px!important;width:100%!important;text-indent:-9999px!important}' : '' )
+			. '.login form{background:' . $card . ';border:1px solid ' . $line . ';border-radius:18px;box-shadow:0 24px 50px -30px rgba(0,0,0,.45);padding:26px}'
+			. '.login label,.login .message,.login .notice{color:' . $text . '}'
+			. '.login form .input,.login input[type=text],.login input[type=password],.login input[type=email]{background:' . ( $dark ? '#261f30' : '#fff' ) . ';color:' . $text . ';border:1px solid ' . $line . ';border-radius:10px;font-size:16px;padding:8px 12px}'
+			. '.login .message,.login .notice,.login .success{background:' . $card . ';border-left-color:' . $color . '!important;border-radius:12px}'
+			. '.login input:focus{border-color:' . $color . '!important;box-shadow:0 0 0 1px ' . $color . '!important;outline:0}'
+			. '.wp-core-ui .button-primary{background:' . $color . '!important;border-color:' . $color . '!important;border-radius:999px!important;padding:2px 20px!important;font-weight:700}'
+			. '.login #nav a,.login #backtoblog a,.login .privacy-policy-page-link a{color:' . $muted . '!important}.login #nav a:hover,.login #backtoblog a:hover{color:' . $text . '!important}'
+			. '.login .language-switcher{display:none}.login .button.wp-hide-pw .dashicons{color:' . $muted . '}';
+		return $css;
+	}
+
+	/**
+	 * Church look for the remaining wp-login.php screens.
+	 */
+	public static function login_style() {
+		if ( ! self::replace_wp_login() ) {
+			return;
+		}
+		$logo = has_custom_logo() ? (string) wp_get_attachment_image_url( (int) get_theme_mod( 'custom_logo' ), 'medium' ) : (string) kcs_get_option( 'church_logo', '' );
+		echo '<style>' . self::login_screen_css( get_theme_mod( 'kingdom_color_primary', '#5b2a86' ), 'light', $logo ) . '</style>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+
+	/**
+	 * The logo on wp-login.php links to the church website.
+	 *
+	 * @return string
+	 */
+	public static function login_logo_url() {
+		return home_url( '/' );
+	}
+
+	/**
+	 * The logo text on wp-login.php is the church's name.
+	 *
+	 * @return string
+	 */
+	public static function login_logo_text() {
+		return kcs_get_option( 'church_name', get_bloginfo( 'name' ) );
 	}
 
 	/**

@@ -275,3 +275,11 @@ body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-syste
 :root[data-theme="dark"] .ks-mode__moon, :root:not([data-theme="dark"]) .ks-mode__sun { display: none; }
 .ks-top .ks-mode + .ks-btn { margin-left: .5rem; }
 :root[data-theme="dark"] .ks-feature__ic { color: color-mix(in srgb, var(--ks-brand) 35%, #fff); background: color-mix(in srgb, var(--ks-brand) 30%, transparent); }
+
+/* Log in */
+.ks-login__in { display: grid; place-items: center; min-height: calc(100vh - 260px); padding-block: 2rem; }
+.ks-login__card { width: min(440px, 100%); }
+.ks-login__head { text-align: center; display: grid; justify-items: center; gap: .3rem; }
+.ks-login__head h1 { font-size: 1.8rem; margin: .4rem 0 0; }
+.ks-login__head p { margin: 0; }
+.ks-btn--block { width: 100%; justify-content: center; }

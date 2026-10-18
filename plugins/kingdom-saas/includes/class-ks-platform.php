@@ -24,6 +24,126 @@ class KS_Platform {
 		add_filter( 'query_vars', array( __CLASS__, 'query_vars' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'handle' ), 1 );
 		add_action( 'template_redirect', array( __CLASS__, 'route' ), 5 );
+		// Our own log-in page instead of the WordPress one.
+		add_filter( 'login_url', array( __CLASS__, 'login_url' ), 20, 2 );
+		add_action( 'login_init', array( __CLASS__, 'leave_wp_login' ), 1 );
+		add_action( 'login_enqueue_scripts', array( __CLASS__, 'login_style' ), 20 );
+		add_filter( 'kcs_replace_wp_login', '__return_false' );
+		add_filter( 'login_headerurl', 'ks_platform_url', 20, 0 );
+		add_filter(
+			'login_headertext',
+			function () {
+				return ks_get( 'platform_name' );
+			},
+			20
+		);
+	}
+
+	/**
+	 * The platform log-in page.
+	 *
+	 * @param string $url      Default URL.
+	 * @param string $redirect Where to go after logging in.
+	 * @return string
+	 */
+	public static function login_url( $url, $redirect = '' ) {
+		$login = ks_platform_url( 'login/' );
+		return $redirect ? add_query_arg( 'redirect_to', rawurlencode( $redirect ), $login ) : $login;
+	}
+
+	/**
+	 * Visitors who open wp-login.php to log in go to the platform log-in page. Password resets,
+	 * log-out and the "session expired" pop-up in wp-admin keep using wp-login.php (restyled below).
+	 */
+	public static function leave_wp_login() {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$action = isset( $_REQUEST['action'] ) ? sanitize_key( $_REQUEST['action'] ) : 'login';
+		if ( 'GET' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || 'login' !== $action || isset( $_GET['interim-login'] ) || isset( $_GET['checkemail'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			return;
+		}
+		$to = ks_platform_url( 'login/' );
+		if ( ! empty( $_GET['redirect_to'] ) ) {
+			$to = add_query_arg( 'redirect_to', rawurlencode( esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) ), $to );
+		}
+		if ( ! empty( $_GET['loggedout'] ) ) {
+			$to = add_query_arg( 'ks_out', 1, $to );
+		}
+		// phpcs:enable
+		wp_safe_redirect( $to );
+		exit;
+	}
+
+	/**
+	 * Platform look for the remaining wp-login.php screens (forgot / reset password).
+	 */
+	public static function login_style() {
+		$color = sanitize_hex_color( ks_get( 'brand_color' ) ) ? sanitize_hex_color( ks_get( 'brand_color' ) ) : '#5b2a86';
+		if ( class_exists( 'KCS_Portal' ) ) {
+			echo '<style>' . KCS_Portal::login_screen_css( $color, 'light' === ks_get( 'color_mode' ) ? 'light' : 'dark' ) . '</style>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		}
+	}
+
+	/**
+	 * Where a user goes after logging in on the platform.
+	 *
+	 * @param WP_User $user     User.
+	 * @param string  $redirect Requested page.
+	 * @return string
+	 */
+	public static function home_for( $user, $redirect = '' ) {
+		if ( is_super_admin( $user->ID ) ) {
+			return $redirect ? wp_validate_redirect( $redirect, ks_platform_url( 'platform/' ) ) : ks_platform_url( 'platform/' );
+		}
+		// A church owner or staff member: open their church's dashboard (logged in there too).
+		global $wpdb;
+		$blog = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT blog_id FROM ' . ks_table( 'subscriptions' ) . ' WHERE owner_id = %d ORDER BY id DESC LIMIT 1', $user->ID ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		if ( ! $blog ) {
+			foreach ( array_keys( get_blogs_of_user( $user->ID ) ) as $id ) {
+				if ( ! is_main_site( $id ) ) {
+					$blog = (int) $id;
+					break;
+				}
+			}
+		}
+		if ( $blog ) {
+			return KS_Login::link( $user->ID, $blog );
+		}
+		return $redirect ? wp_validate_redirect( $redirect, ks_platform_url() ) : ks_platform_url();
+	}
+
+	/**
+	 * Log in from the platform log-in page.
+	 *
+	 * @param array $d Posted data (unslashed).
+	 */
+	private static function login( $d ) {
+		$redirect = esc_url_raw( (string) ( $d['redirect_to'] ?? '' ) );
+		$back     = $redirect ? add_query_arg( 'redirect_to', rawurlencode( $redirect ), ks_platform_url( 'login/' ) ) : ks_platform_url( 'login/' );
+		if ( ! isset( $d['_ks'] ) || ! wp_verify_nonce( sanitize_key( $d['_ks'] ), 'ks_login' ) ) {
+			self::back( __( 'Your session expired. Please try again.', 'kingdom-saas' ), 'error', $back );
+		}
+		if ( ! ks_rate_limit( 'login', 10, 10 * MINUTE_IN_SECONDS ) ) {
+			self::back( __( 'Too many attempts. Please wait a few minutes and try again.', 'kingdom-saas' ), 'error', $back );
+		}
+		$login = sanitize_text_field( (string) ( $d['log'] ?? '' ) );
+		if ( is_email( $login ) ) {
+			$u     = get_user_by( 'email', $login );
+			$login = $u ? $u->user_login : $login;
+		}
+		$user = wp_signon(
+			array(
+				'user_login'    => $login,
+				'user_password' => (string) ( $d['pwd'] ?? '' ),
+				'remember'      => ! empty( $d['rememberme'] ),
+			),
+			is_ssl()
+		);
+		if ( is_wp_error( $user ) ) {
+			self::back( __( 'That email/username or password is not right.', 'kingdom-saas' ), 'error', $back, array( 'log' => sanitize_text_field( (string) ( $d['log'] ?? '' ) ) ) );
+		}
+		add_filter( 'allowed_redirect_hosts', array( 'KS_REST', 'allow_site_host' ) );
+		wp_safe_redirect( self::home_for( $user, $redirect ) );
+		exit;
 	}
 
 	/**
@@ -33,7 +153,9 @@ class KS_Platform {
 		add_rewrite_rule( '^signup/?$', 'index.php?ks_route=signup', 'top' );
 		add_rewrite_rule( '^platform/?$', 'index.php?ks_route=platform', 'top' );
 		add_rewrite_rule( '^billing/test-checkout/?$', 'index.php?ks_route=test-checkout', 'top' );
-		if ( get_site_option( 'ks_flush_rewrites' ) ) {
+		add_rewrite_rule( '^login/?$', 'index.php?ks_route=login', 'top' );
+		$rules = get_option( 'rewrite_rules' );
+		if ( get_site_option( 'ks_flush_rewrites' ) || ( is_array( $rules ) && ! isset( $rules['^login/?$'] ) ) ) {
 			delete_site_option( 'ks_flush_rewrites' );
 			flush_rewrite_rules( false );
 		}
@@ -59,8 +181,13 @@ class KS_Platform {
 			$route = 'landing';
 		}
 		// Only known pages; anything else (including "./platform" or "../x") is a normal 404.
-		if ( ! $route || ! in_array( $route, array( 'landing', 'signup', 'platform', 'test-checkout' ), true ) ) {
+		if ( ! $route || ! in_array( $route, array( 'landing', 'signup', 'platform', 'test-checkout', 'login' ), true ) ) {
 			return;
+		}
+		if ( 'login' === $route && is_user_logged_in() ) {
+			add_filter( 'allowed_redirect_hosts', array( 'KS_REST', 'allow_site_host' ) );
+			wp_safe_redirect( self::home_for( wp_get_current_user(), isset( $_GET['redirect_to'] ) ? esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) : '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			exit;
 		}
 		if ( 'platform' === $route && ! is_super_admin() ) {
 			wp_safe_redirect( wp_login_url( ks_platform_url( 'platform/' ) ) );
@@ -145,6 +272,10 @@ class KS_Platform {
 		}
 		if ( 'test_pay' === $do ) {
 			self::test_pay( $d );
+			return;
+		}
+		if ( 'login' === $do ) {
+			self::login( $d );
 			return;
 		}
 		if ( ! is_super_admin() || ! isset( $d['_ks'] ) || ! wp_verify_nonce( sanitize_key( $d['_ks'] ), 'ks_platform' ) ) {
