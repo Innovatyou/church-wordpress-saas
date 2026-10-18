@@ -106,7 +106,8 @@ $kingdom_copy    = get_theme_mod( 'kingdom_copyright' ) ? get_theme_mod( 'kingdo
 			?>
 		</div>
 	<?php elseif ( $kingdom_widgets || array_filter( array( $kingdom_show['about'], $kingdom_show['times'], $kingdom_show['links'], $kingdom_show['contact'] ) ) ) : ?>
-		<div class="k-container k-footer__grid">
+		<?php $kingdom_cols = $kingdom_widgets ? 4 : count( array_filter( array( $kingdom_show['about'], $kingdom_show['times'], $kingdom_show['links'], $kingdom_show['contact'] ) ) ); ?>
+		<div class="k-container k-footer__grid k-footer__grid--<?php echo (int) $kingdom_cols; ?>">
 			<?php if ( $kingdom_widgets ) : ?>
 				<?php for ( $i = 1; $i <= 4; $i++ ) : ?>
 					<div class="k-footer__col"><?php dynamic_sidebar( 'footer-' . $i ); ?></div>

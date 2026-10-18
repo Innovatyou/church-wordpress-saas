@@ -117,6 +117,8 @@ p { margin: 0 0 1.1em; }
 .k-brand { flex: none; }
 .k-brand__name { font-family: var(--k-font-heading); font-size: 1.45rem; font-weight: 800; color: var(--k-text); text-decoration: none; }
 .k-brand img { max-height: 56px; width: auto; }
+/* Long church names: smaller, at most two lines, so the menu keeps its room. */
+.k-brand__name.is-long { font-size: 1.05rem; line-height: 1.2; max-width: 17em; text-wrap: balance; }
 .k-nav { flex: 1; }
 .k-menu { list-style: none; display: flex; align-items: center; gap: .25rem; margin: 0; padding: 0; justify-content: center; }
 .k-menu a { display: block; white-space: nowrap; padding: .6rem .7rem; border-radius: 10px; color: var(--k-text); text-decoration: none; font-weight: 600; font-size: .95rem; }
@@ -145,7 +147,9 @@ p { margin: 0 0 1.1em; }
 .has-transparent-header .k-header:not(.is-scrolled) .k-menu > li > a,
 .has-transparent-header .k-header:not(.is-scrolled) .k-brand__name,
 .has-transparent-header .k-header:not(.is-scrolled) .k-icon-btn { color: #fff; border-color: rgba(255,255,255,.3); }
-.has-transparent-header .k-header:not(.is-scrolled) .k-menu > li > a:hover { background: rgba(255,255,255,.12); }
+.has-transparent-header .k-header:not(.is-scrolled) .k-menu > li > a:hover,
+.has-transparent-header .k-header:not(.is-scrolled) .k-menu > .current-menu-item > a,
+.has-transparent-header .k-header:not(.is-scrolled) .k-menu > .current_page_item > a { background: rgba(255,255,255,.14); color: #fff; }
 .has-transparent-header .k-header.is-scrolled { background: var(--k-surface); }
 .has-transparent-header .k-topbar { position: relative; z-index: 101; }
 
@@ -359,7 +363,7 @@ p { margin: 0 0 1.1em; }
 .k-layout.has-sidebar { grid-template-columns: minmax(0, 1fr) 320px; }
 .k-layout--sidebar-left.has-sidebar { grid-template-columns: 320px minmax(0, 1fr); }
 .k-layout--sidebar-left .k-sidebar { order: -1; }
-@media (max-width: 960px) { .k-layout.has-sidebar, .k-layout--sidebar-left.has-sidebar { grid-template-columns: 1fr; } .k-layout--sidebar-left .k-sidebar { order: 0; } }
+@media (max-width: 960px) { .k-layout.has-sidebar, .k-layout--sidebar-left.has-sidebar { grid-template-columns: minmax(0, 1fr); } .k-layout--sidebar-left .k-sidebar { order: 0; } }
 .k-section.k-layout { padding-block: var(--k-section); }
 .k-entry__content > * + * { margin-top: 1.2em; }
 .k-entry__content h2, .k-entry__content h3 { margin-top: 1.8em; }
@@ -393,6 +397,8 @@ p { margin: 0 0 1.1em; }
 .k-pagination .current { background: var(--k-primary); color: #fff; border-color: var(--k-primary); }
 
 /* Sidebar & widgets */
+.k-sidebar .wp-block-search__inside-wrapper { min-width: 0; }
+.k-sidebar .wp-block-search__input { min-width: 0; flex: 1 1 auto; }
 .k-sidebar .widget { padding: 1.5rem; margin-bottom: 1.5rem; background: var(--k-surface-2); border-radius: var(--k-radius); }
 .widget-title { font-size: 1.1rem; margin-bottom: 1rem; }
 .widget ul { list-style: none; padding: 0; margin: 0; }
@@ -454,6 +460,16 @@ p { margin: 0 0 1.1em; }
 @media (max-width: 900px) { .k-footer__grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .k-footer__grid { grid-template-columns: 1fr; } }
 .k-footer__brand { font-size: 1.5rem; }
+/* Fewer footer parts: the rest spread out instead of leaving empty columns. */
+.k-footer__grid--3 { grid-template-columns: 1.4fr 1fr 1fr; }
+.k-footer__grid--2 { grid-template-columns: 1.3fr 1fr; gap: 3rem 5rem; }
+.k-footer__grid--1 { grid-template-columns: minmax(0, 40rem); justify-content: center; text-align: center; }
+.k-footer__grid--1 .k-social, .k-footer__grid--1 .k-footer__contact li { justify-content: center; }
+@media (max-width: 900px) { .k-footer__grid--3 { grid-template-columns: 1fr 1fr; } .k-footer__grid--3 > :first-child { grid-column: 1 / -1; } }
+@media (max-width: 560px) { .k-footer__grid--2, .k-footer__grid--3 { grid-template-columns: 1fr; } }
+/* Keep the last line clear of the floating colour and back-to-top buttons. */
+.k-footer__bottom { padding-bottom: calc(1.25rem + 56px); }
+.k-footer--minimal .k-footer__slim { padding-bottom: calc(1.4rem + 56px); }
 .k-footer__list { list-style: none; padding: 0; margin: 0; display: grid; gap: .6rem; }
 .k-footer__contact li { display: flex; gap: .6rem; align-items: flex-start; }
 .k-footer__contact .k-icon { margin-top: .25rem; color: var(--k-accent); }

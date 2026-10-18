@@ -27,7 +27,15 @@ $host = wp_parse_url( home_url(), PHP_URL_HOST );
 			<?php if ( $embed ) : ?>
 				<div class="kcs-embed"><?php echo $embed; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from escaped parts or admin-provided embed. ?></div>
 			<?php else : ?>
-				<div class="kcs-live__offline"><p><?php esc_html_e( 'The live stream has not been configured yet.', 'kingdom-church-suite' ); ?></p></div>
+				<div class="kcs-live__offline">
+					<p><strong><?php esc_html_e( 'We are not live right now.', 'kingdom-church-suite' ); ?></strong></p>
+					<?php if ( ! empty( $status['next_service'] ) ) : ?>
+						<p><?php /* translators: 1: service, 2: day, 3: time */ printf( esc_html__( 'Join us for %1$s on %2$s at %3$s.', 'kingdom-church-suite' ), esc_html( $status['next_service']['name'] ), esc_html( $status['next_service']['day'] ), esc_html( date_i18n( get_option( 'time_format' ), strtotime( $status['next_service']['time'] ) ) ) ); ?></p>
+					<?php endif; ?>
+					<?php if ( current_user_can( 'manage_kcs' ) ) : ?>
+						<p class="kcs-muted"><small><?php esc_html_e( 'Only staff see this: add your YouTube channel in Church Admin → Website → Live stream, video & audio to show your live stream and replays here.', 'kingdom-church-suite' ); ?></small></p>
+					<?php endif; ?>
+				</div>
 			<?php endif; ?>
 		</div>
 		<?php if ( $chat ) : ?>

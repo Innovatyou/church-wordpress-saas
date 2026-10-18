@@ -286,3 +286,7 @@
 	.kcs-region { display: grid; grid-template-columns: 1fr 1fr; width: 100%; border-radius: 16px; }
 	.kcs-region__opt span { justify-content: center; width: 100%; border-radius: 12px; padding: .55rem .5rem; font-size: .88rem; }
 }
+
+/* Plan your visit: labels stay on top of their fields. */
+.kcs-visit-form .kcs-grid-2 { align-items: start; }
+.kcs-visit-form .kcs-grid-2 .kcs-grid-2 { grid-template-columns: 1fr 1fr; gap: .75rem; }
