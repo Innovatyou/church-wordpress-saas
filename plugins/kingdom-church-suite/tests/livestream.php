@@ -14,6 +14,10 @@ add_filter( 'pre_http_request', function ( $pre, $args, $url ) use ( $UC ) {
 		if ( 'offline' === $m ) { return $r( '<link rel="canonical" href="https://www.youtube.com/channel/' . $UC . '">ytInitialData' ); }
 		return $r( '<html>Sign in to confirm you are not a bot</html>' ); // blocked
 	}
+	if ( false !== strpos( $url, 'youtube.com/oembed' ) ) {
+		if ( 'blocked' === $m && ! empty( $GLOBALS['yt_oembed_live'] ) ) { return $r( wp_json_encode( array( 'title' => 'Sunday Live', 'thumbnail_url' => 'https://i.ytimg.com/vi/OEMBEDLIVE1/hqdefault_live.jpg', 'html' => '<iframe src="https://www.youtube.com/embed/OEMBEDLIVE1?feature=oembed"></iframe>' ) ) ); }
+		return $r( 'Bad Request', 400 );
+	}
 	if ( false !== strpos( $url, 'playlistItems' ) ) { return $r( wp_json_encode( array( 'items' => array( array( 'contentDetails' => array( 'videoId' => 'OLDVID00001' ) ), array( 'contentDetails' => array( 'videoId' => 'APILIVE0001' ) ) ) ) ) ); }
 	if ( false !== strpos( $url, 'videos?' ) || false !== strpos( $url, '/videos&' ) || false !== strpos( $url, 'youtube/v3/videos' ) ) {
 		return $r( wp_json_encode( array( 'items' => array( array( 'id' => 'OLDVID00001', 'snippet' => array( 'title' => 'Old' ), 'liveStreamingDetails' => array( 'actualStartTime' => '2026-10-01T09:00:00Z', 'actualEndTime' => '2026-10-01T11:00:00Z' ) ), array( 'id' => 'APILIVE0001', 'snippet' => array( 'title' => 'Live via API' ), 'liveStreamingDetails' => array( 'actualStartTime' => '2026-10-18T09:00:00Z' ) ) ) ) ) );
@@ -43,3 +47,17 @@ $o['yt_api_key'] = 'TESTKEY'; update_option( 'kcs_settings', $o ); $reset();
 $s = KCS_Livestream::status( true );
 $ok( $s['is_live'] && 'APILIVE0001' === $s['video_id'], 'page blocked + API key → live found in latest uploads (' . $s['video_id'] . ')' );
 $o['yt_api_key'] = ''; update_option( 'kcs_settings', $o ); $reset();
+// YouTube hides the /live page from the server, but oEmbed says the channel is on air → live.
+$GLOBALS['yt_mode'] = 'blocked'; $GLOBALS['yt_oembed_live'] = true; $reset();
+$s = KCS_Livestream::status( true );
+$ok( $s['is_live'] && 'OEMBEDLIVE1' === $s['video_id'], 'page hidden from server, oEmbed live → LIVE (' . $s['video_id'] . ')' );
+// Nothing detected and no replay video: the homepage section uses YouTube's own channel live player.
+$GLOBALS['yt_oembed_live'] = false; $reset(); remove_theme_mod( 'kingdom_ytlive_url' );
+$l = kingdom_youtube_live( true );
+$ok( false !== strpos( $l['embed'], 'embed/live_stream?channel=' . $UC ), 'nothing detected → section embeds the channel live player' );
+$ok( false === strpos( $l['label'], 'Not live' ), 'label does not claim "not live" over the channel player (' . $l['label'] . ')' );
+// Offline with a replay video: the replay is shown instead.
+set_theme_mod( 'kingdom_ytlive_url', 'https://www.youtube.com/watch?v=REPLAYVID01' ); $reset();
+$l = kingdom_youtube_live( true );
+$ok( false !== strpos( $l['embed'], 'REPLAYVID01' ), 'offline with a replay video → replay shown' );
+remove_theme_mod( 'kingdom_ytlive_url' ); $reset();

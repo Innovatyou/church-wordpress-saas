@@ -115,6 +115,14 @@ function kingdom_ytlive_api_key() {
  */
 function kingdom_ytlive_check( $channel ) {
 	$out = kingdom_ytlive_check_page( $channel );
+	// The page did not show a stream (or YouTube hid it from this server): ask oEmbed, which
+	// hosting servers can usually reach, whether the channel's live video is on air.
+	if ( ! $out['video_id'] ) {
+		$oembed = kingdom_ytlive_check_oembed( $channel );
+		if ( $oembed ) {
+			$out = $oembed;
+		}
+	}
 	$key = kingdom_ytlive_api_key();
 	// YouTube sometimes hides the /live page from hosting servers: with an API key, look at the
 	// channel's latest uploads instead (2 quota units, instead of a 100-unit search).
@@ -142,6 +150,28 @@ function kingdom_ytlive_check( $channel ) {
 		}
 	}
 	return $out;
+}
+
+/**
+ * Is the channel on air? YouTube's oEmbed answers for the channel's /live address only while a
+ * broadcast is live or scheduled; a live broadcast's thumbnail ends in "_live".
+ *
+ * @param string $channel Channel ID.
+ * @return array|null Status when a live broadcast was found, otherwise null.
+ */
+function kingdom_ytlive_check_oembed( $channel ) {
+	$res = wp_remote_get( add_query_arg( array( 'url' => rawurlencode( 'https://www.youtube.com/channel/' . $channel . '/live' ), 'format' => 'json' ), 'https://www.youtube.com/oembed' ), array( 'timeout' => 8 ) );
+	if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
+		return null;
+	}
+	$data = json_decode( wp_remote_retrieve_body( $res ), true );
+	if ( ! is_array( $data ) || ! preg_match( '~/embed/([A-Za-z0-9_-]{11})~', (string) ( $data['html'] ?? '' ), $m ) ) {
+		return null;
+	}
+	if ( false === strpos( (string) ( $data['thumbnail_url'] ?? '' ), '_live.' ) ) {
+		return null; // Scheduled or finished: the /live page decides those.
+	}
+	return array( 'state' => 'live', 'video_id' => $m[1], 'title' => html_entity_decode( (string) ( $data['title'] ?? '' ), ENT_QUOTES ), 'starts_at' => 0, 'viewers' => 0, 'source' => 'oembed' );
 }
 
 /**
@@ -315,6 +345,13 @@ function kingdom_youtube_live( $force = false ) {
 
 	$play         = $autoplay && 'offline' !== $out['state'];
 	$out['embed'] = $out['video_id'] ? 'https://www.youtube-nocookie.com/embed/' . rawurlencode( $out['video_id'] ) . '?rel=0&modestbranding=1&playsinline=1' . ( $play ? '&autoplay=1&mute=1' : '' ) : '';
+	// Nothing to show and we could not see a stream: use YouTube's own channel live player, which
+	// plays the broadcast whenever the channel is live (even if YouTube hid it from our check).
+	$out['channel_player'] = false;
+	if ( ! $out['embed'] && 'channel' === $out['mode'] ) {
+		$out['embed']          = 'https://www.youtube.com/embed/live_stream?channel=' . rawurlencode( $channel ) . '&rel=0&playsinline=1' . ( $autoplay ? '&autoplay=1&mute=1' : '' );
+		$out['channel_player'] = true;
+	}
 	$out['chat']  = get_theme_mod( 'kingdom_ytlive_chat', false ) && in_array( $out['state'], array( 'live', 'upcoming' ), true ) && $out['video_id']
 		? 'https://www.youtube.com/live_chat?v=' . rawurlencode( $out['video_id'] ) . '&embed_domain=' . rawurlencode( (string) wp_parse_url( home_url(), PHP_URL_HOST ) )
 		: '';
@@ -340,6 +377,11 @@ function kingdom_ytlive_label( $s ) {
 		case 'upcoming':
 			return $s['starts_at'] ? kingdom_ytlive_when( $s['starts_at'] ) : __( 'Starting soon', 'kingdom' );
 		case 'offline':
+			// YouTube's channel player is showing: it may be live even if our check missed it.
+			if ( ! empty( $s['channel_player'] ) ) {
+				/* translators: 1: service name, 2: day and time */
+				return ! empty( $s['next_service'] ) ? sprintf( __( 'Next: %1$s, %2$s', 'kingdom' ), $s['next_service']['name'], $s['next_service']['label'] ) : __( 'Watch our live service', 'kingdom' );
+			}
 			if ( ! empty( $s['next_service'] ) ) {
 				/* translators: 1: service name, 2: day and time */
 				return sprintf( __( 'Not live right now · Next: %1$s, %2$s', 'kingdom' ), $s['next_service']['name'], $s['next_service']['label'] );
