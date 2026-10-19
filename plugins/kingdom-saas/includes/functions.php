@@ -29,6 +29,7 @@ function ks_default_settings() {
 		'tagline'         => __( 'Your church website, partner portal and online giving — ready in minutes.', 'kingdom-saas' ),
 		'brand_color'     => '#5b2a86',
 		'color_mode'      => 'dark',
+		'favicon'         => '',
 		'support_email'   => get_site_option( 'admin_email' ),
 		'base_domain'     => defined( 'DOMAIN_CURRENT_SITE' ) ? DOMAIN_CURRENT_SITE : wp_parse_url( network_home_url(), PHP_URL_HOST ),
 		'cname_target'    => '',
@@ -287,3 +288,20 @@ function ks_badge( $status ) {
 	);
 	return '<span class="ks-badge ks-badge--' . esc_attr( $status ) . '">' . esc_html( $labels[ $status ] ?? ucfirst( $status ) ) . '</span>';
 }
+
+/**
+ * Browser tab icon for the platform pages: the uploaded one, else the brand-colour tile with the
+ * white cross (as an inline SVG, so it needs no file).
+ *
+ * @return string HTML link tags.
+ */
+function ks_favicon_tags() {
+	$url = esc_url_raw( (string) ks_get( 'favicon' ) );
+	if ( $url ) {
+		return '<link rel="icon" href="' . esc_url( $url ) . '"><link rel="apple-touch-icon" href="' . esc_url( $url ) . '">' . "\n";
+	}
+	$color = sanitize_hex_color( ks_get( 'brand_color' ) ) ? sanitize_hex_color( ks_get( 'brand_color' ) ) : '#5b2a86';
+	$svg   = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="' . $color . '"/><path fill="#fff" d="M27 12h10v15h15v10H37v15H27V37H12V27h15z"/></svg>';
+	return '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,' . rawurlencode( $svg ) . '">' . "\n";
+}
+

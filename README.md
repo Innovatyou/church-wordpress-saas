@@ -198,6 +198,7 @@ add_filter( 'kcs_payment_gateways', function ( $g ) { $g['mine'] = new My_Gatewa
 - Countdown to the next service and a live badge that refreshes itself
 
 ### Church app (PWA) — Android and iPhone
+- **Browser tab icon (favicon)**: every church page (and its login screens) shows the church's icon — its logo on a tile in its colour, the same as the app icon — even when the app is switched off. Change it under *Church Admin → Church app → App & browser tab icon* (empty uses the logo); a WordPress Site icon, if set, takes priority.
 Every church site is also an installable app, with **its own name, logo and church colours** (each SaaS church gets its own app on its own address or custom domain). No app store needed.
 - **Install**: Android/Chrome shows an *Install app* invitation and a button in the menu; iPhone/iPad Safari shows a step-by-step *Add to Home Screen* guide.
 - **Branding**: the icon, maskable Android icon, iPhone home-screen icon and 11 iPhone launch screens are drawn automatically from the church logo (App icon setting → site icon → theme logo → Church Suite logo) on the church's main colour, and are redrawn when the logo or colours change.

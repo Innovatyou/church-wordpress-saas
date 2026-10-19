@@ -26,6 +26,7 @@ $mode   = in_array( ks_get( 'color_mode' ), array( 'dark', 'light', 'auto' ), tr
 <script>(function(){var d=document.documentElement,m=<?php echo wp_json_encode( $mode ); ?>,s=null;try{s=localStorage.getItem('ks-theme');}catch(e){}if(s==='dark'||s==='light'){d.dataset.theme=s;}else if(m==='auto'){d.dataset.theme=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}})();</script>
 <meta charset="<?php bloginfo( 'charset' ); ?>">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<?php echo ks_favicon_tags(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 <?php echo KS_SEO::head( $route, $vars, $titles[ $route ] ?? $name ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">

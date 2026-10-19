@@ -191,6 +191,7 @@ class KS_Platform {
 			array( __( 'Plans & pricing', 'kingdom-saas' ), __( 'Plan names, prices in USD and local currency, limits', 'kingdom-saas' ), $u( 'plans' ), 'price pricing naira dollars limits starter growth ministry' ),
 			array( __( 'Server IP & CNAME for custom domains', 'kingdom-saas' ), __( 'Domains → Domain settings', 'kingdom-saas' ), $u( 'domains', 'domain-settings' ), 'dns a record ip address cname' ),
 			array( __( 'Platform name, tagline & brand colour', 'kingdom-saas' ), $set . ' → ' . __( 'Brand', 'kingdom-saas' ), $u( 'settings', 'set-brand' ), 'logo name colour color tagline' ),
+			array( __( 'Browser tab icon (favicon)', 'kingdom-saas' ), $set . ' → ' . __( 'Brand', 'kingdom-saas' ), $u( 'settings', 'set-brand' ), 'favicon icon tab logo' ),
 			array( __( 'Dark or light mode', 'kingdom-saas' ), $set . ' → ' . __( 'Brand', 'kingdom-saas' ), $u( 'settings', 'set-brand' ), 'theme dark light colours mode' ),
 			array( __( 'Support email', 'kingdom-saas' ), $set . ' → ' . __( 'Brand', 'kingdom-saas' ), $u( 'settings', 'set-brand' ), 'email sender contact' ),
 			array( __( 'Platform domain & reserved addresses', 'kingdom-saas' ), $set . ' → ' . __( 'Domains', 'kingdom-saas' ), $u( 'settings', 'set-domains' ), 'https reserved names subdomain' ),
@@ -484,6 +485,9 @@ class KS_Platform {
 					} elseif ( isset( $d[ $k ] ) ) {
 						$vals[ $k ] = in_array( $k, array( 'bank_details', 'tagline', 'seo_description', 'seo_profiles' ), true ) ? sanitize_textarea_field( $d[ $k ] ) : sanitize_text_field( $d[ $k ] );
 					}
+				}
+				if ( isset( $vals['favicon'] ) ) {
+					$vals['favicon'] = esc_url_raw( $vals['favicon'] );
 				}
 				if ( isset( $vals['smtp_secure'] ) && ! in_array( $vals['smtp_secure'], array( 'ssl', 'tls', 'none' ), true ) ) {
 					$vals['smtp_secure'] = 'ssl';

@@ -31,9 +31,14 @@ class KCS_PWA {
 	 * Hooks.
 	 */
 	public static function init() {
+		// Browser tab icon (favicon) from the same artwork, whether or not the app is on.
+		add_action( 'wp_head', array( __CLASS__, 'favicon' ), 1 );
+		add_action( 'login_head', array( __CLASS__, 'favicon' ), 1 );
+		add_action( 'admin_head', array( __CLASS__, 'favicon' ), 1 );
 		if ( ! self::enabled() ) {
 			// App switched off: phones that installed it get a worker that removes itself.
 			add_action( 'init', array( __CLASS__, 'retire' ), 0 );
+			add_action( 'init', array( __CLASS__, 'serve_icon' ), 0 );
 			return;
 		}
 		add_action( 'init', array( __CLASS__, 'serve' ), 0 );
@@ -118,6 +123,31 @@ class KCS_PWA {
 	}
 
 	/**
+	 * Favicon links: the church's icon (logo on its colour) at browser-tab sizes. A WordPress
+	 * "Site icon", when set, is printed by WordPress itself and wins.
+	 */
+	public static function favicon() {
+		if ( function_exists( 'has_site_icon' ) && has_site_icon() ) {
+			return;
+		}
+		$v = self::version();
+		echo '<link rel="icon" type="image/png" sizes="32x32" href="' . esc_url( self::url( 'icon', array( 'size' => 32, 'v' => $v ) ) ) . '">' . "\n";
+		echo '<link rel="icon" type="image/png" sizes="192x192" href="' . esc_url( self::url( 'icon', array( 'size' => 192, 'v' => $v ) ) ) . '">' . "\n";
+		if ( ! self::enabled() ) { // With the app on, head() prints the iPhone icon.
+			echo '<link rel="apple-touch-icon" href="' . esc_url( self::url( 'icon', array( 'size' => 180, 'v' => $v ) ) ) . '">' . "\n";
+		}
+	}
+
+	/**
+	 * Icons only (app switched off): the favicon still needs its images.
+	 */
+	public static function serve_icon() {
+		if ( isset( $_GET['kcs_pwa'] ) && 'icon' === $_GET['kcs_pwa'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			self::serve();
+		}
+	}
+
+	/**
 	 * Answer app requests (?kcs_pwa=…).
 	 */
 	public static function serve() {
@@ -137,7 +167,7 @@ class KCS_PWA {
 				self::send( 'text/html; charset=utf-8', self::offline_page(), 3600 );
 				break;
 			case 'icon':
-				$size = in_array( (int) ( $_GET['size'] ?? 0 ), array( 180, 192, 512 ), true ) ? (int) $_GET['size'] : 192; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				$size = in_array( (int) ( $_GET['size'] ?? 0 ), array( 32, 48, 180, 192, 512 ), true ) ? (int) $_GET['size'] : 192; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				self::image( 'icon', $size, $size, ! empty( $_GET['maskable'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				break;
 			case 'splash':
