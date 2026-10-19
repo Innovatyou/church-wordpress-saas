@@ -150,3 +150,21 @@
 	window.addEventListener('hashchange', reveal);
 	if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', reveal); } else { reveal(); }
 })();
+
+// Service times editor: add and remove rows.
+document.querySelectorAll('[data-sched]').forEach(function (box) {
+	var rows = box.querySelector('[data-sched-rows]');
+	var tpl = box.querySelector('[data-sched-template]');
+	box.addEventListener('click', function (e) {
+		if (e.target.closest('[data-sched-add]') && tpl) {
+			rows.appendChild(tpl.content.cloneNode(true));
+			var last = rows.lastElementChild && rows.lastElementChild.querySelector('input[type="time"]');
+			if (last) { last.focus(); }
+		}
+		var del = e.target.closest('[data-sched-del]');
+		if (del) {
+			var row = del.closest('.kca-sched__row');
+			if (rows.children.length > 1) { row.remove(); } else { row.querySelectorAll('input').forEach(function (i) { i.value = ''; }); }
+		}
+	});
+});

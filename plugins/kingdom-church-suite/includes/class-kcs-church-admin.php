@@ -519,6 +519,18 @@ class KCS_Church_Admin {
 				$view = in_array( $view, array( 'website', 'content' ), true ) ? $view : 'website';
 				break;
 
+			case 'schedule_save':
+				if ( ! current_user_can( 'manage_options' ) ) {
+					$msg  = __( 'Only church administrators can change settings.', 'kingdom-church-suite' );
+					$type = 'error';
+					break;
+				}
+				kcs_update_option( 'service_schedule', self::schedule_from_post( $d ) );
+				self::save_timezone( (string) ( $d['site_timezone'] ?? '' ) );
+				delete_transient( 'kcs_live_status' );
+				$msg  = __( 'Service times saved.', 'kingdom-church-suite' );
+				break;
+
 			case 'settings_save':
 				if ( ! current_user_can( 'manage_options' ) ) {
 					$msg  = __( 'Only church administrators can change settings.', 'kingdom-church-suite' );
@@ -526,6 +538,9 @@ class KCS_Church_Admin {
 					break;
 				}
 				$tab = sanitize_key( $d['tab'] ?? 'general' );
+				if ( isset( $d['kcs_sched'] ) ) {
+					$_POST['kcs']['service_schedule'] = wp_slash( self::schedule_from_post( $d ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- checked in handle().
+				}
 				if ( isset( KCS_Settings::tabs()[ $tab ] ) ) {
 					KCS_Settings::save_tab( $tab, isset( $_POST['kcs'] ) && is_array( $_POST['kcs'] ) ? $_POST['kcs'] : array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized per field in save_tab.
 					if ( 'general' === $tab ) {
@@ -928,7 +943,7 @@ class KCS_Church_Admin {
 			$out[] = array( 't' => $v[0], 'd' => self::describe( $slug ), 'u' => self::url( $slug ), 'k' => '' );
 		}
 		$extra = array(
-			array( __( 'Service times', 'kingdom-church-suite' ), 'settings', array( 'tab' => 'general' ), 'service-times', __( 'schedule sunday worship midweek countdown next service', 'kingdom-church-suite' ) ),
+			array( __( 'Service times', 'kingdom-church-suite' ), 'website', array(), 'service-times-card', __( 'schedule sunday worship midweek bible study countdown next service next live', 'kingdom-church-suite' ) ),
 			array( __( 'Time zone', 'kingdom-church-suite' ), 'settings', array( 'tab' => 'general' ), 'set-timezone', __( 'timezone lagos clock time wrong hour', 'kingdom-church-suite' ) ),
 			array( __( 'Bank account numbers', 'kingdom-church-suite' ), 'transfers', array(), '', __( 'bank transfer account number offline giving', 'kingdom-church-suite' ) ),
 			array( __( 'WhatsApp chat button', 'kingdom-church-suite' ), 'pastors', array(), '', __( 'whatsapp number chat contact phone', 'kingdom-church-suite' ) ),
@@ -1090,7 +1105,7 @@ class KCS_Church_Admin {
 			array(
 				'title' => __( 'Set your service times', 'kingdom-church-suite' ),
 				'why'   => __( 'Visitors see when to come, and the countdown to your next service.', 'kingdom-church-suite' ),
-				'url'   => self::url( 'settings', array( 'tab' => 'general' ) ) . '#service-times',
+				'url'   => self::url( 'website' ) . '#service-times-card',
 				'done'  => '' !== trim( $schedule ) && str_replace( "\r", '', trim( $schedule ) ) !== $default,
 			),
 			array(
@@ -1685,6 +1700,18 @@ class KCS_Church_Admin {
 	 * Website: colours, fonts, banner, sections and footer (settings provided by the active theme).
 	 */
 	private static function view_website() {
+		if ( current_user_can( 'manage_options' ) ) {
+			?>
+			<form method="post" class="kca-card kcs-form" id="service-times-card">
+				<?php echo self::fields( 'schedule_save', 'website' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<h3><?php esc_html_e( 'Service times', 'kingdom-church-suite' ); ?></h3>
+				<p class="kcs-muted"><?php esc_html_e( 'Used for “Next live: …”, the countdown, the service times bar, the footer and Google. Add every weekly service.', 'kingdom-church-suite' ); ?></p>
+				<?php self::schedule_editor(); ?>
+				<?php self::timezone_field(); ?>
+				<button class="kcs-btn"><?php esc_html_e( 'Save service times', 'kingdom-church-suite' ); ?></button>
+			</form>
+			<?php
+		}
 		self::website_form(
 			array(
 				'brand'    => __( 'Church colours', 'kingdom-church-suite' ),
@@ -1851,10 +1878,12 @@ class KCS_Church_Admin {
 				<?php endif; ?>
 				<?php
 				foreach ( $fields as $key => $field ) {
-					self::setting_field( $key, $field, $opts );
 					if ( 'service_schedule' === $key ) {
+						self::schedule_editor();
 						self::timezone_field();
+						continue;
 					}
+					self::setting_field( $key, $field, $opts );
 				}
 				?>
 				<button class="kcs-btn"><?php esc_html_e( 'Save settings', 'kingdom-church-suite' ); ?></button>
@@ -1869,6 +1898,53 @@ class KCS_Church_Admin {
 			</form>
 		<?php endif; ?>
 		<?php
+	}
+
+	/**
+	 * Service times as easy rows (day, time, name) instead of "Day|HH:MM|Name" lines.
+	 */
+	private static function schedule_editor() {
+		$rows = KCS_Livestream::schedule();
+		$days = array( 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' );
+		$row  = function ( $r ) use ( $days ) {
+			$h = '<div class="kca-sched__row"><select name="kcs_sched[day][]" aria-label="' . esc_attr__( 'Day', 'kingdom-church-suite' ) . '">';
+			foreach ( $days as $day ) {
+				$h .= '<option value="' . esc_attr( $day ) . '"' . selected( $r['day'], $day, false ) . '>' . esc_html( date_i18n( 'l', strtotime( 'next ' . $day ) ) ) . '</option>';
+			}
+			$h .= '</select><input type="time" name="kcs_sched[time][]" value="' . esc_attr( $r['time'] ? gmdate( 'H:i', strtotime( '2000-01-01 ' . $r['time'] ) ) : '' ) . '" aria-label="' . esc_attr__( 'Time', 'kingdom-church-suite' ) . '">'
+				. '<input type="text" name="kcs_sched[name][]" value="' . esc_attr( $r['name'] ) . '" placeholder="' . esc_attr__( 'e.g. Sunday Worship Service', 'kingdom-church-suite' ) . '" aria-label="' . esc_attr__( 'Service name', 'kingdom-church-suite' ) . '">'
+				. '<button type="button" class="kcs-btn kcs-btn--ghost kca-sched__del" data-sched-del aria-label="' . esc_attr__( 'Remove this service', 'kingdom-church-suite' ) . '">✕</button></div>';
+			return $h;
+		};
+		echo '<span class="kca-anchor" id="set-service_schedule"></span><div class="kca-sched" data-sched><strong>' . esc_html__( 'Weekly services', 'kingdom-church-suite' ) . '</strong>';
+		echo '<div class="kca-sched__rows" data-sched-rows>';
+		foreach ( $rows ? $rows : array( array( 'day' => 'Sunday', 'time' => '09:00', 'name' => '' ) ) as $r ) {
+			echo $row( $r ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from escaped parts.
+		}
+		echo '</div><template data-sched-template>' . $row( array( 'day' => 'Sunday', 'time' => '', 'name' => '' ) ) . '</template>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo '<button type="button" class="kcs-btn kcs-btn--ghost" data-sched-add>＋ ' . esc_html__( 'Add a service', 'kingdom-church-suite' ) . '</button>';
+		echo '<input type="hidden" name="kcs_sched[sent]" value="1"></div>';
+	}
+
+	/**
+	 * The posted rows as "Day|HH:MM|Name" lines (rows without a time are dropped).
+	 *
+	 * @param array $d Posted data.
+	 * @return string
+	 */
+	private static function schedule_from_post( $d ) {
+		$s     = (array) ( $d['kcs_sched'] ?? array() );
+		$days  = array( 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' );
+		$lines = array();
+		foreach ( (array) ( $s['time'] ?? array() ) as $i => $time ) {
+			$day  = (string) ( $s['day'][ $i ] ?? '' );
+			$time = preg_match( '/^([01]?\d|2[0-3]):([0-5]\d)/', (string) $time, $m ) ? sprintf( '%02d:%02d', $m[1], $m[2] ) : '';
+			$name = trim( str_replace( '|', '-', sanitize_text_field( (string) ( $s['name'][ $i ] ?? '' ) ) ) );
+			if ( $time && in_array( $day, $days, true ) ) {
+				$lines[] = $day . '|' . $time . '|' . ( '' !== $name ? $name : __( 'Service', 'kingdom-church-suite' ) );
+			}
+		}
+		return implode( "\n", $lines );
 	}
 
 	/**

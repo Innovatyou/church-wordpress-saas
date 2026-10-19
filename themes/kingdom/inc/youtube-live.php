@@ -604,7 +604,7 @@ function kingdom_ytlive_admin_status( $group ) {
 		$msg  = __( 'Showing one video. Add your channel to switch to your live stream automatically.', 'kingdom' );
 		$type = 'info';
 	}
-	$times = add_query_arg( array( 'view' => 'settings', 'tab' => 'general' ), remove_query_arg( array( 'ytlive_check', 'view', 'tab', 'group' ) ) ) . '#service-times';
+	$times = '#service-times-card'; // The service times card sits at the top of this page.
 	echo '<p class="kcs-alert kcs-alert--' . esc_attr( $type ) . '">' . esc_html( $msg ) . ' <a href="' . esc_url( add_query_arg( 'ytlive_check', 1 ) ) . '">' . esc_html__( 'Check now', 'kingdom' ) . '</a>'
 		. ( current_user_can( 'manage_options' ) ? ' · <a href="' . esc_url( $times ) . '">' . esc_html__( 'Change service times', 'kingdom' ) . '</a>' : '' ) . '</p>';
 }
