@@ -324,3 +324,23 @@ body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-syste
 .ks-inline-form { display: flex; flex-wrap: wrap; gap: .5rem; }
 .ks-inline-form input { flex: 1 1 220px; }
 .ks-test-mail { margin-top: 1rem; }
+/* Settings: small cards side by side, wide cards (payments, bank, email, SEO) across the full width. */
+.ks-settings { container-type: inline-size; width: 100%; }
+.ks-settings > .ks-grid { grid-template-columns: minmax(0, 1fr); align-items: start; }
+@container (min-width: 700px) {
+	.ks-settings > .ks-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.ks-settings #set-trials { grid-column: 1 / -1; }
+}
+@container (min-width: 1050px) {
+	.ks-settings > .ks-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+	.ks-settings #set-trials { grid-column: auto; }
+}
+.ks-side__wp { display: grid; gap: .15rem; padding-top: .8rem; border-top: 1px solid var(--ks-border); }
+.ks-side__wp p { margin: 0 0 .3rem; padding: 0 .8rem; font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ks-muted); }
+.ks-side__wp a { display: flex; align-items: center; gap: .55rem; padding: .45rem .8rem; border-radius: 10px; color: var(--ks-text) !important; text-decoration: none; font-weight: 500; font-size: .92rem; }
+.ks-side__wp a:hover { background: var(--ks-surface-2); }
+.ks-side__wp a span { width: 20px; text-align: center; color: var(--ks-muted); }
+@media (max-width: 900px) { .ks-side__wp { display: flex; flex-wrap: wrap; gap: .3rem; } .ks-side__wp p { width: 100%; } }
+/* Fields in a row line up even when one label wraps onto two lines. */
+.ks-settings .ks-grid > label { display: flex; flex-direction: column; }
+.ks-settings .ks-grid > label > input, .ks-settings .ks-grid > label > select { margin-top: auto; }

@@ -205,6 +205,10 @@ class KS_Platform {
 			array( __( 'Bank accounts for bank transfer', 'kingdom-saas' ), $set . ' → ' . __( 'Bank transfer', 'kingdom-saas' ), $u( 'settings', 'set-bank' ), 'bank account number transfer offline' ),
 			array( __( 'Email sending (SMTP)', 'kingdom-saas' ), $set . ' → ' . __( 'Email sending (SMTP)', 'kingdom-saas' ), $u( 'settings', 'set-email' ), 'smtp email mail spam hostinger brevo gmail sender test email' ),
 			array( __( 'Search & sharing (SEO)', 'kingdom-saas' ), $set . ' → ' . __( 'Search & sharing (SEO)', 'kingdom-saas' ), $u( 'settings', 'set-seo' ), 'seo google search console bing analytics ga4 sitemap sharing image social' ),
+			array( __( 'WordPress network admin', 'kingdom-saas' ), __( 'WordPress dashboard for the whole platform', 'kingdom-saas' ), network_admin_url(), 'wordpress wp-admin dashboard network admin' ),
+			array( __( 'Plugins (add or update)', 'kingdom-saas' ), __( 'WordPress → Network admin → Plugins', 'kingdom-saas' ), network_admin_url( 'plugins.php' ), 'plugin upload install update zip church suite cloud' ),
+			array( __( 'Themes (add or update)', 'kingdom-saas' ), __( 'WordPress → Network admin → Themes', 'kingdom-saas' ), network_admin_url( 'themes.php' ), 'theme upload install update zip' ),
+			array( __( 'WordPress updates', 'kingdom-saas' ), __( 'WordPress → Network admin → Updates', 'kingdom-saas' ), network_admin_url( 'update-core.php' ), 'update upgrade core version' ),
 			array( __( 'Setup check', 'kingdom-saas' ), __( 'Network Admin → Ministry OS Cloud', 'kingdom-saas' ), network_admin_url( 'admin.php?page=kingdom-cloud' ), 'setup check health problems' ),
 		);
 		$out = array();

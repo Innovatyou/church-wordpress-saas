@@ -68,6 +68,20 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 				<a href="<?php echo esc_url( add_query_arg( 'tab', $k, ks_platform_url( 'platform/' ) ) ); ?>"<?php echo $k === $tab ? ' aria-current="page"' : ''; ?>><span aria-hidden="true"><?php echo esc_html( $t[1] ); ?></span><?php echo esc_html( $t[0] ); ?><?php if ( ! empty( $badges[ $k ] ) ) : ?><em class="ks-count"><?php echo (int) $badges[ $k ]; ?></em><?php endif; ?></a>
 			<?php endforeach; ?>
 		</nav>
+		<nav class="ks-side__wp" aria-label="<?php esc_attr_e( 'WordPress', 'kingdom-saas' ); ?>">
+			<p><?php esc_html_e( 'WordPress', 'kingdom-saas' ); ?></p>
+			<?php
+			foreach ( array(
+				array( network_admin_url(), '⌂', __( 'Network admin', 'kingdom-saas' ) ),
+				array( network_admin_url( 'plugins.php' ), '⧉', __( 'Plugins', 'kingdom-saas' ) ),
+				array( network_admin_url( 'themes.php' ), '▣', __( 'Themes', 'kingdom-saas' ) ),
+				array( network_admin_url( 'update-core.php' ), '↻', __( 'Updates', 'kingdom-saas' ) ),
+				array( network_admin_url( 'admin.php?page=kingdom-cloud' ), '✓', __( 'Setup check', 'kingdom-saas' ) ),
+			) as $ks_wp ) :
+				?>
+				<a href="<?php echo esc_url( $ks_wp[0] ); ?>"><span aria-hidden="true"><?php echo esc_html( $ks_wp[1] ); ?></span><?php echo esc_html( $ks_wp[2] ); ?></a>
+			<?php endforeach; ?>
+		</nav>
 		<a class="ks-side__out" href="<?php echo esc_url( wp_logout_url( ks_platform_url() ) ); ?>"><?php esc_html_e( 'Log out', 'kingdom-saas' ); ?></a>
 	</aside>
 	<section class="ks-main">
@@ -346,16 +360,18 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 					<label><?php esc_html_e( 'Local currency (empty = USD only)', 'kingdom-saas' ); ?><input name="local_currency" maxlength="3" value="<?php echo esc_attr( ks_get( 'local_currency' ) ); ?>"></label>
 					<label><?php esc_html_e( 'Local label', 'kingdom-saas' ); ?><input name="local_label" value="<?php echo esc_attr( ks_get( 'local_label' ) ); ?>"></label>
 				</fieldset>
-				<fieldset class="ks-card ks-form" id="set-payments">
+				<fieldset class="ks-card ks-form ks-span-2" id="set-payments">
 					<legend><?php esc_html_e( 'Payments', 'kingdom-saas' ); ?></legend>
-					<label><?php esc_html_e( 'Paystack secret key', 'kingdom-saas' ); ?><input type="password" name="paystack_secret" value="<?php echo esc_attr( ks_get( 'paystack_secret' ) ); ?>" autocomplete="off"></label>
-					<label><?php esc_html_e( 'Flutterwave public key', 'kingdom-saas' ); ?><input name="flutterwave_public" value="<?php echo esc_attr( ks_get( 'flutterwave_public' ) ); ?>" autocomplete="off" placeholder="FLWPUBK-…"></label>
-					<label><?php esc_html_e( 'Flutterwave secret key', 'kingdom-saas' ); ?><input type="password" name="flutterwave_secret" value="<?php echo esc_attr( ks_get( 'flutterwave_secret' ) ); ?>" autocomplete="off" placeholder="FLWSECK-…"></label>
-					<label><?php esc_html_e( 'Flutterwave webhook secret hash (any long password you also type in Flutterwave → Settings → Webhooks)', 'kingdom-saas' ); ?><input type="password" name="flutterwave_hash" value="<?php echo esc_attr( ks_get( 'flutterwave_hash' ) ); ?>" autocomplete="off"></label>
-					<label><?php esc_html_e( 'Stripe secret key', 'kingdom-saas' ); ?><input type="password" name="stripe_secret" value="<?php echo esc_attr( ks_get( 'stripe_secret' ) ); ?>" autocomplete="off"></label>
-					<label><?php esc_html_e( 'Stripe webhook signing secret', 'kingdom-saas' ); ?><input type="password" name="stripe_webhook" value="<?php echo esc_attr( ks_get( 'stripe_webhook' ) ); ?>" autocomplete="off"></label>
-					<label><?php esc_html_e( 'Cloudflare Turnstile site key (bot protection on sign-up, optional)', 'kingdom-saas' ); ?><input name="turnstile_site" value="<?php echo esc_attr( ks_get( 'turnstile_site' ) ); ?>" autocomplete="off"></label>
-					<label><?php esc_html_e( 'Cloudflare Turnstile secret key', 'kingdom-saas' ); ?><input type="password" name="turnstile_secret" value="<?php echo esc_attr( ks_get( 'turnstile_secret' ) ); ?>" autocomplete="off"></label>
+					<div class="ks-grid ks-grid--2">
+						<label><?php esc_html_e( 'Paystack secret key', 'kingdom-saas' ); ?><input type="password" name="paystack_secret" value="<?php echo esc_attr( ks_get( 'paystack_secret' ) ); ?>" autocomplete="off"></label>
+						<label><?php esc_html_e( 'Flutterwave public key', 'kingdom-saas' ); ?><input name="flutterwave_public" value="<?php echo esc_attr( ks_get( 'flutterwave_public' ) ); ?>" autocomplete="off" placeholder="FLWPUBK-…"></label>
+						<label><?php esc_html_e( 'Flutterwave secret key', 'kingdom-saas' ); ?><input type="password" name="flutterwave_secret" value="<?php echo esc_attr( ks_get( 'flutterwave_secret' ) ); ?>" autocomplete="off" placeholder="FLWSECK-…"></label>
+						<label><?php esc_html_e( 'Flutterwave webhook secret hash (any long password you also type in Flutterwave → Settings → Webhooks)', 'kingdom-saas' ); ?><input type="password" name="flutterwave_hash" value="<?php echo esc_attr( ks_get( 'flutterwave_hash' ) ); ?>" autocomplete="off"></label>
+						<label><?php esc_html_e( 'Stripe secret key', 'kingdom-saas' ); ?><input type="password" name="stripe_secret" value="<?php echo esc_attr( ks_get( 'stripe_secret' ) ); ?>" autocomplete="off"></label>
+						<label><?php esc_html_e( 'Stripe webhook signing secret', 'kingdom-saas' ); ?><input type="password" name="stripe_webhook" value="<?php echo esc_attr( ks_get( 'stripe_webhook' ) ); ?>" autocomplete="off"></label>
+						<label><?php esc_html_e( 'Cloudflare Turnstile site key (bot protection on sign-up, optional)', 'kingdom-saas' ); ?><input name="turnstile_site" value="<?php echo esc_attr( ks_get( 'turnstile_site' ) ); ?>" autocomplete="off"></label>
+						<label><?php esc_html_e( 'Cloudflare Turnstile secret key', 'kingdom-saas' ); ?><input type="password" name="turnstile_secret" value="<?php echo esc_attr( ks_get( 'turnstile_secret' ) ); ?>" autocomplete="off"></label>
+					</div>
 					<label class="ks-check"><input type="checkbox" name="test_mode" value="1" <?php checked( '1', ks_get( 'test_mode' ) ); ?>> <?php esc_html_e( 'Test mode (adds a simulated “Test payment” option)', 'kingdom-saas' ); ?></label>
 					<p class="ks-small"><?php esc_html_e( 'Webhooks:', 'kingdom-saas' ); ?> <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/paystack' ) ); ?></code> · <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/flutterwave' ) ); ?></code> · <code><?php echo esc_html( get_rest_url( get_main_site_id(), 'ks/v1/webhooks/stripe' ) ); ?></code></p>
 				</fieldset>
@@ -386,10 +402,8 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 					<p class="ks-small"><?php esc_html_e( 'Hostinger email: smtp.hostinger.com · 465 · SSL · your full email address and its password. Brevo (free for 300 emails a day): smtp-relay.brevo.com · 587 · TLS. Gmail / Google Workspace: smtp.gmail.com · 587 · TLS with an app password. Leave the server empty to use the hosting’s default mail.', 'kingdom-saas' ); ?></p>
 					<div class="ks-grid ks-grid--2">
 						<label><?php esc_html_e( 'SMTP server', 'kingdom-saas' ); ?><input name="smtp_host" value="<?php echo esc_attr( ks_get( 'smtp_host' ) ); ?>" placeholder="smtp.hostinger.com" autocomplete="off"></label>
-						<div class="ks-grid ks-grid--2">
-							<label><?php esc_html_e( 'Port', 'kingdom-saas' ); ?><input type="number" name="smtp_port" value="<?php echo esc_attr( ks_get( 'smtp_port' ) ); ?>" min="1" max="65535"></label>
-							<label><?php esc_html_e( 'Encryption', 'kingdom-saas' ); ?><select name="smtp_secure"><?php foreach ( array( 'ssl' => 'SSL (465)', 'tls' => 'TLS (587)', 'none' => __( 'None', 'kingdom-saas' ) ) as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( ks_get( 'smtp_secure' ), $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select></label>
-						</div>
+						<label><?php esc_html_e( 'Port', 'kingdom-saas' ); ?><input type="number" name="smtp_port" value="<?php echo esc_attr( ks_get( 'smtp_port' ) ); ?>" min="1" max="65535"></label>
+						<label><?php esc_html_e( 'Encryption', 'kingdom-saas' ); ?><select name="smtp_secure"><?php foreach ( array( 'ssl' => 'SSL (465)', 'tls' => 'TLS (587)', 'none' => __( 'None', 'kingdom-saas' ) ) as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( ks_get( 'smtp_secure' ), $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select></label>
 						<label><?php esc_html_e( 'Username (usually the full email address)', 'kingdom-saas' ); ?><input name="smtp_user" value="<?php echo esc_attr( ks_get( 'smtp_user' ) ); ?>" autocomplete="off"></label>
 						<label><?php esc_html_e( 'Password', 'kingdom-saas' ); ?><input type="password" name="smtp_pass" value="" autocomplete="new-password" placeholder="<?php echo esc_attr( ks_get( 'smtp_pass' ) ? __( '•••••••• saved — leave empty to keep', 'kingdom-saas' ) : '' ); ?>"></label>
 						<label class="ks-span-2"><?php esc_html_e( 'Send from (an address of this mailbox, e.g. no-reply@yourplatform.com)', 'kingdom-saas' ); ?><input type="email" name="smtp_from" value="<?php echo esc_attr( ks_get( 'smtp_from' ) ); ?>" placeholder="<?php echo esc_attr( ks_get( 'smtp_user' ) ? ks_get( 'smtp_user' ) : 'no-reply@' . ks_get( 'base_domain' ) ); ?>"></label>
