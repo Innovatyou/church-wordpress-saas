@@ -690,7 +690,7 @@ class KCS_Church_Admin {
 	 */
 	public static function render() {
 		if ( ! is_user_logged_in() ) {
-			return kcs_get_template( 'partner-login', array( 'notice' => __( 'Church staff: please log in to open the admin dashboard.', 'kingdom-church-suite' ), 'redirect_to' => self::url() ) );
+			return kcs_get_template( 'partner-login', array( 'mode' => 'staff', 'redirect_to' => self::url() ) );
 		}
 		if ( ! self::can() ) {
 			return '<div class="kcs-alert kcs-alert--error">' . esc_html__( 'This dashboard is for church staff only.', 'kingdom-church-suite' ) . '</div>';

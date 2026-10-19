@@ -25,6 +25,7 @@ class KCS_Portal {
 	public static function init() {
 		add_action( 'template_redirect', array( __CLASS__, 'handle_forms' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'partner_home' ), 20 );
+		add_filter( 'body_class', array( __CLASS__, 'auth_body_class' ) );
 		// The church's own log-in page replaces the WordPress login screen.
 		add_filter( 'login_url', array( __CLASS__, 'login_url' ), 10, 2 );
 		add_action( 'login_init', array( __CLASS__, 'leave_wp_login' ), 1 );
@@ -279,6 +280,24 @@ class KCS_Portal {
 	}
 
 	/**
+	 * Login pages (partner login, and Church Admin while logged out) get a compact, app-like
+	 * layout: the theme hides the big page title band there.
+	 *
+	 * @param array $classes Body classes.
+	 * @return array
+	 */
+	public static function auth_body_class( $classes ) {
+		if ( ! is_singular() ) {
+			return $classes;
+		}
+		$content = (string) get_post_field( 'post_content', get_queried_object_id() );
+		if ( has_shortcode( $content, 'kcs_partner_login' ) || ( ! is_user_logged_in() && has_shortcode( $content, 'kcs_church_admin' ) ) ) {
+			$classes[] = 'kcs-auth-page';
+		}
+		return $classes;
+	}
+
+	/**
 	 * Login.
 	 *
 	 * @param array $data Data.
@@ -310,6 +329,10 @@ class KCS_Portal {
 		$home     = user_can( $user, 'manage_kcs' ) && ! KCS_Partners::get_by_user( $user->ID ) ? kcs_page_url( 'church_admin' ) : kcs_page_url( 'partner_dashboard' );
 		$redirect = ! empty( $data['redirect_to'] ) ? wp_validate_redirect( esc_url_raw( $data['redirect_to'] ), $home ) : $home;
 		if ( KCS_Partners::get_by_user( $user->ID ) && self::is_entry_page( $redirect ) ) {
+			$redirect = kcs_page_url( 'partner_dashboard' );
+		}
+		// A partner who used the "Church staff" tab: their dashboard, not a "staff only" page.
+		if ( ! user_can( $user, 'manage_kcs' ) && 0 === strpos( $redirect, untrailingslashit( kcs_page_url( 'church_admin' ) ) ) ) {
 			$redirect = kcs_page_url( 'partner_dashboard' );
 		}
 		wp_safe_redirect( $redirect );

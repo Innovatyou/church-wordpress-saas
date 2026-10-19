@@ -83,6 +83,15 @@
 /* Auth */
 .kcs-auth { max-width: 460px; margin: 0 auto; }
 .kcs-auth__links { text-align: center; font-size: .9rem; margin: 0; }
+.kcs-auth__card { display: grid; gap: 1rem; padding: clamp(1.25rem, 4vw, 2rem); border-radius: calc(var(--kcs-radius, 14px) * 1.4); background: var(--kcs-surface, #fff); border: 1px solid var(--kcs-border, #e7e3ec); box-shadow: 0 24px 60px -36px rgba(20, 10, 40, .45); }
+.kcs-auth__card .kcs-auth__form { padding: 0; border: 0; box-shadow: none; background: none; }
+.kcs-auth__brand { display: grid; justify-items: center; gap: .55rem; text-align: center; font-weight: 700; }
+.kcs-auth__logo { max-height: 72px; max-width: 200px; width: auto; height: auto; object-fit: contain; border-radius: 14px; }
+.kcs-auth__tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 999px; background: var(--kcs-surface-2, #f4f1f7); }
+.kcs-auth__tabs a { display: block; padding: .6rem .75rem; border-radius: 999px; text-align: center; font-weight: 700; font-size: .92rem; color: var(--kcs-muted, #6b6475); text-decoration: none; }
+.kcs-auth__tabs a[aria-current="page"] { background: var(--kcs-surface, #fff); color: var(--kcs-text, #1f1a26); box-shadow: 0 2px 8px rgba(20, 10, 40, .12); }
+.kcs-auth .kcs-form__title { margin: 0; font-size: 1.45rem; }
+.kcs-auth__sub { margin: -.4rem 0 .2rem; }
 
 /* Dashboard */
 .kcs-dashboard { display: grid; gap: 1.5rem; color: var(--kcs-text); }

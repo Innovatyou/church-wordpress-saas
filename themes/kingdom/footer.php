@@ -157,6 +157,7 @@ $kingdom_copy    = get_theme_mod( 'kingdom_copyright' ) ? get_theme_mod( 'kingdo
 				<?php if ( $kingdom_show['bottom'] ) : ?>
 					<p><?php echo esc_html( $kingdom_copy ); ?><?php echo wp_kses_post( $kingdom_credit ); ?></p>
 					<?php if ( function_exists( 'the_privacy_policy_link' ) ) { the_privacy_policy_link(); } ?>
+					<?php if ( kingdom_plugin_active() && ! is_user_logged_in() ) : ?><a class="k-footer__staff" href="<?php echo esc_url( kcs_page_url( 'church_admin' ) ); ?>"><?php esc_html_e( 'Church staff login', 'kingdom' ); ?></a><?php endif; ?>
 				<?php else : ?>
 					<p><?php echo wp_kses_post( preg_replace( '/^\s*·\s*/u', '', $kingdom_credit ) ); ?></p>
 				<?php endif; ?>

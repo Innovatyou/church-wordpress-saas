@@ -880,6 +880,11 @@ html.is-app .k-page-header__title { font-size: clamp(1.45rem, 6.5vw, 1.85rem); }
 html.is-app .k-page-header + .k-section,
 html.is-app .k-page-header + * > .k-section:first-child { padding-top: 1rem; }
 
+/* Login pages: no big title band, the login card sits near the top. */
+.kcs-auth-page .k-page-header { display: none; }
+.kcs-auth-page .k-page-header + .k-section, .kcs-auth-page .k-page-header + * > .k-section:first-child, .kcs-auth-page main .k-section:first-child { padding-block: clamp(1.5rem, 5vw, 3.5rem); }
+.k-footer__staff { opacity: .8; }
+
 /* ---------- Mobile menu (full screen, brand colours, sliding sub-menus) ---------- */
 .k-drawer {
 	--d-bg: var(--k-primary);
