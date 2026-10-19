@@ -470,7 +470,10 @@ function kingdom_service_times() {
 		}
 	}
 	if ( ! $out ) {
-		$raw = get_theme_mod( 'kingdom_service_times', "Sunday|8:00 AM|First Service\nSunday|10:30 AM|Celebration Service\nWednesday|6:00 PM|Bible Study" );
+		$raw = (string) get_theme_mod( 'kingdom_service_times', '' );
+		if ( 0 === strpos( str_replace( "\r", '', trim( $raw ) ), "Sunday|8:00 AM|First Service\nSunday|10:30 AM|Celebration Service" ) ) {
+			$raw = ''; // The old sample, not the church's times.
+		}
 		foreach ( explode( "\n", $raw ) as $line ) {
 			$p = array_map( 'trim', explode( '|', $line ) );
 			if ( count( $p ) >= 2 ) {

@@ -13,6 +13,11 @@ defined( 'ABSPATH' ) || exit;
 class KCS_Livestream {
 
 	/**
+	 * Sample schedule earlier versions filled in for every new church.
+	 */
+	const OLD_SAMPLE = "Sunday|08:00|First Service\nSunday|10:30|Second Service\nWednesday|18:00|Midweek Bible Study\nFriday|21:00|Prayer Night";
+
+	/**
 	 * Hooks.
 	 */
 	public static function init() {
@@ -33,7 +38,13 @@ class KCS_Livestream {
 	 */
 	public static function schedule() {
 		$out = array();
-		foreach ( explode( "\n", (string) kcs_get_option( 'service_schedule' ) ) as $line ) {
+		$raw = trim( str_replace( "\r", '', (string) kcs_get_option( 'service_schedule' ) ) );
+		// The sample services new sites used to start with are not the church's: start empty.
+		if ( self::OLD_SAMPLE === $raw ) {
+			kcs_update_option( 'service_schedule', '' );
+			$raw = '';
+		}
+		foreach ( explode( "\n", $raw ) as $line ) {
 			$parts = array_map( 'trim', explode( '|', $line ) );
 			if ( count( $parts ) >= 2 && preg_match( '/^\d{1,2}:\d{2}$/', $parts[1] ) ) {
 				$out[] = array(

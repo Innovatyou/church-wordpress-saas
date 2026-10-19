@@ -126,7 +126,7 @@ $kingdom_buttons = function () use ( $kingdom_b1t, $kingdom_b1u, $kingdom_b2t, $
 			</div>
 		</div>
 		<?php endif; ?>
-		<?php if ( 'mega' === $kingdom_variant && ! $kingdom_notext ) : ?>
+		<?php if ( 'mega' === $kingdom_variant && ! $kingdom_notext && $kingdom_times ) : ?>
 			<div class="k-hero__strip">
 				<div class="k-container k-hero__strip-inner">
 					<?php foreach ( array_slice( $kingdom_times, 0, 4 ) as $kingdom_s ) : ?>

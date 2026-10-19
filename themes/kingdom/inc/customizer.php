@@ -191,7 +191,7 @@ function kingdom_customize_register( $wp ) {
 	$add( 'kingdom_welcome', 'kingdom_welcome_btn_url', __( 'Button URL', 'kingdom' ), 'url', '' );
 
 	// Services.
-	$add( 'kingdom_services', 'kingdom_service_times', __( 'Service times (fallback)', 'kingdom' ), 'textarea', "Sunday|8:00 AM|First Service\nSunday|10:30 AM|Celebration Service\nWednesday|6:00 PM|Bible Study", array(), __( 'One per line: Day|Time|Name. When the Ministry OS Church Suite plugin is active its service schedule is used instead.', 'kingdom' ) );
+	$add( 'kingdom_services', 'kingdom_service_times', __( 'Service times (fallback)', 'kingdom' ), 'textarea', '', array(), __( 'One per line: Day|Time|Name. When the Ministry OS Church Suite plugin is active its service schedule is used instead.', 'kingdom' ) );
 
 	// Stats.
 	$add( 'kingdom_stats', 'kingdom_stats', __( 'Stats', 'kingdom' ), 'textarea', "25|Years of ministry\n3000|Members\n40|Ministries\n12|Nations reached", array(), __( 'One per line: number|label', 'kingdom' ) );

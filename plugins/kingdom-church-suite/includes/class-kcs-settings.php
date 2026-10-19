@@ -61,7 +61,7 @@ class KCS_Settings {
 					'service_schedule' => array(
 						'label'   => __( 'Weekly services', 'kingdom-church-suite' ),
 						'type'    => 'textarea',
-						'default' => "Sunday|08:00|First Service\nSunday|10:30|Second Service\nWednesday|18:00|Midweek Bible Study\nFriday|21:00|Prayer Night",
+						'default' => '',
 						'desc'    => __( 'One per line: Day|HH:MM (24h)|Service name. Used by the countdown, live badge and Church schema.', 'kingdom-church-suite' ),
 					),
 				),

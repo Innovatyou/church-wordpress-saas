@@ -1092,9 +1092,7 @@ class KCS_Church_Admin {
 	 * @return array[] title, why, url, done.
 	 */
 	private static function setup_steps() {
-		$schedule = (string) kcs_get_option( 'service_schedule' );
-		$default  = "Sunday|08:00|First Service\nSunday|10:30|Second Service\nWednesday|18:00|Midweek Bible Study\nFriday|21:00|Prayer Night";
-		$wa       = KCS_WhatsApp_Chat::get();
+				$wa       = KCS_WhatsApp_Chat::get();
 		$steps    = array(
 			array(
 				'title' => __( 'Add your church logo', 'kingdom-church-suite' ),
@@ -1106,7 +1104,7 @@ class KCS_Church_Admin {
 				'title' => __( 'Set your service times', 'kingdom-church-suite' ),
 				'why'   => __( 'Visitors see when to come, and the countdown to your next service.', 'kingdom-church-suite' ),
 				'url'   => self::url( 'website' ) . '#service-times-card',
-				'done'  => '' !== trim( $schedule ) && str_replace( "\r", '', trim( $schedule ) ) !== $default,
+				'done'  => (bool) KCS_Livestream::schedule(),
 			),
 			array(
 				'title' => __( 'Add your address and phone number', 'kingdom-church-suite' ),
@@ -1918,7 +1916,7 @@ class KCS_Church_Admin {
 		};
 		echo '<span class="kca-anchor" id="set-service_schedule"></span><div class="kca-sched" data-sched><strong>' . esc_html__( 'Weekly services', 'kingdom-church-suite' ) . '</strong>';
 		echo '<div class="kca-sched__rows" data-sched-rows>';
-		foreach ( $rows ? $rows : array( array( 'day' => 'Sunday', 'time' => '09:00', 'name' => '' ) ) as $r ) {
+		foreach ( $rows ? $rows : array( array( 'day' => 'Sunday', 'time' => '', 'name' => '' ) ) as $r ) {
 			echo $row( $r ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from escaped parts.
 		}
 		echo '</div><template data-sched-template>' . $row( array( 'day' => 'Sunday', 'time' => '', 'name' => '' ) ) . '</template>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
