@@ -282,7 +282,7 @@ function kingdom_dynamic_css() {
 	$hfont   = $local ? kingdom_font_stack( 'System' ) : kingdom_font_stack( $heading );
 	$bfont   = $local ? kingdom_font_stack( 'System' ) : kingdom_font_stack( $body );
 
-	$css = ':root{--k-primary:' . $primary . ';--k-on-primary:' . kingdom_on_colour( $primary ) . ';--k-accent:' . $accent . ';--k-dark:' . $dark . ';--k-radius:' . $r . ';--k-container:' . $width . 'px;--k-font-heading:' . $hfont . ';--k-font-body:' . $bfont . ';}';
+	$css = ':root{--k-primary:' . $primary . ';--k-on-primary:' . kingdom_on_colour( $primary ) . ';--k-accent:' . $accent . ';--k-dark:' . $dark . ';--k-radius:' . $r . ';--k-container:' . $width . 'px;--k-font-heading:' . $hfont . ';--k-font-body:' . $bfont . ';--k-logo-h:' . ( kingdom_logo_sizes( true )[ get_theme_mod( 'kingdom_logo_size', 'medium' ) ] ?? 60 ) . 'px;}';
 	// Visitor colour switcher: each palette can be applied with <html data-palette="slug">.
 	if ( get_theme_mod( 'kingdom_palette_switcher', true ) ) {
 		foreach ( kingdom_palettes() as $slug => $p ) {

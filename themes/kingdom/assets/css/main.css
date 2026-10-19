@@ -532,12 +532,12 @@ p { margin: 0 0 1.1em; }
 .k-brand__mark::before { width: 4px; height: 18px; transform: translate(-50%, -55%); }
 .k-brand__mark::after { width: 13px; height: 4px; transform: translate(-50%, -150%); }
 .k-brand__tagline { font-size: .75rem; color: var(--k-muted); letter-spacing: .02em; }
-.k-brand__light { display: none; }
+.k-brand__light { display: none !important; }
 .has-light-logo .k-brand__light img { max-height: 56px; width: auto; }
 [data-theme="dark"] .has-light-logo .custom-logo-link,
 .has-transparent-header .k-header:not(.is-scrolled) .has-light-logo .custom-logo-link { display: none; }
 [data-theme="dark"] .has-light-logo .k-brand__light,
-.has-transparent-header .k-header:not(.is-scrolled) .has-light-logo .k-brand__light { display: block; }
+.has-transparent-header .k-header:not(.is-scrolled) .has-light-logo .k-brand__light { display: block !important; }
 .has-transparent-header .k-header:not(.is-scrolled) .k-brand__tagline { color: rgba(255,255,255,.75); }
 .k-footer__motto { font-family: var(--k-font-heading); font-style: italic; color: var(--k-accent); font-size: 1.1rem; }
 
@@ -784,6 +784,14 @@ body:has(.k-wa) .k-to-top { right: auto; left: max(1.25rem, env(safe-area-inset-
 
 /* Long church names wrap instead of pushing the header off-screen. */
 .k-brand { flex: 0 1 auto; min-width: 0; max-width: 300px; }
+/* A logo never shrinks (only a long church name in text may wrap). */
+.k-brand:has(img) { flex: none; max-width: none; }
+.k-brand .custom-logo-link, .k-brand__light { display: block; flex: none; line-height: 0; }
+.k-brand img, .has-light-logo .k-brand__light img { height: var(--k-logo-h, 56px); max-height: none; width: auto; max-width: min(300px, 45vw); object-fit: contain; }
+@media (max-width: 720px) { .k-brand img, .has-light-logo .k-brand__light img { height: calc(var(--k-logo-h, 56px) * .8); max-width: 60vw; } }
+/* Menu does not fit on one line: use the menu button, like on tablets. */
+.k-nav-compact .k-nav-toggle { display: inline-grid; }
+.k-nav-compact .k-nav { display: none; }
 .k-brand__name { line-height: 1.15; font-size: clamp(1.1rem, 1.25vw + .45rem, 1.45rem); }
 .k-brand__mark { flex: none; }
 @media (max-width: 600px) { .k-brand { max-width: none; } }

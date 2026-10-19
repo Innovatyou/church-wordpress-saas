@@ -91,6 +91,7 @@ function kingdom_customize_register( $wp ) {
 	$add( 'kingdom_brand', 'kingdom_palette', __( 'Site colour palette', 'kingdom' ), 'select', 'royal', $palette_choices, __( 'Pick a ready-made palette, or choose Custom and set your own brand colours under "Custom Colours & Typography".', 'kingdom' ) );
 	$add( 'kingdom_brand', 'kingdom_palette_switcher', __( 'Let visitors pick a colour palette', 'kingdom' ), 'checkbox', true );
 	$add( 'kingdom_brand', 'kingdom_logo_light', __( 'Light logo (for dark/transparent header and dark mode)', 'kingdom' ), 'image', '', array(), __( 'Your main logo is set under Site Identity. Upload a white version here.', 'kingdom' ) );
+	$add( 'kingdom_brand', 'kingdom_logo_size', __( 'Logo size in the header', 'kingdom' ), 'select', 'medium', kingdom_logo_sizes() );
 	$add( 'kingdom_brand', 'kingdom_show_tagline', __( 'Show tagline under the church name', 'kingdom' ), 'checkbox', false );
 	$add( 'kingdom_brand', 'kingdom_brand_motto', __( 'Church motto / vision line', 'kingdom' ), 'text', '', array(), __( 'Shown in the footer, e.g. "Raising Kingdom Ambassadors".', 'kingdom' ) );
 	$add( 'kingdom_brand', 'kingdom_button_style', __( 'Button style', 'kingdom' ), 'select', 'pill', array( 'pill' => __( 'Pill', 'kingdom' ), 'rounded' => __( 'Rounded', 'kingdom' ), 'square' => __( 'Square', 'kingdom' ) ) );

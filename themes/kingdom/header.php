@@ -114,6 +114,7 @@ if ( ! $cta_url && kingdom_plugin_active() ) {
 		<div class="k-container"><?php get_search_form(); ?></div>
 	</div>
 </header>
+<script>/* Menu too long for one line: use the menu button instead of letting it run off the screen. */(function(){var r=document.documentElement,i=document.querySelector('.k-header__inner'),n=i&&i.querySelector('.k-nav');if(!n){return;}function f(){r.classList.remove('k-nav-compact');if(getComputedStyle(n).display==='none'){return;}var m=n.firstElementChild;if(i.scrollWidth>i.clientWidth+2||(m&&m.scrollWidth>n.clientWidth+2)){r.classList.add('k-nav-compact');}}f();var t;window.addEventListener('resize',function(){clearTimeout(t);t=setTimeout(f,120);});if(document.fonts&&document.fonts.ready){document.fonts.ready.then(f);}window.addEventListener('load',f);})();</script>
 <?php get_template_part( 'template-parts/mobile-menu' ); ?>
 
 <main id="content" class="k-main">

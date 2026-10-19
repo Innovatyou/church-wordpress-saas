@@ -133,6 +133,7 @@ function kingdom_website_settings() {
 	// Pictures & logo.
 	$out['custom_logo']        = array( __( 'Church logo', 'kingdom' ), 'image_id', 'pictures', 0 );
 	$out['kingdom_logo_light'] = array( __( 'White logo (for dark headers and dark mode, optional)', 'kingdom' ), 'image', 'pictures', '' );
+	$out['kingdom_logo_size']  = array( __( 'Logo size in the header', 'kingdom' ), 'select', 'pictures', 'medium', kingdom_logo_sizes() );
 	foreach ( kingdom_image_slots() as $slot => $info ) {
 		$out[ $slot ] = array( $info[0] . ( $info[2] ? ' — ' . $info[2] : '' ), 'image', 'pictures', '' );
 		if ( 0 === strpos( $slot, 'kingdom_gallery_' ) ) {
@@ -1056,3 +1057,23 @@ function kingdom_whatsapp_chat() {
 		'contacts' => array( array( 'label' => __( 'Church office', 'kingdom' ), 'url' => 'https://wa.me/' . $digits . '?text=' . rawurlencode( sprintf( __( 'Hello %s, I found you on your website.', 'kingdom' ), get_bloginfo( 'name' ) ) ) ) ),
 	);
 }
+
+/**
+ * Header logo sizes (height on computers; phones use 80%).
+ *
+ * @param bool $px Return pixel heights instead of labels.
+ * @return array
+ */
+function kingdom_logo_sizes( $px = false ) {
+	$h = array( 'small' => 44, 'medium' => 60, 'large' => 76, 'xlarge' => 92 );
+	if ( $px ) {
+		return $h;
+	}
+	return array(
+		'small'  => __( 'Small', 'kingdom' ),
+		'medium' => __( 'Medium', 'kingdom' ),
+		'large'  => __( 'Large', 'kingdom' ),
+		'xlarge' => __( 'Extra large (logos with text under the picture)', 'kingdom' ),
+	);
+}
+
