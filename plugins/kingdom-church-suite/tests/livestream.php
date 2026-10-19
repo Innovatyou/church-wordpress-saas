@@ -14,6 +14,9 @@ add_filter( 'pre_http_request', function ( $pre, $args, $url ) use ( $UC ) {
 		if ( 'offline' === $m ) { return $r( '<link rel="canonical" href="https://www.youtube.com/channel/' . $UC . '">ytInitialData' ); }
 		return $r( '<html>Sign in to confirm you are not a bot</html>' ); // blocked
 	}
+	if ( false !== strpos( $url, '/channel/' . $UC . '/streams' ) ) {
+		return empty( $GLOBALS['yt_streams'] ) ? $r( '', 500 ) : $r( 'ytInitialData = {"x":[{"videoRenderer":{"videoId":"UPCOMING001","title":{"runs":[{"text":"Next Sunday"}]},"upcomingEventData":{"startTime":"1"}}},{"videoRenderer":{"videoId":"PASTSTREAM1","title":{"runs":[{"text":"Sunday \\"Revival\\" Service"}]}}}]}' );
+	}
 	if ( false !== strpos( $url, 'youtube.com/oembed' ) ) {
 		if ( 'blocked' === $m && ! empty( $GLOBALS['yt_oembed_live'] ) ) { return $r( wp_json_encode( array( 'title' => 'Sunday Live', 'thumbnail_url' => 'https://i.ytimg.com/vi/OEMBEDLIVE1/hqdefault_live.jpg', 'html' => '<iframe src="https://www.youtube.com/embed/OEMBEDLIVE1?feature=oembed"></iframe>' ) ) ); }
 		return $r( 'Bad Request', 400 );
@@ -52,12 +55,34 @@ $GLOBALS['yt_mode'] = 'blocked'; $GLOBALS['yt_oembed_live'] = true; $reset();
 $s = KCS_Livestream::status( true );
 $ok( $s['is_live'] && 'OEMBEDLIVE1' === $s['video_id'], 'page hidden from server, oEmbed live → LIVE (' . $s['video_id'] . ')' );
 // Nothing detected and no replay video: the homepage section uses YouTube's own channel live player.
-$GLOBALS['yt_oembed_live'] = false; $reset(); remove_theme_mod( 'kingdom_ytlive_url' );
+$GLOBALS['yt_oembed_live'] = false; $reset(); remove_theme_mod( 'kingdom_ytlive_url' ); delete_option( 'kingdom_ytlive_last_stream' );
 $l = kingdom_youtube_live( true );
-$ok( false !== strpos( $l['embed'], 'embed/live_stream?channel=' . $UC ), 'nothing detected → section embeds the channel live player' );
+$ok( false !== strpos( $l['embed'], 'embed/live_stream?channel=' . $UC ), 'nothing detected and no past livestream found → channel live player' );
 $ok( false === strpos( $l['label'], 'Not live' ), 'label does not claim "not live" over the channel player (' . $l['label'] . ')' );
 // Offline with a replay video: the replay is shown instead.
 set_theme_mod( 'kingdom_ytlive_url', 'https://www.youtube.com/watch?v=REPLAYVID01' ); $reset();
 $l = kingdom_youtube_live( true );
 $ok( false !== strpos( $l['embed'], 'REPLAYVID01' ), 'offline with a replay video → replay shown' );
 remove_theme_mod( 'kingdom_ytlive_url' ); $reset();
+// Not live: the last livestream plays (from the channel's Live tab, scheduled ones skipped).
+$GLOBALS['yt_mode'] = 'offline'; $GLOBALS['yt_streams'] = true; $reset(); delete_option( 'kingdom_ytlive_last_stream' );
+$l = kingdom_youtube_live( true );
+$ok( false !== strpos( $l['embed'], 'PASTSTREAM1' ), 'offline → last livestream plays (' . $l['embed'] . ')' );
+$ok( 'Sunday "Revival" Service' === $l['title'] && false !== strpos( $l['label'], 'Replay of our last service' ), 'title and label: ' . $l['title'] . ' / ' . $l['label'] );
+$ok( false !== strpos( KCS_Livestream::render(), 'PASTSTREAM1' ), 'Watch Live page plays the last livestream too' );
+// A broadcast the site saw live becomes the replay the moment it ends.
+delete_option( 'kingdom_ytlive_last_stream' ); $GLOBALS['yt_mode'] = 'live'; $reset(); kingdom_youtube_live( true );
+$GLOBALS['yt_mode'] = 'offline'; $GLOBALS['yt_streams'] = false; delete_option( 'kingdom_ytlive_status_store' ); delete_option( 'kingdom_ytlive_lock' );
+$l = kingdom_youtube_live( true );
+$ok( false !== strpos( $l['embed'], 'LIVEVID0001' ) || 'LIVEVID0001' === ( $l['replay']['video_id'] ?? '' ), 'just-ended broadcast is the replay (' . ( $l['replay']['video_id'] ?? '-' ) . ')' );
+// With an API key: newest finished broadcast among the uploads.
+$o['yt_api_key'] = 'TESTKEY'; update_option( 'kcs_settings', $o ); $reset(); delete_option( 'kingdom_ytlive_last_stream' );
+$last = kingdom_ytlive_last_stream( $UC, true );
+$ok( $last && 'OLDVID00001' === $last['video_id'], 'API: finished broadcast found (' . ( $last['video_id'] ?? '-' ) . '), not the one still live' );
+$o['yt_api_key'] = ''; update_option( 'kcs_settings', $o );
+// Switched off: back to the channel live player.
+set_theme_mod( 'kingdom_ytlive_last_replay', false ); $reset();
+$l = kingdom_youtube_live( true );
+$ok( false !== strpos( $l['embed'], 'live_stream?channel=' ), 'setting off → channel live player' );
+remove_theme_mod( 'kingdom_ytlive_last_replay' ); $reset(); delete_option( 'kingdom_ytlive_last_stream' );
+

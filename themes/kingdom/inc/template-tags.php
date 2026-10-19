@@ -329,7 +329,8 @@ function kingdom_site_elements() {
 function kingdom_media_settings() {
 	$out = array(
 		'kingdom_ytlive_channel'  => array( __( 'YouTube live: your channel (link, @handle or channel ID) — switches to your stream automatically', 'kingdom' ), 'text', '' ),
-		'kingdom_ytlive_url'      => array( __( 'YouTube live: video to show when you are not live (link or ID)', 'kingdom' ), 'text', '' ),
+		'kingdom_ytlive_last_replay' => array( __( 'YouTube live: when not live, play our last livestream', 'kingdom' ), 'checkbox', true ),
+		'kingdom_ytlive_url'      => array( __( 'YouTube live: a fixed video to show when you are not live instead (optional, link or ID)', 'kingdom' ), 'text', '' ),
 		'kingdom_ytlive_api_key'  => array( __( 'YouTube live: YouTube API key (optional, most reliable detection)', 'kingdom' ), 'text', '' ),
 		'kingdom_ytlive_title'    => array( __( 'YouTube live: heading', 'kingdom' ), 'text', __( 'Worship with us live', 'kingdom' ) ),
 		'kingdom_ytlive_autoplay' => array( __( 'YouTube live: start playing (muted) when the page opens — YouTube may not count these as views until the viewer taps play', 'kingdom' ), 'checkbox', false ),

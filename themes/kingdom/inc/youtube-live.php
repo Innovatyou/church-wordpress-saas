@@ -153,6 +153,120 @@ function kingdom_ytlive_check( $channel ) {
 }
 
 /**
+ * The church's most recent livestream (to replay while not live). Kept for an hour.
+ *
+ * In order: the broadcast this site saw go live; with an API key, the newest finished broadcast
+ * among the latest uploads; the channel's Live tab; the newest video in the channel's feed.
+ *
+ * @param string $channel Channel ID.
+ * @param bool   $force   Look again now.
+ * @return array|null video_id, title, source.
+ */
+function kingdom_ytlive_last_stream( $channel, $force = false ) {
+	$saved = get_option( 'kingdom_ytlive_last_stream' );
+	$valid = is_array( $saved ) && ( $saved['channel'] ?? '' ) === $channel;
+	if ( $valid && ! $force && time() - (int) $saved['checked_at'] < HOUR_IN_SECONDS ) {
+		return $saved['video_id'] ? $saved : null;
+	}
+	$found = null;
+	$key   = kingdom_ytlive_api_key();
+	if ( $key ) {
+		$found = kingdom_ytlive_last_from_api( $channel, $key );
+	}
+	if ( ! $found ) {
+		$found = kingdom_ytlive_last_from_streams_tab( $channel );
+	}
+	if ( ! $found ) {
+		$found = kingdom_ytlive_last_from_feed( $channel );
+	}
+	if ( ! $found && $valid && $saved['video_id'] ) {
+		$found = $saved; // YouTube did not answer: keep the one we had.
+	}
+	$row = array_merge( array( 'video_id' => '', 'title' => '', 'source' => '' ), (array) $found, array( 'channel' => $channel, 'checked_at' => time() ) );
+	update_option( 'kingdom_ytlive_last_stream', $row, false );
+	return $row['video_id'] ? $row : null;
+}
+
+/**
+ * Newest finished broadcast among the latest uploads (2 quota units).
+ *
+ * @param string $channel Channel ID.
+ * @param string $key     API key.
+ * @return array|null
+ */
+function kingdom_ytlive_last_from_api( $channel, $key ) {
+	$res = wp_remote_get( add_query_arg( array( 'part' => 'contentDetails', 'playlistId' => 'UU' . substr( $channel, 2 ), 'maxResults' => 15, 'key' => $key ), 'https://www.googleapis.com/youtube/v3/playlistItems' ), array( 'timeout' => 8 ) );
+	if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
+		return null;
+	}
+	$ids = array();
+	foreach ( (array) ( json_decode( wp_remote_retrieve_body( $res ), true )['items'] ?? array() ) as $item ) {
+		if ( ! empty( $item['contentDetails']['videoId'] ) ) {
+			$ids[] = $item['contentDetails']['videoId'];
+		}
+	}
+	if ( ! $ids ) {
+		return null;
+	}
+	$res = wp_remote_get( add_query_arg( array( 'part' => 'snippet,liveStreamingDetails', 'id' => implode( ',', $ids ), 'key' => $key ), 'https://www.googleapis.com/youtube/v3/videos' ), array( 'timeout' => 8 ) );
+	if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
+		return null;
+	}
+	$best = null;
+	foreach ( (array) ( json_decode( wp_remote_retrieve_body( $res ), true )['items'] ?? array() ) as $item ) {
+		$end = $item['liveStreamingDetails']['actualEndTime'] ?? '';
+		if ( $end && ( ! $best || strtotime( $end ) > $best['t'] ) ) {
+			$best = array( 't' => strtotime( $end ), 'video_id' => (string) $item['id'], 'title' => html_entity_decode( (string) ( $item['snippet']['title'] ?? '' ), ENT_QUOTES ), 'source' => 'api' );
+		}
+	}
+	if ( $best ) {
+		unset( $best['t'] );
+	}
+	return $best;
+}
+
+/**
+ * First finished broadcast on the channel's Live tab (scheduled streams are skipped).
+ *
+ * @param string $channel Channel ID.
+ * @return array|null
+ */
+function kingdom_ytlive_last_from_streams_tab( $channel ) {
+	$html = kingdom_ytlive_fetch( 'https://www.youtube.com/channel/' . rawurlencode( $channel ) . '/streams' );
+	if ( '' === $html || ! preg_match_all( '~"videoRenderer":\{"videoId":"([A-Za-z0-9_-]{11})"~', $html, $m, PREG_OFFSET_CAPTURE ) ) {
+		return null;
+	}
+	foreach ( $m[1] as $i => $hit ) {
+		$end   = isset( $m[0][ $i + 1 ] ) ? $m[0][ $i + 1 ][1] : strlen( $html );
+		$chunk = substr( $html, $hit[1], min( 6000, $end - $hit[1] ) );
+		if ( false !== strpos( $chunk, '"upcomingEventData"' ) || false !== strpos( $chunk, 'BADGE_STYLE_TYPE_LIVE_NOW' ) ) {
+			continue; // Scheduled, or on air now.
+		}
+		$title = preg_match( '~"title":\{"runs":\[\{"text":"((?:[^"\\\\]|\\\\.)*)"~', $chunk, $t ) ? json_decode( '"' . $t[1] . '"' ) : '';
+		return array( 'video_id' => $hit[0], 'title' => (string) $title, 'source' => 'streams' );
+	}
+	return null;
+}
+
+/**
+ * Newest video in the channel's public feed (may be any upload, not only a livestream).
+ *
+ * @param string $channel Channel ID.
+ * @return array|null
+ */
+function kingdom_ytlive_last_from_feed( $channel ) {
+	$res = wp_remote_get( 'https://www.youtube.com/feeds/videos.xml?channel_id=' . rawurlencode( $channel ), array( 'timeout' => 8 ) );
+	if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
+		return null;
+	}
+	$xml = (string) wp_remote_retrieve_body( $res );
+	if ( ! preg_match( '~<entry>.*?<yt:videoId>([A-Za-z0-9_-]{11})</yt:videoId>.*?<title>([^<]*)</title>~s', $xml, $m ) ) {
+		return null;
+	}
+	return array( 'video_id' => $m[1], 'title' => html_entity_decode( $m[2], ENT_QUOTES | ENT_XML1 ), 'source' => 'feed' );
+}
+
+/**
  * Is the channel on air? YouTube's oEmbed answers for the channel's /live address only while a
  * broadcast is live or scheduled; a live broadcast's thumbnail ends in "_live".
  *
@@ -299,6 +413,10 @@ function kingdom_ytlive_status( $channel, $force = false ) {
 	}
 	update_option( 'kingdom_ytlive_status_store', $status, false );
 	delete_option( 'kingdom_ytlive_lock' );
+	// The broadcast on air now is the replay to show once it ends.
+	if ( 'live' === $status['state'] && $status['video_id'] ) {
+		update_option( 'kingdom_ytlive_last_stream', array( 'channel' => $channel, 'video_id' => $status['video_id'], 'title' => $status['title'], 'checked_at' => time(), 'source' => 'seen' ), false );
+	}
 	// First time this broadcast is seen live: notify once (add_option succeeds for one request only).
 	if ( 'live' === $status['state'] && $status['video_id'] && add_option( 'kingdom_ytlive_live_' . md5( $status['video_id'] ), time(), '', false ) ) {
 		$prev = get_option( 'kingdom_ytlive_last_live' );
@@ -325,6 +443,12 @@ function kingdom_youtube_live( $force = false ) {
 
 	if ( $channel ) {
 		$status = kingdom_ytlive_status( $channel, $force );
+		$last   = null;
+		// Not live and no replay video chosen: play the church's most recent livestream.
+		if ( ! $replay && 'offline' === $status['state'] && get_theme_mod( 'kingdom_ytlive_last_replay', true ) ) {
+			$last   = kingdom_ytlive_last_stream( $channel, $force );
+			$replay = $last ? $last['video_id'] : '';
+		}
 		$video = $status['video_id'] ? $status['video_id'] : $replay;
 		$out   = array(
 			'mode'       => 'channel',
@@ -335,8 +459,12 @@ function kingdom_youtube_live( $force = false ) {
 			'viewers'    => 'live' === $status['state'] && get_theme_mod( 'kingdom_ytlive_viewers', true ) ? (int) ( $status['viewers'] ?? 0 ) : 0,
 			'source'     => $status['source'],
 			'checked_at' => (int) $status['checked_at'],
-			'watch'      => $status['video_id'] ? 'https://www.youtube.com/watch?v=' . $status['video_id'] : 'https://www.youtube.com/channel/' . $channel . '/live',
+			'watch'      => $status['video_id'] ? 'https://www.youtube.com/watch?v=' . $status['video_id'] : ( $last ? 'https://www.youtube.com/watch?v=' . $last['video_id'] : 'https://www.youtube.com/channel/' . $channel . '/live' ),
+			'replay'     => $last ? $last : null,
 		);
+		if ( $last && ! $out['title'] ) {
+			$out['title'] = $last['title'];
+		}
 	} elseif ( $replay ) {
 		$out = array( 'mode' => 'video', 'state' => 'video', 'video_id' => $replay, 'title' => '', 'starts_at' => 0, 'viewers' => 0, 'source' => 'setting', 'checked_at' => time(), 'watch' => 'https://www.youtube.com/watch?v=' . $replay );
 	} else {
@@ -381,6 +509,12 @@ function kingdom_ytlive_label( $s ) {
 			if ( ! empty( $s['channel_player'] ) ) {
 				/* translators: 1: service name, 2: day and time */
 				return ! empty( $s['next_service'] ) ? sprintf( __( 'Next: %1$s, %2$s', 'kingdom' ), $s['next_service']['name'], $s['next_service']['label'] ) : __( 'Watch our live service', 'kingdom' );
+			}
+			if ( ! empty( $s['replay'] ) ) {
+				return ! empty( $s['next_service'] )
+					/* translators: 1: service name, 2: day and time */
+					? sprintf( __( 'Replay of our last service · Next live: %1$s, %2$s', 'kingdom' ), $s['next_service']['name'], $s['next_service']['label'] )
+					: __( 'Replay of our last service', 'kingdom' );
 			}
 			if ( ! empty( $s['next_service'] ) ) {
 				/* translators: 1: service name, 2: day and time */
@@ -438,6 +572,7 @@ add_action( 'rest_api_init', 'kingdom_ytlive_rest' );
  */
 function kingdom_ytlive_reset() {
 	delete_option( 'kingdom_ytlive_status_store' );
+	delete_option( 'kingdom_ytlive_last_stream' );
 	delete_transient( 'kingdom_ytlive_resolve_failed' );
 }
 add_action( 'customize_save_after', 'kingdom_ytlive_reset' );
