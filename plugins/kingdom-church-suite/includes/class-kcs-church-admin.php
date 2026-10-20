@@ -960,7 +960,7 @@ class KCS_Church_Admin {
 			array( __( 'Service times', 'kingdom-church-suite' ), 'website', array(), 'service-times-card', __( 'schedule sunday worship midweek bible study countdown next service next live', 'kingdom-church-suite' ) ),
 			array( __( 'Time zone', 'kingdom-church-suite' ), 'settings', array( 'tab' => 'general' ), 'set-timezone', __( 'timezone lagos clock time wrong hour', 'kingdom-church-suite' ) ),
 			array( __( 'Bank account numbers', 'kingdom-church-suite' ), 'transfers', array(), '', __( 'bank transfer account number offline giving', 'kingdom-church-suite' ) ),
-			array( __( 'Payment link (GlobalPay, Paystack page…)', 'kingdom-church-suite' ), 'settings', array( 'tab' => 'payments' ), 'set-payment_link_url', __( 'payment link globalpay zenith checkout form paystack page flutterwave link', 'kingdom-church-suite' ) ),
+			array( __( 'Payment link (any provider)', 'kingdom-church-suite' ), 'settings', array( 'tab' => 'payments' ), 'set-payment_link_url', __( 'payment link page checkout form paystack flutterwave globalpay zenith remita opay moniepoint paypal stripe', 'kingdom-church-suite' ) ),
 			array( __( 'WhatsApp chat button', 'kingdom-church-suite' ), 'pastors', array(), '', __( 'whatsapp number chat contact phone', 'kingdom-church-suite' ) ),
 			array( __( 'Send a push notification', 'kingdom-church-suite' ), 'app', array(), '', __( 'push notification phones app announce', 'kingdom-church-suite' ) ),
 		);

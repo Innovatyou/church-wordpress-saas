@@ -27,12 +27,12 @@ $back    = $payment->partner_id ? kcs_page_url( 'partner_dashboard' ) : home_url
 	<?php elseif ( KCS_Transfers::is_manual( $payment ) && 'review' === $payment->status ) : ?>
 		<?php $kcs_tr = KCS_Transfers::meta( $payment )['transfer'] ?? array(); ?>
 		<div class="kcs-result__icon">✓</div>
-		<h2><?php echo 'payment_link' === $payment->gateway ? esc_html__( 'Thank you! We are checking your payment', 'kingdom-church-suite' ) : esc_html__( 'Thank you! We are checking your transfer', 'kingdom-church-suite' ); ?></h2>
+		<h2><?php echo 'bank_transfer' !== $payment->gateway ? esc_html__( 'Thank you! We are checking your payment', 'kingdom-church-suite' ) : esc_html__( 'Thank you! We are checking your transfer', 'kingdom-church-suite' ); ?></h2>
 		<p><?php /* translators: %s: amount */ printf( esc_html__( 'You told us you sent %s. We will check our account and email your receipt as soon as it is confirmed.', 'kingdom-church-suite' ), '<strong>' . esc_html( $amount ) . '</strong>' ); ?></p>
 		<?php if ( $kcs_tr ) : ?>
 			<p class="kcs-muted"><?php /* translators: 1: payer name, 2: date */ printf( esc_html__( 'Sent by %1$s on %2$s.', 'kingdom-church-suite' ), esc_html( $kcs_tr['payer'] ), esc_html( mysql2date( get_option( 'date_format' ), $kcs_tr['date'] ) ) ); ?></p>
 		<?php endif; ?>
-	<?php elseif ( 'payment_link' === $payment->gateway && 'pending' === $payment->status && $gateway instanceof KCS_Gateway_Payment_Link ) : ?>
+	<?php elseif ( $gateway instanceof KCS_Gateway_Payment_Link && 'pending' === $payment->status ) : ?>
 		<?php
 		$kcs_tn   = isset( $_GET['kcs_tn'] ) ? sanitize_key( $_GET['kcs_tn'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$kcs_copy = function ( $value ) {
@@ -47,7 +47,7 @@ $back    = $payment->partner_id ? kcs_page_url( 'partner_dashboard' ) : home_url
 			<div><dt><?php esc_html_e( 'Amount', 'kingdom-church-suite' ); ?></dt><dd><strong><?php echo esc_html( $amount ); ?></strong> <?php echo $kcs_copy( number_format( (float) $payment->amount, in_array( $payment->currency, kcs_zero_decimal_currencies(), true ) ? 0 : 2, '.', '' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></dd></div>
 			<div><dt><?php esc_html_e( 'Reference / description', 'kingdom-church-suite' ); ?></dt><dd><code><?php echo esc_html( $payment->reference ); ?></code> <?php echo $kcs_copy( $payment->reference ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></dd></div>
 		</dl>
-		<p><a class="kcs-btn kcs-btn--lg kcs-btn--block" href="<?php echo esc_url( $gateway->link() ); ?>" target="_blank" rel="noopener"><?php /* translators: %s: payment method name */ printf( esc_html__( 'Open %s payment page ↗', 'kingdom-church-suite' ), esc_html( $gateway->display_title() ) ); ?></a></p>
+		<p><a class="kcs-btn kcs-btn--lg kcs-btn--block" href="<?php echo esc_url( $gateway->link() ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open the payment page ↗', 'kingdom-church-suite' ); ?></a></p>
 		<?php if ( $gateway->opt( 'note' ) ) : ?><p class="kcs-transfer__note"><?php echo nl2br( esc_html( $gateway->opt( 'note' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></p><?php endif; ?>
 		<form class="kcs-form kcs-transfer__form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
 			<input type="hidden" name="action" value="kcs_transfer_notice">
@@ -123,7 +123,7 @@ $back    = $payment->partner_id ? kcs_page_url( 'partner_dashboard' ) : home_url
 	<?php elseif ( KCS_Transfers::is_manual( $payment ) && 'failed' === $payment->status ) : ?>
 		<?php $kcs_rej = KCS_Transfers::meta( $payment )['rejected'] ?? array(); ?>
 		<div class="kcs-result__icon">!</div>
-		<h2><?php echo 'payment_link' === $payment->gateway ? esc_html__( 'We could not confirm this payment', 'kingdom-church-suite' ) : esc_html__( 'We could not confirm this transfer', 'kingdom-church-suite' ); ?></h2>
+		<h2><?php echo 'bank_transfer' !== $payment->gateway ? esc_html__( 'We could not confirm this payment', 'kingdom-church-suite' ) : esc_html__( 'We could not confirm this transfer', 'kingdom-church-suite' ); ?></h2>
 		<?php if ( ! empty( $kcs_rej['reason'] ) ) : ?><p><?php echo esc_html( $kcs_rej['reason'] ); ?></p><?php endif; ?>
 		<p><?php esc_html_e( 'If you have already sent the money, please reply to our email with your transfer receipt.', 'kingdom-church-suite' ); ?></p>
 	<?php elseif ( in_array( $payment->status, array( 'pending', 'review' ), true ) ) : ?>

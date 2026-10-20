@@ -1,9 +1,10 @@
 <?php
 /**
- * Payment link: the church pastes a hosted payment page from its provider (for example a Zenith
- * GlobalPay payment form, a Paystack page or a Flutterwave payment link). Givers open it, pay
- * there, then tell the church they have paid; the payment waits in "Needs review" until the
- * church confirms it, exactly like a bank transfer (the website cannot see these payments).
+ * Payment link: the church pastes a payment page or payment link from any provider (Paystack,
+ * Flutterwave, Zenith GlobalPay, Remita, Opay, Moniepoint, Stripe, PayPal…). Up to three links,
+ * each shown to givers as its own method. Givers open it, pay there, then tell the church they
+ * have paid; the payment waits in "Needs review" until the church confirms it, exactly like a
+ * bank transfer (the website cannot see these payments).
  *
  * @package KingdomChurchSuite
  */
@@ -18,9 +19,44 @@ class KCS_Gateway_Payment_Link extends KCS_Gateway {
 	/**
 	 * Constructor.
 	 */
-	public function __construct() {
-		$this->id    = 'payment_link';
-		$this->title = __( 'Payment link (GlobalPay, Paystack page…)', 'kingdom-church-suite' );
+	public function __construct( $slot = 1 ) {
+		$slot        = max( 1, (int) $slot );
+		$this->id    = 1 === $slot ? 'payment_link' : 'payment_link_' . $slot;
+		/* translators: %d: 1, 2 or 3 */
+		$this->title = sprintf( __( 'Payment link %d (any provider)', 'kingdom-church-suite' ), $slot );
+	}
+
+	/**
+	 * Provider name worked out from the link (shown when the church gives no name).
+	 *
+	 * @return string
+	 */
+	public function provider() {
+		$host = strtolower( (string) wp_parse_url( $this->link(), PHP_URL_HOST ) );
+		foreach ( array(
+			'globalpay'   => 'Zenith GlobalPay',
+			'paystack'    => 'Paystack',
+			'flutterwave' => 'Flutterwave',
+			'flw.page'    => 'Flutterwave',
+			'remita'      => 'Remita',
+			'opay'        => 'Opay',
+			'moniepoint'  => 'Moniepoint',
+			'monnify'     => 'Monnify',
+			'interswitch' => 'Interswitch',
+			'quickteller' => 'Quickteller',
+			'squadco'     => 'Squad',
+			'selar'       => 'Selar',
+			'paypal'      => 'PayPal',
+			'stripe'      => 'Stripe',
+			'buy.stripe'  => 'Stripe',
+			'korapay'     => 'Korapay',
+			'paga'        => 'Paga',
+		) as $needle => $name ) {
+			if ( false !== strpos( $host, $needle ) ) {
+				return $name;
+			}
+		}
+		return '';
 	}
 
 	/**
@@ -30,7 +66,21 @@ class KCS_Gateway_Payment_Link extends KCS_Gateway {
 	 */
 	public function display_title() {
 		$t = trim( (string) $this->opt( 'display_title' ) );
-		return '' !== $t && $t !== $this->title ? $t : __( 'Pay online', 'kingdom-church-suite' );
+		if ( '' !== $t && $t !== $this->title ) {
+			return $t;
+		}
+		$name = $this->provider();
+		if ( ! $name ) {
+			return __( 'Pay online', 'kingdom-church-suite' );
+		}
+		// Do not look the same as an automatic gateway with that name (e.g. Paystack).
+		foreach ( KCS_Payments::gateways() as $g ) {
+			if ( ! $g instanceof self && $g->is_enabled() && 0 === strcasecmp( $g->display_title(), $name ) ) {
+				/* translators: %s: provider name */
+				return sprintf( __( '%s (payment page)', 'kingdom-church-suite' ), $name );
+			}
+		}
+		return $name;
 	}
 
 	/**
@@ -41,8 +91,8 @@ class KCS_Gateway_Payment_Link extends KCS_Gateway {
 	public function settings_fields() {
 		$fields = parent::settings_fields();
 		unset( $fields[ $this->id . '_webhook_info' ] ); // The provider does not tell this site about link payments.
-		$fields[ $this->id . '_display_title' ]['default'] = 'Zenith GlobalPay';
-		$fields[ $this->id . '_display_title' ]['desc']    = __( 'For example Zenith GlobalPay or Pay with card.', 'kingdom-church-suite' );
+		$fields[ $this->id . '_display_title' ]['default'] = '';
+		$fields[ $this->id . '_display_title' ]['desc']    = __( 'Optional. Empty: worked out from the link (Paystack, Flutterwave, Zenith GlobalPay, Remita…), otherwise “Pay online”.', 'kingdom-church-suite' );
 		return $fields;
 	}
 
@@ -56,10 +106,10 @@ class KCS_Gateway_Payment_Link extends KCS_Gateway {
 			'link_info'       => array(
 				'label' => __( 'How it works', 'kingdom-church-suite' ),
 				'type'  => 'info',
-				'desc'  => __( 'Create a payment page or payment link in your provider’s dashboard (for example Zenith GlobalPay → Payment form) and paste it here. Givers open it, pay, then press “I have paid”. Check the payment in your provider’s dashboard and confirm it in Church Admin → Confirm payments; the receipt is then sent.', 'kingdom-church-suite' ),
+				'desc'  => __( 'Paste a payment page or payment link from any provider — Paystack, Flutterwave, Zenith GlobalPay, Remita, Opay, Moniepoint, Stripe, PayPal and others. Givers open it, pay, then press “I have paid”. Check the payment in that provider’s dashboard and confirm it in Church Admin → Confirm payments; the receipt is then sent. You can add up to three links.', 'kingdom-church-suite' ),
 			),
-			'url'             => array( 'label' => __( 'Payment link', 'kingdom-church-suite' ), 'type' => 'url', 'desc' => __( 'For example https://checkout.globalpay.ng/payment-form/…', 'kingdom-church-suite' ) ),
-			'currencies'      => array( 'label' => __( 'Currencies this link accepts (optional)', 'kingdom-church-suite' ), 'type' => 'text', 'default' => 'NGN', 'desc' => __( 'Comma separated, e.g. NGN or NGN,USD. Empty: any.', 'kingdom-church-suite' ) ),
+			'url'             => array( 'label' => __( 'Payment link', 'kingdom-church-suite' ), 'type' => 'url', 'desc' => __( 'The full https:// link, for example https://paystack.com/pay/yourchurch or https://checkout.globalpay.ng/payment-form/…', 'kingdom-church-suite' ) ),
+			'currencies'      => array( 'label' => __( 'Currencies this link accepts (optional)', 'kingdom-church-suite' ), 'type' => 'text', 'default' => '', 'desc' => __( 'Optional, comma separated, e.g. NGN or USD. Empty: any currency.', 'kingdom-church-suite' ) ),
 			'for_partnership' => array( 'label' => __( 'Allow for partnership', 'kingdom-church-suite' ), 'type' => 'checkbox', 'default' => '1' ),
 			'for_giving'      => array( 'label' => __( 'Allow for tithes, offerings and other giving', 'kingdom-church-suite' ), 'type' => 'checkbox', 'default' => '1' ),
 			'note'            => array( 'label' => __( 'Note for givers (optional)', 'kingdom-church-suite' ), 'type' => 'textarea', 'desc' => __( 'For example: enter the amount shown below and put your reference in the description.', 'kingdom-church-suite' ) ),
@@ -91,7 +141,7 @@ class KCS_Gateway_Payment_Link extends KCS_Gateway {
 	 * @return array
 	 */
 	public function currency_list() {
-		$list = array_filter( array_map( 'strtoupper', array_map( 'trim', explode( ',', (string) $this->opt( 'currencies', 'NGN' ) ) ) ) );
+		$list = array_filter( array_map( 'strtoupper', array_map( 'trim', explode( ',', (string) $this->opt( 'currencies', '' ) ) ) ) );
 		return array_values( array_intersect( $list, array_keys( kcs_currencies() ) ) );
 	}
 

@@ -30,7 +30,7 @@ class KCS_Transfers {
 	/**
 	 * Methods the church confirms by hand (the website cannot see these payments).
 	 */
-	const MANUAL = array( 'bank_transfer', 'payment_link' );
+	const MANUAL = array( 'bank_transfer', 'payment_link', 'payment_link_2', 'payment_link_3' );
 
 	/**
 	 * Is this a payment the church confirms by hand?

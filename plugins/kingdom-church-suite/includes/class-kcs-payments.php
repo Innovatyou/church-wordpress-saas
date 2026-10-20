@@ -57,7 +57,9 @@ class KCS_Payments {
 				'stripe'        => new KCS_Gateway_Stripe(),
 				'razorpay'      => new KCS_Gateway_Razorpay(),
 				'bank_transfer' => new KCS_Gateway_Bank_Transfer(),
-				'payment_link'  => new KCS_Gateway_Payment_Link(),
+				'payment_link'   => new KCS_Gateway_Payment_Link( 1 ),
+				'payment_link_2' => new KCS_Gateway_Payment_Link( 2 ),
+				'payment_link_3' => new KCS_Gateway_Payment_Link( 3 ),
 				'custom'        => new KCS_Gateway_Custom(),
 			);
 			self::$gateways = array_filter(
