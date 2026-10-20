@@ -313,7 +313,7 @@ class KCS_REST_API {
 			return new WP_Error( 'kcs_not_found', 'Not found', array( 'status' => 404 ) );
 		}
 		// Ask the gateway at most every 10 seconds per payment (this endpoint is public).
-		if ( 'pending' === $payment->status && 'bank_transfer' !== $payment->gateway && ! get_transient( 'kcs_pv_' . $payment->id ) && kcs_rate_limit( 'pay_status', 120, 600 ) ) {
+		if ( 'pending' === $payment->status && ! KCS_Transfers::is_manual( $payment ) && ! get_transient( 'kcs_pv_' . $payment->id ) && kcs_rate_limit( 'pay_status', 120, 600 ) ) {
 			set_transient( 'kcs_pv_' . $payment->id, 1, 10 );
 			KCS_Payments::verify_and_update( $payment );
 			$payment = KCS_Payments::get( $payment->id );

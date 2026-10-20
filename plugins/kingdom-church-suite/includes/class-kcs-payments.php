@@ -56,6 +56,7 @@ class KCS_Payments {
 				'stripe'        => new KCS_Gateway_Stripe(),
 				'razorpay'      => new KCS_Gateway_Razorpay(),
 				'bank_transfer' => new KCS_Gateway_Bank_Transfer(),
+				'payment_link'  => new KCS_Gateway_Payment_Link(),
 				'custom'        => new KCS_Gateway_Custom(),
 			);
 			self::$gateways = array_filter(
@@ -401,7 +402,10 @@ class KCS_Payments {
 			array_push( $vals, $like, $like, $like, $like );
 		}
 		foreach ( array( 'status', 'gateway', 'purpose' ) as $col ) {
-			if ( $args[ $col ] ) {
+			if ( is_array( $args[ $col ] ) && $args[ $col ] ) {
+				$where[] = "$col IN (" . implode( ',', array_fill( 0, count( $args[ $col ] ), '%s' ) ) . ')';
+				$vals    = array_merge( $vals, array_values( $args[ $col ] ) );
+			} elseif ( $args[ $col ] ) {
 				$where[] = "$col = %s";
 				$vals[]  = $args[ $col ];
 			}

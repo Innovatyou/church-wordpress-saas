@@ -28,6 +28,21 @@ class KCS_Transfers {
 	}
 
 	/**
+	 * Methods the church confirms by hand (the website cannot see these payments).
+	 */
+	const MANUAL = array( 'bank_transfer', 'payment_link' );
+
+	/**
+	 * Is this a payment the church confirms by hand?
+	 *
+	 * @param object|string $payment Payment or gateway ID.
+	 * @return bool
+	 */
+	public static function is_manual( $payment ) {
+		return in_array( is_object( $payment ) ? $payment->gateway : (string) $payment, self::MANUAL, true );
+	}
+
+	/**
 	 * The bank transfer gateway.
 	 *
 	 * @return KCS_Gateway_Bank_Transfer|null
@@ -65,7 +80,7 @@ class KCS_Transfers {
 	 */
 	public static function count_waiting() {
 		global $wpdb;
-		return (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'payments' ) . " WHERE gateway = 'bank_transfer' AND status = 'review'" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		return (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'payments' ) . " WHERE gateway IN ('" . implode( "','", self::MANUAL ) . "') AND status = 'review'" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	/**
@@ -102,7 +117,7 @@ class KCS_Transfers {
 	public static function handle_notice() {
 		$reference = isset( $_POST['reference'] ) ? sanitize_text_field( wp_unslash( $_POST['reference'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified below.
 		$payment   = $reference ? KCS_Payments::get_by_reference( $reference ) : null;
-		if ( ! $payment || 'bank_transfer' !== $payment->gateway ) {
+		if ( ! $payment || ! self::is_manual( $payment ) ) {
 			wp_die( esc_html__( 'We could not find that payment reference.', 'kingdom-church-suite' ), 404 );
 		}
 		if ( ! isset( $_POST['_kcs_tn'] ) || ! wp_verify_nonce( sanitize_key( $_POST['_kcs_tn'] ), self::nonce_action( $payment->reference ) ) ) {

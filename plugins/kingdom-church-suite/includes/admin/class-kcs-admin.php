@@ -576,13 +576,13 @@ class KCS_Admin {
 								return '<a class="button button-small" href="' . esc_url( $url ) . '"' . ( $confirm ? ' onclick="return confirm(\'' . esc_js( $confirm ) . '\')"' : '' ) . '>' . esc_html( $label ) . '</a>';
 							};
 							if ( in_array( $p->status, array( 'pending', 'review', 'failed' ), true ) ) {
-								if ( 'bank_transfer' !== $p->gateway ) {
+								if ( ! KCS_Transfers::is_manual( $p ) ) {
 									$links[] = $mk( 'verify', __( 'Re-verify', 'kingdom-church-suite' ) );
 								}
 								if ( KCS_Transfers::can_confirm() ) {
 									$links[] = $mk( 'complete', __( 'Mark paid', 'kingdom-church-suite' ), __( 'Mark this payment as received?', 'kingdom-church-suite' ) );
 								}
-								if ( 'bank_transfer' === $p->gateway && KCS_Transfers::proof_url( $p ) && KCS_Transfers::can_confirm() ) {
+								if ( KCS_Transfers::is_manual( $p ) && KCS_Transfers::proof_url( $p ) && KCS_Transfers::can_confirm() ) {
 									$links[] = '<a class="button button-small" target="_blank" rel="noopener" href="' . esc_url( KCS_Transfers::proof_url( $p ) ) . '">' . esc_html__( 'View proof', 'kingdom-church-suite' ) . '</a>';
 								}
 							}

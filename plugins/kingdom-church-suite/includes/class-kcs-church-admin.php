@@ -51,7 +51,7 @@ class KCS_Church_Admin {
 			'partners'    => array( __( 'Partners', 'kingdom-church-suite' ), '♥' ),
 			'plans'       => array( __( 'Partnership plans', 'kingdom-church-suite' ), '◈' ),
 			'payments'    => array( __( 'Giving received', 'kingdom-church-suite' ), '₦' ),
-			'transfers'   => array( __( 'Confirm bank transfers', 'kingdom-church-suite' ), '⇄' ),
+			'transfers'   => array( __( 'Confirm payments', 'kingdom-church-suite' ), '⇄' ),
 			'prayers'     => array( __( 'Prayer requests', 'kingdom-church-suite' ), '✦' ),
 			'visits'      => array( __( 'First-time visitors', 'kingdom-church-suite' ), '☺' ),
 			'testimonies' => array( __( 'Testimonies', 'kingdom-church-suite' ), '❝' ),
@@ -95,7 +95,7 @@ class KCS_Church_Admin {
 			'prayers'      => __( 'Prayer requests sent from your website. Mark them as prayed for when done.', 'kingdom-church-suite' ),
 			'visits'       => __( 'People who booked a visit. Call or WhatsApp them to welcome them.', 'kingdom-church-suite' ),
 			'testimonies'  => __( 'Testimonies shared by members. Approve them to show them on your website.', 'kingdom-church-suite' ),
-			'transfers'    => __( 'Givers who paid by bank transfer. Check your bank account, then confirm or reject.', 'kingdom-church-suite' ),
+			'transfers'    => __( 'Givers who paid by bank transfer or your payment link. Check your bank or provider dashboard, then confirm or reject.', 'kingdom-church-suite' ),
 			'payments'     => __( 'Every tithe, offering and partnership payment received online.', 'kingdom-church-suite' ),
 			'plans'        => __( 'The partnership plans people can choose, their prices and currencies.', 'kingdom-church-suite' ),
 			'notify'       => __( 'Send an announcement to your partners by email and on their dashboard.', 'kingdom-church-suite' ),
@@ -819,7 +819,7 @@ class KCS_Church_Admin {
 		return $cache = array(
 			'prayers'     => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'prayer_requests' ) . " WHERE status = 'new'" ),
 			'visits'      => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'visits' ) . " WHERE status = 'new'" ),
-			'payments'    => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'payments' ) . " WHERE status = 'review' AND gateway <> 'bank_transfer'" ),
+			'payments'    => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'payments' ) .  " WHERE status = 'review' AND gateway NOT IN ('" . implode( "','", KCS_Transfers::MANUAL ) . "')" ),
 			'transfers'   => KCS_Transfers::count_waiting(),
 			'testimonies' => (int) wp_count_posts( 'kcs_testimony' )->pending,
 			'partners'    => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'partners' ) . " WHERE status = 'overdue'" ),
@@ -851,7 +851,7 @@ class KCS_Church_Admin {
 		$counts = self::badges();
 		$attn   = array_filter(
 			array(
-				'transfers'   => array( $counts['transfers'], _n( '%d bank transfer to confirm', '%d bank transfers to confirm', $counts['transfers'], 'kingdom-church-suite' ) ),
+				'transfers'   => array( $counts['transfers'], _n( '%d payment to confirm', '%d payments to confirm', $counts['transfers'], 'kingdom-church-suite' ) ),
 				'payments'    => array( $counts['payments'], _n( '%d payment to review', '%d payments to review', $counts['payments'], 'kingdom-church-suite' ) ),
 				'prayers'     => array( $counts['prayers'], _n( '%d new prayer request', '%d new prayer requests', $counts['prayers'], 'kingdom-church-suite' ) ),
 				'visits'      => array( $counts['visits'], _n( '%d first-time visitor to welcome', '%d first-time visitors to welcome', $counts['visits'], 'kingdom-church-suite' ) ),
@@ -960,6 +960,7 @@ class KCS_Church_Admin {
 			array( __( 'Service times', 'kingdom-church-suite' ), 'website', array(), 'service-times-card', __( 'schedule sunday worship midweek bible study countdown next service next live', 'kingdom-church-suite' ) ),
 			array( __( 'Time zone', 'kingdom-church-suite' ), 'settings', array( 'tab' => 'general' ), 'set-timezone', __( 'timezone lagos clock time wrong hour', 'kingdom-church-suite' ) ),
 			array( __( 'Bank account numbers', 'kingdom-church-suite' ), 'transfers', array(), '', __( 'bank transfer account number offline giving', 'kingdom-church-suite' ) ),
+			array( __( 'Payment link (GlobalPay, Paystack page…)', 'kingdom-church-suite' ), 'settings', array( 'tab' => 'payments' ), 'set-payment_link_url', __( 'payment link globalpay zenith checkout form paystack page flutterwave link', 'kingdom-church-suite' ) ),
 			array( __( 'WhatsApp chat button', 'kingdom-church-suite' ), 'pastors', array(), '', __( 'whatsapp number chat contact phone', 'kingdom-church-suite' ) ),
 			array( __( 'Send a push notification', 'kingdom-church-suite' ), 'app', array(), '', __( 'push notification phones app announce', 'kingdom-church-suite' ) ),
 		);
@@ -1280,7 +1281,7 @@ class KCS_Church_Admin {
 						<td class="kca-actions">
 							<?php if ( in_array( $pay->status, array( 'pending', 'review', 'failed' ), true ) ) : ?>
 								<?php if ( KCS_Transfers::can_confirm() ) : ?><form method="post" class="kca-inline" onsubmit="return confirm('<?php echo esc_js( __( 'Mark this payment as received? The giver gets a receipt.', 'kingdom-church-suite' ) ); ?>')"><?php echo self::fields( 'payment_complete', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn"><?php esc_html_e( 'Mark received', 'kingdom-church-suite' ); ?></button></form><?php endif; ?>
-								<?php if ( 'bank_transfer' !== $pay->gateway ) : ?><form method="post" class="kca-inline"><?php echo self::fields( 'payment_verify', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Check gateway', 'kingdom-church-suite' ); ?></button></form><?php endif; ?>
+								<?php if ( ! KCS_Transfers::is_manual( $pay ) ) : ?><form method="post" class="kca-inline"><?php echo self::fields( 'payment_verify', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Check gateway', 'kingdom-church-suite' ); ?></button></form><?php endif; ?>
 							<?php endif; ?>
 						</td>
 					</tr>
@@ -1305,8 +1306,8 @@ class KCS_Church_Admin {
 		$can_confirm = KCS_Transfers::can_confirm();
 		$can_setup   = current_user_can( 'manage_options' );
 		$purposes    = kcs_all_purposes();
-		$waiting     = KCS_Payments::query( array( 'gateway' => 'bank_transfer', 'status' => 'review', 'per_page' => 50 ) )['items'];
-		$started     = KCS_Payments::query( array( 'gateway' => 'bank_transfer', 'status' => 'pending', 'date_from' => gmdate( 'Y-m-d', strtotime( current_time( 'Y-m-d' ) . ' -30 days' ) ), 'per_page' => 20 ) )['items'];
+		$waiting     = KCS_Payments::query( array( 'gateway' => KCS_Transfers::MANUAL, 'status' => 'review', 'per_page' => 50 ) )['items'];
+		$started     = KCS_Payments::query( array( 'gateway' => KCS_Transfers::MANUAL, 'status' => 'pending', 'date_from' => gmdate( 'Y-m-d', strtotime( current_time( 'Y-m-d' ) . ' -30 days' ) ), 'per_page' => 20 ) )['items'];
 		$label       = function ( $pay ) use ( $purposes ) {
 			return $purposes[ $pay->purpose ] ?? ucwords( str_replace( array( '-', '_' ), ' ', $pay->purpose ) );
 		};
@@ -1337,6 +1338,8 @@ class KCS_Church_Admin {
 						<header>
 							<strong class="kca-transfer__amt"><?php echo esc_html( kcs_format_money( $pay->amount, $pay->currency ) ); ?></strong>
 							<span><?php echo esc_html( $label( $pay ) ); ?></span>
+							<?php $kcs_m = KCS_Payments::gateway( $pay->gateway ); ?>
+							<span class="kcs-badge"><?php echo esc_html( 'bank_transfer' === $pay->gateway ? __( 'Bank transfer', 'kingdom-church-suite' ) : ( $kcs_m ? $kcs_m->display_title() : $pay->gateway ) ); ?></span>
 						</header>
 						<dl>
 							<div><dt><?php esc_html_e( 'Giver', 'kingdom-church-suite' ); ?></dt><dd><?php echo esc_html( $pay->name ? $pay->name : $pay->email ); ?><small><?php echo esc_html( $pay->email ); ?></small></dd></div>
