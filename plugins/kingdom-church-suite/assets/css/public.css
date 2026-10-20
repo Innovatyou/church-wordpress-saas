@@ -299,3 +299,5 @@
 /* Plan your visit: labels stay on top of their fields. */
 .kcs-visit-form .kcs-grid-2 { align-items: start; }
 .kcs-visit-form .kcs-grid-2 .kcs-grid-2 { grid-template-columns: 1fr 1fr; gap: .75rem; }
+.kcs-phone-needed { font-weight: 600; }
+.kcs-phone-needed input { border-color: var(--kcs-primary, #5b2a86); }

@@ -277,3 +277,19 @@
 		else if (navigator.clipboard) { navigator.clipboard.writeText(data.url); b.textContent = '✓'; }
 	});
 })();
+
+// Some payment methods (e.g. Zenith GlobalPay) need the giver's phone number.
+document.querySelectorAll('[data-kcs-payment-form], form.kcs-pay-form').forEach(function (form) {
+	var phone = form.querySelector('input[name="phone"]');
+	if (!phone || form.dataset.kcsPhoneWired) { return; }
+	form.dataset.kcsPhoneWired = '1';
+	function sync() {
+		var picked = form.querySelector('input[name="gateway"]:checked');
+		var needs = !!(picked && picked.closest('[data-needs-phone]'));
+		phone.required = needs;
+		var label = phone.closest('label');
+		if (label) { label.classList.toggle('kcs-phone-needed', needs); }
+	}
+	form.addEventListener('change', function (e) { if (e.target.name === 'gateway') { sync(); } });
+	sync();
+});

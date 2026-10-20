@@ -160,6 +160,7 @@ A full church-management dashboard on the **Church Admin** page (`[kcs_church_ad
 - **Settings**: General · Payment Gateways · Email & Notifications · Email Templates (editable) · Live Streaming · SEO · REST API
 
 ### Payment gateways
+- **Zenith GlobalPay** (automatic): turn it on in *Settings → Payments → Zenith GlobalPay* with the API key (public key) from the GlobalPay dashboard and the currencies on your account. Givers pay on GlobalPay's page and return; each payment is confirmed with GlobalPay's API (status *Successful*, matching amount and currency) before it counts — otherwise it waits in *Needs review*. GlobalPay asks for the giver's phone number, so the phone field becomes required when it is chosen.
 - **Payment link** (Zenith GlobalPay payment form, Paystack page, Flutterwave link…): paste the link in *Settings → Payments → Payment link*, name it (e.g. “Zenith GlobalPay”) and choose its currencies. Givers see the amount and reference, open the page, pay, then press *I have paid* (optional receipt and transaction ID). The payment waits in *Church Admin → Confirm payments* until the church confirms it, like a bank transfer.
 - **Order of payment methods**: *Settings → Payments → Order of payment methods* (↑ ↓); the first one switched on is preselected.
 | Gateway | Integration | Webhook verification |

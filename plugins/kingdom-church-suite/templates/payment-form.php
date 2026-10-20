@@ -109,7 +109,7 @@ if ( ! $gateways ) {
 	<fieldset class="kcs-gateways">
 		<legend><?php esc_html_e( 'Payment method', 'kingdom-church-suite' ); ?></legend>
 		<?php $first = true; foreach ( $gateways as $g ) : ?>
-			<label class="kcs-gateway" data-currencies="<?php echo esc_attr( implode( ',', $g->currency_list() ) ); ?>">
+			<label class="kcs-gateway" data-currencies="<?php echo esc_attr( implode( ',', $g->currency_list() ) ); ?>"<?php echo ! empty( $g->requires_phone ) ? ' data-needs-phone' : ''; ?>>
 				<input type="radio" name="gateway" value="<?php echo esc_attr( $g->id ); ?>" <?php checked( $first ); ?>>
 				<span class="kcs-gateway__name kcs-gw-<?php echo esc_attr( $g->id ); ?>"><?php echo esc_html( $g->display_title() ); ?></span>
 			</label>

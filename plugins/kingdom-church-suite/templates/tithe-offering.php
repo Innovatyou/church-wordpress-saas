@@ -130,7 +130,7 @@ if ( ! $gateways ) {
 			<p class="kcs-alert kcs-alert--info"><?php printf( esc_html__( 'Admin: %s is not switched on yet, so givers cannot choose it.', 'kingdom-church-suite' ), esc_html( $want ? $want->title : $featured ) ); ?> <a href="<?php echo esc_url( admin_url( 'admin.php?page=kcs-settings&tab=payments' ) ); ?>"><?php esc_html_e( 'Add your keys →', 'kingdom-church-suite' ); ?></a></p>
 		<?php endif; ?>
 		<?php $first = true; foreach ( $gateways as $g ) : ?>
-			<label class="kcs-gateway<?php echo $g === $star ? ' kcs-gateway--featured' : ''; ?>" data-currencies="<?php echo esc_attr( implode( ',', $g->currency_list() ) ); ?>">
+			<label class="kcs-gateway<?php echo $g === $star ? ' kcs-gateway--featured' : ''; ?>" data-currencies="<?php echo esc_attr( implode( ',', $g->currency_list() ) ); ?>"<?php echo ! empty( $g->requires_phone ) ? ' data-needs-phone' : ''; ?>>
 				<input type="radio" name="gateway" value="<?php echo esc_attr( $g->id ); ?>" <?php checked( $first ); ?>>
 				<span class="kcs-gateway__name kcs-gw-<?php echo esc_attr( $g->id ); ?>">
 					<?php echo esc_html( $g->display_title() ); ?>

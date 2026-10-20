@@ -52,6 +52,7 @@ class KCS_Payments {
 			$list = array(
 				'paystack'      => new KCS_Gateway_Paystack(),
 				'flutterwave'   => new KCS_Gateway_Flutterwave(),
+				'globalpay'     => new KCS_Gateway_GlobalPay(),
 				'paypal'        => new KCS_Gateway_PayPal(),
 				'stripe'        => new KCS_Gateway_Stripe(),
 				'razorpay'      => new KCS_Gateway_Razorpay(),
