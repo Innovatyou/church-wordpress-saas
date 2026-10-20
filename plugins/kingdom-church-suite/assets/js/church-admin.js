@@ -168,3 +168,15 @@ document.querySelectorAll('[data-sched]').forEach(function (box) {
 		}
 	});
 });
+
+// Order of payment methods: move rows up and down.
+document.querySelectorAll('[data-order]').forEach(function (list) {
+	list.addEventListener('click', function (e) {
+		var up = e.target.closest('[data-order-up]'), down = e.target.closest('[data-order-down]');
+		var li = (up || down) && (up || down).closest('li');
+		if (!li) { return; }
+		if (up && li.previousElementSibling) { list.insertBefore(li, li.previousElementSibling); }
+		if (down && li.nextElementSibling) { list.insertBefore(li.nextElementSibling, li); }
+		(up || down).focus();
+	});
+});

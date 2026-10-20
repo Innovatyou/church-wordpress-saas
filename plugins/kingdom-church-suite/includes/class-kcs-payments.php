@@ -50,8 +50,8 @@ class KCS_Payments {
 	public static function gateways() {
 		if ( null === self::$gateways ) {
 			$list = array(
-				'flutterwave'   => new KCS_Gateway_Flutterwave(),
 				'paystack'      => new KCS_Gateway_Paystack(),
+				'flutterwave'   => new KCS_Gateway_Flutterwave(),
 				'paypal'        => new KCS_Gateway_PayPal(),
 				'stripe'        => new KCS_Gateway_Stripe(),
 				'razorpay'      => new KCS_Gateway_Razorpay(),
@@ -76,11 +76,40 @@ class KCS_Payments {
 	 */
 	public static function enabled_gateways( $currency = '' ) {
 		return array_filter(
-			self::gateways(),
+			self::ordered(),
 			function ( $g ) use ( $currency ) {
 				return $g->is_enabled() && ( ! $currency || $g->supports_currency( $currency ) );
 			}
 		);
+	}
+
+	/**
+	 * All gateways in the order the church chose (Settings → Payments → Order of payment
+	 * methods); ones not yet placed keep their usual order after those.
+	 *
+	 * @return KCS_Gateway[]
+	 */
+	public static function ordered() {
+		$all   = self::gateways();
+		$order = array_filter( array_map( 'sanitize_key', explode( ',', (string) kcs_get_option( 'gateway_order', '' ) ) ) );
+		$out   = array();
+		foreach ( $order as $id ) {
+			if ( isset( $all[ $id ] ) ) {
+				$out[ $id ] = $all[ $id ];
+			}
+		}
+		return $out + $all;
+	}
+
+	/**
+	 * Save the order of payment methods.
+	 *
+	 * @param string[] $ids Gateway IDs, first first.
+	 */
+	public static function save_order( $ids ) {
+		$all = self::gateways();
+		$ids = array_values( array_unique( array_filter( array_map( 'sanitize_key', (array) $ids ), function ( $id ) use ( $all ) { return isset( $all[ $id ] ); } ) ) );
+		kcs_update_option( 'gateway_order', implode( ',', $ids ) );
 	}
 
 	/**

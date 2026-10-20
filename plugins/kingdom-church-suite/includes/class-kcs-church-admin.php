@@ -446,7 +446,7 @@ class KCS_Church_Admin {
 				$settings['amounts_international'] = preg_replace( '/[^0-9.,]/', '', (string) ( $d['amounts_international'] ?? '' ) );
 				$settings['amounts_local']         = preg_replace( '/[^0-9.,]/', '', (string) ( $d['amounts_local'] ?? '' ) );
 				$gw                                = sanitize_key( $d['tithe_gateway'] ?? '' );
-				$settings['tithe_gateway']         = KCS_Payments::gateway( $gw ) ? $gw : 'none';
+				$settings['tithe_gateway']         = KCS_Payments::gateway( $gw ) || 'auto' === $gw ? $gw : 'none';
 				update_option( 'kcs_settings', $settings );
 				$msg  = __( 'Currency settings saved.', 'kingdom-church-suite' );
 				$view = 'plans';
@@ -517,6 +517,20 @@ class KCS_Church_Admin {
 				}
 				$msg  = __( 'Website updated.', 'kingdom-church-suite' );
 				$view = in_array( $view, array( 'website', 'content' ), true ) ? $view : 'website';
+				break;
+
+			case 'gateway_order_save':
+				if ( ! current_user_can( 'manage_options' ) ) {
+					$msg  = __( 'Only church administrators can change settings.', 'kingdom-church-suite' );
+					$type = 'error';
+					break;
+				}
+				KCS_Payments::save_order( (array) ( $d['gateway_order'] ?? array() ) );
+				$msg  = __( 'Order of payment methods saved.', 'kingdom-church-suite' );
+				$view = 'settings';
+				if ( empty( $d['return'] ) ) {
+					$d['return'] = self::url( 'settings', array( 'tab' => 'payments' ) );
+				}
 				break;
 
 			case 'schedule_save':
@@ -1443,9 +1457,10 @@ class KCS_Church_Admin {
 				<label><?php esc_html_e( 'Quick amounts (local)', 'kingdom-church-suite' ); ?><input name="amounts_local" value="<?php echo esc_attr( implode( ',', kcs_region_amounts( 'local' ) ) ); ?>"></label>
 				<label><?php esc_html_e( 'Featured payment method on Tithe & Offering', 'kingdom-church-suite' ); ?>
 					<select name="tithe_gateway">
-						<option value="none"><?php esc_html_e( '— None —', 'kingdom-church-suite' ); ?></option>
-						<?php foreach ( KCS_Payments::gateways() as $g ) : ?>
-							<option value="<?php echo esc_attr( $g->id ); ?>" <?php selected( kcs_get_option( 'tithe_gateway', 'paystack' ), $g->id ); ?>><?php echo esc_html( $g->title . ( $g->is_enabled() ? '' : ' ' . __( '(not switched on)', 'kingdom-church-suite' ) ) ); ?></option>
+						<option value="auto" <?php selected( kcs_get_option( 'tithe_gateway', 'auto' ), 'auto' ); ?>><?php esc_html_e( 'The first one in my order', 'kingdom-church-suite' ); ?></option>
+						<option value="none" <?php selected( kcs_get_option( 'tithe_gateway', 'auto' ), 'none' ); ?>><?php esc_html_e( '— None —', 'kingdom-church-suite' ); ?></option>
+						<?php foreach ( KCS_Payments::ordered() as $g ) : ?>
+							<option value="<?php echo esc_attr( $g->id ); ?>" <?php selected( kcs_get_option( 'tithe_gateway', 'auto' ), $g->id ); ?>><?php echo esc_html( $g->title . ( $g->is_enabled() ? '' : ' ' . __( '(not switched on)', 'kingdom-church-suite' ) ) ); ?></option>
 						<?php endforeach; ?>
 					</select>
 				</label>
@@ -1855,6 +1870,20 @@ class KCS_Church_Admin {
 			<?php endforeach; ?>
 		</nav>
 		<?php if ( isset( $intro[ $tab ] ) ) : ?><p class="kcs-muted"><?php echo esc_html( $intro[ $tab ] ); ?></p><?php endif; ?>
+		<?php if ( 'payments' === $tab ) : ?>
+			<form method="post" class="kca-card kcs-form" id="gateway-order">
+				<?php echo self::fields( 'gateway_order_save', 'settings' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<input type="hidden" name="return" value="<?php echo esc_url( self::url( 'settings', array( 'tab' => 'payments' ) ) ); ?>">
+				<h3><?php esc_html_e( 'Order of payment methods', 'kingdom-church-suite' ); ?></h3>
+				<p class="kcs-muted"><?php esc_html_e( 'Givers and partners see the payment methods in this order; the first one that is switched on is selected for them. Use ↑ and ↓, then save.', 'kingdom-church-suite' ); ?></p>
+				<ol class="kca-order" data-order>
+					<?php foreach ( KCS_Payments::ordered() as $g ) : ?>
+						<li><input type="hidden" name="gateway_order[]" value="<?php echo esc_attr( $g->id ); ?>"><span class="kca-order__name"><?php echo esc_html( $g->title ); ?></span><span class="kcs-badge kcs-badge--<?php echo $g->is_enabled() ? 'completed' : 'cancelled'; ?>"><?php echo $g->is_enabled() ? esc_html__( 'On', 'kingdom-church-suite' ) : esc_html__( 'Off', 'kingdom-church-suite' ); ?></span><span class="kca-order__btns"><button type="button" class="kcs-btn kcs-btn--ghost" data-order-up aria-label="<?php /* translators: %s: payment method */ echo esc_attr( sprintf( __( 'Move %s up', 'kingdom-church-suite' ), $g->title ) ); ?>">↑</button><button type="button" class="kcs-btn kcs-btn--ghost" data-order-down aria-label="<?php /* translators: %s: payment method */ echo esc_attr( sprintf( __( 'Move %s down', 'kingdom-church-suite' ), $g->title ) ); ?>">↓</button></span></li>
+					<?php endforeach; ?>
+				</ol>
+				<button class="kcs-btn"><?php esc_html_e( 'Save order', 'kingdom-church-suite' ); ?></button>
+			</form>
+		<?php endif; ?>
 		<form method="post" class="kca-settings">
 			<?php echo self::fields( 'settings_save', 'settings' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<input type="hidden" name="tab" value="<?php echo esc_attr( $tab ); ?>">

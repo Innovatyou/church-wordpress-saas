@@ -19,8 +19,12 @@ defined( 'ABSPATH' ) || exit;
 $gateways = array_filter( KCS_Payments::enabled_gateways(), function ( $g ) {
 	return $g->allows_purpose( 'tithe' );
 } );
-// The featured method (Paystack by default) is listed first and preselected.
-$featured = (string) kcs_get_option( 'tithe_gateway', 'paystack' );
+// The featured method is listed first and preselected: by default the first one in the
+// church's order of payment methods.
+$featured = (string) kcs_get_option( 'tithe_gateway', 'auto' );
+if ( 'auto' === $featured ) {
+	$featured = $gateways ? reset( $gateways )->id : 'none';
+}
 $star     = null;
 foreach ( $gateways as $i => $g ) {
 	if ( $g->id === $featured ) {
