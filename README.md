@@ -124,6 +124,7 @@ Other theme features: three header styles (classic, centered, transparent over h
 - *Church Admin → Giving received* shows this month's totals per purpose (tithe, offering, partnership…) and filters payments by purpose
 
 ### Church Admin dashboard (front end, no wp-admin)
+- **Delete a partner** (administrators): open the partner → *Delete this partner*. They leave the partners list, reminders and the partner dashboard; past payments stay in Giving received. Optionally also delete their website login (only a partner-only login, never staff).
 - **Simple layout**: a grouped menu (People · Giving · Messages · Website & app · Account) with plain names; on phones it is one *Menu* button that opens the full list. Every page starts with one sentence saying what it is for.
 - **Search box** (top of the menu, or press `/`): pages and every setting appear as you type — e.g. “service times”, “logo”, “Paystack” — and open right at that setting. Press Enter to also search partners, givers and payment references, prayer requests and first-time visitors.
 - **Home**: *Needs your attention* (bank transfers to confirm, new prayer requests, first-time visitors, testimonies to approve, partners behind on payments — or "All caught up"), a *Get your website ready* checklist with progress (logo, service times, address and phone, online giving, YouTube, WhatsApp — each links to the exact place), quick actions and the month at a glance.

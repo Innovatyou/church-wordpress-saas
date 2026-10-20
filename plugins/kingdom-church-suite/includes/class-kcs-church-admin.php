@@ -266,6 +266,29 @@ class KCS_Church_Admin {
 				$view = 'partners';
 				break;
 
+			case 'partner_delete':
+				$partner = KCS_Partners::get( $id );
+				if ( ! current_user_can( 'manage_options' ) || ! $partner ) {
+					$msg  = __( 'Only church administrators can delete partners.', 'kingdom-church-suite' );
+					$type = 'error';
+					break;
+				}
+				$login = ! empty( $d['delete_login'] ) ? self::partner_login_removable( $partner ) : null;
+				KCS_Partners::delete( $id );
+				if ( $login ) {
+					require_once ABSPATH . 'wp-admin/includes/user.php';
+					if ( is_multisite() ) {
+						remove_user_from_blog( $login->ID, get_current_blog_id() );
+					} else {
+						wp_delete_user( $login->ID );
+					}
+				}
+				/* translators: %s: partner name */
+				$msg  = sprintf( __( '%s was deleted. Their past payments are kept in Giving received.', 'kingdom-church-suite' ), trim( $partner->first_name . ' ' . $partner->last_name ) );
+				$view = 'partners';
+				$d['return'] = self::url( 'partners' );
+				break;
+
 			case 'partner_status':
 				KCS_Partners::update( $id, array( 'status' => sanitize_key( $d['status'] ?? '' ) ) );
 				$msg = __( 'Partner status updated.', 'kingdom-church-suite' );
@@ -1102,6 +1125,21 @@ class KCS_Church_Admin {
 	}
 
 	/**
+	 * The partner's website login, if it may be removed with them: only a login used just for
+	 * partnership (never church staff, administrators or the current user).
+	 *
+	 * @param object $partner Partner.
+	 * @return WP_User|null
+	 */
+	private static function partner_login_removable( $partner ) {
+		$user = $partner->user_id ? get_user_by( 'id', (int) $partner->user_id ) : null;
+		if ( ! $user || get_current_user_id() === (int) $user->ID || is_super_admin( $user->ID ) || user_can( $user, 'manage_kcs' ) || user_can( $user, 'edit_posts' ) ) {
+			return null;
+		}
+		return array_diff( (array) $user->roles, array( 'kcs_partner', 'subscriber' ) ) ? null : $user;
+	}
+
+	/**
 	 * First things a new church should do, each linking to the exact place.
 	 *
 	 * @return array[] title, why, url, done.
@@ -1198,6 +1236,20 @@ class KCS_Church_Admin {
 					<?php if ( $p->phone ) : ?><p><a class="kcs-btn kcs-btn--ghost" target="_blank" rel="noopener" href="<?php echo esc_url( 'https://wa.me/' . preg_replace( '/\D+/', '', $p->phone ) ); ?>"><?php esc_html_e( 'WhatsApp this partner', 'kingdom-church-suite' ); ?></a></p><?php endif; ?>
 				</section>
 			</div>
+			<?php if ( current_user_can( 'manage_options' ) ) : ?>
+				<?php $kcs_login = self::partner_login_removable( $p ); ?>
+				<details class="kca-card kca-danger">
+					<summary><strong><?php esc_html_e( 'Delete this partner', 'kingdom-church-suite' ); ?></strong></summary>
+					<form method="post" class="kcs-form" onsubmit="return confirm('<?php echo esc_js( __( 'Delete this partner? This cannot be undone.', 'kingdom-church-suite' ) ); ?>')">
+						<?php echo self::fields( 'partner_delete', 'partners', $p->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						<p><?php esc_html_e( 'The partner is removed from your partners list, stops receiving reminders and loses access to the partner dashboard. Their past payments stay in Giving received for your records.', 'kingdom-church-suite' ); ?></p>
+						<?php if ( $kcs_login ) : ?>
+							<label class="kcs-check"><input type="checkbox" name="delete_login" value="1"> <?php /* translators: %s: email */ printf( esc_html__( 'Also delete their website login (%s)', 'kingdom-church-suite' ), esc_html( $kcs_login->user_email ) ); ?></label>
+						<?php endif; ?>
+						<button class="kcs-btn kcs-btn--danger"><?php esc_html_e( 'Delete partner', 'kingdom-church-suite' ); ?></button>
+					</form>
+				</details>
+			<?php endif; ?>
 			<?php
 			return;
 		}
