@@ -421,6 +421,8 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 							?>
 						</p>
 					</div>
+					<p class="ks-small"><?php esc_html_e( 'Automatic contact sync (and church email queues and reminders) runs on each church site’s own scheduled jobs, which otherwise only run when that site has visitors. Add this cron job on your server, every 5 minutes (Hostinger: hPanel → Advanced → Cron Jobs → Custom):', 'kingdom-saas' ); ?></p>
+					<p><code class="ks-code-line"><?php echo esc_html( 'cd ' . untrailingslashit( ABSPATH ) . ' && wp site list --field=url --deleted=0 --archived=0 | xargs -I{} wp cron event run --due-now --url={} --quiet' ); ?></code></p>
 				</fieldset>
 				<fieldset class="ks-card ks-form ks-span-2" id="set-seo">
 					<legend><?php esc_html_e( 'Search & sharing (SEO)', 'kingdom-saas' ); ?></legend>

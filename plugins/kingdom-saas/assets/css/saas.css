@@ -344,3 +344,4 @@ body.ks { margin: 0; font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-syste
 /* Fields in a row line up even when one label wraps onto two lines. */
 .ks-settings .ks-grid > label { display: flex; flex-direction: column; }
 .ks-settings .ks-grid > label > input, .ks-settings .ks-grid > label > select { margin-top: auto; }
+.ks-code-line { display: block; padding: .6rem .75rem; border-radius: 8px; background: var(--ks-surface-2, rgba(127,127,127,.12)); font-size: .82rem; overflow-wrap: anywhere; user-select: all; }

@@ -281,7 +281,7 @@ Templates: copy any file from `plugins/kingdom-church-suite/templates/` to `your
 - [ ] HTTPS enabled
 - [ ] Gateway **live** keys entered and webhook URLs registered in each provider's dashboard
 - [ ] SMTP configured and a test email sent (Settings → Email)
-- [ ] Real server cron set up
+- [ ] Real server cron set up. On a Ministry OS Cloud network it must run cron for **every** church site (WP-Cron is per site): `*/5 * * * * cd /path/to/wordpress && wp site list --field=url --deleted=0 --archived=0 | xargs -I{} wp cron event run --due-now --url={} --quiet` (Platform → Settings → Veltrix shows the exact line for your server)
 - [ ] YouTube channel ID (and optionally an API key) added
 - [ ] Church address, geo coordinates and social links filled in (SEO tab)
 - [ ] Search Console verification and sitemap submitted (`/wp-sitemap.xml`)
