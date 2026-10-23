@@ -145,7 +145,7 @@ function kingdom_customize_register( $wp ) {
 	$add( 'kingdom_hero', 'kingdom_hero_text', __( 'Text', 'kingdom' ), 'textarea', __( 'Join us this Sunday — in person or online — and experience the love of Jesus with a family that cares.', 'kingdom' ) );
 	$add( 'kingdom_hero', 'kingdom_hero_video', __( 'Background video (MP4 URL)', 'kingdom' ), 'url', '', array(), __( 'Used by "Modern Video" layout. Keep it short and muted (under 10 MB).', 'kingdom' ) );
 	$add( 'kingdom_hero', 'kingdom_hero_youtube', __( 'Watch video (YouTube URL for play button)', 'kingdom' ), 'url', '' );
-	$add( 'kingdom_hero', 'kingdom_hero_btn1_text', __( 'Primary button text', 'kingdom' ), 'text', __( 'Plan your visit', 'kingdom' ) );
+	$add( 'kingdom_hero', 'kingdom_hero_btn1_text', __( 'Primary button text', 'kingdom' ), 'text', __( 'Visit us', 'kingdom' ) );
 	$add( 'kingdom_hero', 'kingdom_hero_btn1_url', __( 'Primary button URL', 'kingdom' ), 'url', '' );
 	$add( 'kingdom_hero', 'kingdom_hero_btn2_text', __( 'Secondary button text', 'kingdom' ), 'text', __( 'Watch online', 'kingdom' ) );
 	$add( 'kingdom_hero', 'kingdom_hero_btn2_url', __( 'Secondary button URL', 'kingdom' ), 'url', '' );
@@ -179,7 +179,7 @@ function kingdom_customize_register( $wp ) {
 	$add( 'kingdom_home', 'kingdom_give_text', __( 'Giving text', 'kingdom' ), 'textarea', __( 'Give your tithes and offerings securely online with card, bank transfer or mobile money.', 'kingdom' ) );
 	$add( 'kingdom_home', 'kingdom_cta_title', __( 'Call to action title', 'kingdom' ), 'text', __( 'New here? We saved you a seat.', 'kingdom' ) );
 	$add( 'kingdom_home', 'kingdom_cta_text', __( 'Call to action text', 'kingdom' ), 'textarea', __( 'Let us know you are coming and we will have someone ready to welcome you.', 'kingdom' ) );
-	$add( 'kingdom_home', 'kingdom_cta_btn_text', __( 'Call to action button', 'kingdom' ), 'text', __( 'Plan your visit', 'kingdom' ) );
+	$add( 'kingdom_home', 'kingdom_cta_btn_text', __( 'Call to action button', 'kingdom' ), 'text', __( 'Visit us', 'kingdom' ) );
 	$add( 'kingdom_home', 'kingdom_cta_btn_url', __( 'Call to action URL', 'kingdom' ), 'url', '' );
 
 	// Welcome.

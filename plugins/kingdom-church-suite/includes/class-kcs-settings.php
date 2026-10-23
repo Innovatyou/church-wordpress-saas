@@ -91,7 +91,7 @@ class KCS_Settings {
 					'page_thank_you'         => array( 'label' => __( 'Payment result page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
 					'page_watch_live'        => array( 'label' => __( 'Watch live page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
 					'page_prayer'            => array( 'label' => __( 'Prayer request page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
-					'page_visit'             => array( 'label' => __( 'Plan your visit page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
+					'page_visit'             => array( 'label' => __( 'Visit Us page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
 					'page_church_admin'      => array( 'label' => __( 'Church admin dashboard page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
 				),
 			),

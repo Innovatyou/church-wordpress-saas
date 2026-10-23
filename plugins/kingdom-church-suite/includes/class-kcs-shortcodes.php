@@ -424,7 +424,7 @@ class KCS_Shortcodes {
 	}
 
 	/**
-	 * Plan-your-visit form.
+	 * Visit Us booking form.
 	 *
 	 * @return string
 	 */
@@ -440,7 +440,7 @@ class KCS_Shortcodes {
 		ob_start();
 		?>
 		<form class="kcs-form kcs-visit-form" data-kcs-visit>
-			<h3 class="kcs-form__title"><?php esc_html_e( 'Plan your visit', 'kingdom-church-suite' ); ?></h3>
+			<h3 class="kcs-form__title"><?php esc_html_e( 'Book your visit', 'kingdom-church-suite' ); ?></h3>
 			<div class="kcs-grid-2">
 				<label for="kcs-v-name"><?php esc_html_e( 'Your name', 'kingdom-church-suite' ); ?><input id="kcs-v-name" name="name" required autocomplete="name"></label>
 				<label for="kcs-v-phone"><?php esc_html_e( 'Phone / WhatsApp', 'kingdom-church-suite' ); ?><input id="kcs-v-phone" name="phone" type="tel" autocomplete="tel"></label>

@@ -306,7 +306,7 @@ class KCS_Installer {
 			'thank_you'         => array( __( 'Thank You', 'kingdom-church-suite' ), '[kcs_payment_status]' ),
 			'watch_live'        => array( __( 'Watch Live', 'kingdom-church-suite' ), '[kcs_livestream chat="yes"]' ),
 			'prayer'            => array( __( 'Prayer Request', 'kingdom-church-suite' ), '[kcs_prayer_form][kcs_prayer_wall]' ),
-			'visit'             => array( __( 'Plan Your Visit', 'kingdom-church-suite' ), '[kcs_visit_form]' ),
+			'visit'             => array( __( 'Visit Us', 'kingdom-church-suite' ), '[kcs_visit_form]' ),
 			'church_admin'      => array( __( 'Church Admin', 'kingdom-church-suite' ), '[kcs_church_admin]' ),
 		);
 		$settings = get_option( 'kcs_settings', array() );

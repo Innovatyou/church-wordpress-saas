@@ -1,6 +1,6 @@
 <?php
 /**
- * Template Name: What We Believe
+ * Template Name: Statement of Faith
  * Template Post Type: page
  *
  * Statement of faith — write each belief as an H3 in the editor; it renders as cards.

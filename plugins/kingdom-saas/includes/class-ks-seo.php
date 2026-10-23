@@ -118,7 +118,7 @@ class KS_SEO {
 				'h1'      => __( 'A church website your members will love — ready in 2 minutes', 'kingdom-saas' ),
 				'intro'   => __( 'No web designer, no coding and no long wait. Pick your church name and address, and your website is live with ready-made pages for services, sermons, events, giving, prayer requests and more. Change words, photos and colours from your phone.', 'kingdom-saas' ),
 				'points'  => array(
-					array( '⛪', __( '25+ ready-made pages', 'kingdom-saas' ), __( 'Home, About, Our Pastors, Ministries, Sermons, Events, Plan your visit, Prayer, Testimonies, Give and Contact — written for churches, ready to edit.', 'kingdom-saas' ) ),
+					array( '⛪', __( '25+ ready-made pages', 'kingdom-saas' ), __( 'Home, About, Our Pastors, Ministries, Sermons, Events, Visit Us, Statement of Faith, Prayer, Testimonies, Give and Contact — written for churches, ready to edit.', 'kingdom-saas' ) ),
 					array( '📱', __( 'Made for phones', 'kingdom-saas' ), __( 'Most visitors will find you on a phone. Every page is fast and easy to use on any smartphone, even on slow data.', 'kingdom-saas' ) ),
 					array( '🎨', __( 'Your church, your look', 'kingdom-saas' ), __( 'Your logo, colours, fonts and photos. Six homepage styles, dark mode and a beautiful mobile menu.', 'kingdom-saas' ) ),
 					array( '🔎', __( 'Found on Google', 'kingdom-saas' ), __( 'Search-friendly pages, your service times and address marked up for Google, and fast loading — so people nearby can find your church.', 'kingdom-saas' ) ),
@@ -184,7 +184,7 @@ class KS_SEO {
 					array( '♥', __( 'Partners & members', 'kingdom-saas' ), __( 'Every partner’s plan, payments, due dates and contact details in one place, with WhatsApp follow-up.', 'kingdom-saas' ) ),
 					array( '₦', __( 'Giving records', 'kingdom-saas' ), __( 'Tithes, offerings and partnership by purpose and month, with bank transfers waiting to be confirmed.', 'kingdom-saas' ) ),
 					array( '🙏', __( 'Prayer requests', 'kingdom-saas' ), __( 'Private requests go to your prayer team; mark them as prayed for and follow up.', 'kingdom-saas' ) ),
-					array( '⌂', __( 'First-time visitors', 'kingdom-saas' ), __( '“Plan your visit” bookings arrive with the visitor’s phone number so your welcome team can reach out.', 'kingdom-saas' ) ),
+					array( '⌂', __( 'First-time visitors', 'kingdom-saas' ), __( '“Visit Us” bookings arrive with the visitor’s phone number so your welcome team can reach out.', 'kingdom-saas' ) ),
 					array( '✉', __( 'Notify & newsletter', 'kingdom-saas' ), __( 'Email partners by plan or status, send newsletters and push notifications.', 'kingdom-saas' ) ),
 					array( '👥', __( 'Staff access', 'kingdom-saas' ), __( 'Give church staff their own login without access to settings or money confirmation.', 'kingdom-saas' ) ),
 				),

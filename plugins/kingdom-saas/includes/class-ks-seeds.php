@@ -8,6 +8,10 @@
  *   charity_page Optional: title of a Charity page to create (under About in the main menu).
  *   replace      Optional: setting => array( old, new ), changed only while it still has the old value.
  *   dedupe_charity Optional: remove extra empty Charity pages (keeps the oldest).
+ *   regex        Optional: setting => array( pattern, replacement ), corrections inside a text.
+ *   beliefs_page Optional: array( title, slug, html ): the Statement of Faith page. An existing
+ *                page that still has the theme's sample text (or none) is renamed and filled in;
+ *                otherwise a new page is added under About.
  *
  * A seed runs once per site; afterwards the church edits everything in Church Admin.
  *
@@ -37,9 +41,15 @@ class KS_Seeds {
 		if ( 'kingdom' !== get_template() ) {
 			return;
 		}
-		$done = (array) get_option( 'ks_seeds_done', array() );
-		$name = strtolower( (string) get_option( 'blogname' ) );
-		foreach ( glob( KS_PATH . 'includes/seeds/*.php' ) as $file ) {
+		$done  = (array) get_option( 'ks_seeds_done', array() );
+		$name  = strtolower( (string) get_option( 'blogname' ) );
+		$files = (array) glob( KS_PATH . 'includes/seeds/*.php' );
+		// Nothing new since the last check (same site name, same seeds): skip reading the files.
+		$stamp = md5( $name . '|' . implode( ',', array_map( 'basename', $files ) ) . '|' . implode( ',', $done ) );
+		if ( get_option( 'ks_seeds_checked' ) === $stamp ) {
+			return;
+		}
+		foreach ( $files as $file ) {
 			$slug = basename( $file, '.php' );
 			if ( in_array( $slug, $done, true ) ) {
 				continue;
@@ -57,6 +67,7 @@ class KS_Seeds {
 			update_option( 'ks_seeds_done', $done, false );
 			self::apply( $seed );
 		}
+		update_option( 'ks_seeds_checked', md5( $name . '|' . implode( ',', array_map( 'basename', $files ) ) . '|' . implode( ',', $done ) ), false );
 	}
 
 	/**
@@ -74,6 +85,18 @@ class KS_Seeds {
 			if ( get_theme_mod( $key, null ) === $pair[0] ) {
 				set_theme_mod( $key, $pair[1] );
 			}
+		}
+		foreach ( (array) ( $seed['regex'] ?? array() ) as $key => $pair ) {
+			$value = get_theme_mod( $key, null );
+			if ( is_string( $value ) ) {
+				$fixed = preg_replace( $pair[0], $pair[1], $value );
+				if ( is_string( $fixed ) && $fixed !== $value ) {
+					set_theme_mod( $key, $fixed );
+				}
+			}
+		}
+		if ( ! empty( $seed['beliefs_page'] ) ) {
+			self::beliefs_page( (array) $seed['beliefs_page'] );
 		}
 		if ( ! empty( $seed['dedupe_charity'] ) ) {
 			self::dedupe_charity();
@@ -128,9 +151,42 @@ class KS_Seeds {
 			return;
 		}
 		$page = wp_insert_post( array( 'post_type' => 'page', 'post_status' => 'publish', 'post_title' => $title, 'post_name' => sanitize_title( $title ), 'page_template' => $template ) );
-		if ( ! $page || is_wp_error( $page ) ) {
+		if ( $page && ! is_wp_error( $page ) ) {
+			self::add_under_about( $page );
+		}
+	}
+
+	/**
+	 * The Statement of Faith page.
+	 *
+	 * @param array $spec array( title, slug, html ).
+	 */
+	private static function beliefs_page( $spec ) {
+		list( $title, $slug, $html ) = $spec;
+		$template = 'page-templates/template-beliefs.php';
+		$pages    = get_posts( array( 'post_type' => 'page', 'post_status' => array( 'publish', 'draft', 'private' ), 'posts_per_page' => 1, 'orderby' => 'ID', 'order' => 'ASC', 'meta_key' => '_wp_page_template', 'meta_value' => $template ) ); // phpcs:ignore WordPress.DB.SlowDBQuery
+		$sample   = function_exists( 'kingdom_starter_pages' ) ? (string) ( kingdom_starter_pages()['beliefs'][2] ?? '' ) : '';
+		if ( $pages && ( '' === trim( $pages[0]->post_content ) || trim( $pages[0]->post_content ) === trim( $sample ) ) ) {
+			if ( class_exists( 'KCS_Pages' ) ) {
+				KCS_Pages::rename( $pages[0]->ID, $title, $slug );
+			} else {
+				wp_update_post( array( 'ID' => $pages[0]->ID, 'post_title' => $title, 'post_name' => $slug ) );
+			}
+			wp_update_post( array( 'ID' => $pages[0]->ID, 'post_content' => $html ) );
 			return;
 		}
+		$page = wp_insert_post( array( 'post_type' => 'page', 'post_status' => 'publish', 'post_title' => $title, 'post_name' => $slug, 'post_content' => $html, 'page_template' => $template ) );
+		if ( $page && ! is_wp_error( $page ) ) {
+			self::add_under_about( $page );
+		}
+	}
+
+	/**
+	 * Add a page under About in the main menu (or at the top level when there is no About item).
+	 *
+	 * @param int $page Page ID.
+	 */
+	private static function add_under_about( $page ) {
 		$locations = (array) get_theme_mod( 'nav_menu_locations', array() );
 		if ( empty( $locations['primary'] ) ) {
 			return;

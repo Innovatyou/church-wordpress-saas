@@ -1,6 +1,6 @@
 <?php
 /**
- * Plan your visit — what to expect.
+ * Visit us — what to expect.
  *
  * @package Kingdom
  */
@@ -14,7 +14,7 @@ $kingdom_steps = array(
 ?>
 <section class="k-section k-visit">
 	<div class="k-container">
-		<?php kingdom_section_heading( __( 'Plan your visit', 'kingdom' ), __( 'What to expect', 'kingdom' ), __( 'Visiting a church for the first time can feel unfamiliar. Here is everything you need to know.', 'kingdom' ) ); ?>
+		<?php kingdom_section_heading( __( 'Visit us', 'kingdom' ), __( 'What to expect', 'kingdom' ), __( 'Visiting a church for the first time can feel unfamiliar. Here is everything you need to know.', 'kingdom' ) ); ?>
 		<div class="k-grid k-grid--4">
 			<?php foreach ( $kingdom_steps as $kingdom_i => $kingdom_s ) : ?>
 				<div class="k-feature" data-reveal data-tilt>

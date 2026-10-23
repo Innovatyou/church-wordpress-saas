@@ -61,7 +61,7 @@ class KCS_Church_Admin {
 			'content'     => array( __( 'Pictures & text', 'kingdom-church-suite' ), '▧' ),
 			'newsletter'  => array( __( 'Newsletter', 'kingdom-church-suite' ), '✎' ),
 			'app'         => array( __( 'Church app', 'kingdom-church-suite' ), '▤' ),
-		) + ( current_user_can( 'manage_options' ) ? array( 'settings' => array( __( 'Settings', 'kingdom-church-suite' ), '⚙' ) ) : array() ) );
+		) + ( current_user_can( 'edit_pages' ) ? array( 'pages' => array( __( 'Pages', 'kingdom-church-suite' ), '❐' ) ) : array() ) + ( current_user_can( 'manage_options' ) ? array( 'settings' => array( __( 'Settings', 'kingdom-church-suite' ), '⚙' ) ) : array() ) );
 	}
 
 	/**
@@ -77,7 +77,7 @@ class KCS_Church_Admin {
 				__( 'People', 'kingdom-church-suite' )      => array( 'partners', 'prayers', 'visits', 'testimonies' ),
 				__( 'Giving', 'kingdom-church-suite' )      => array( 'transfers', 'payments', 'plans' ),
 				__( 'Messages', 'kingdom-church-suite' )    => array( 'notify', 'newsletter', 'pastors' ),
-				__( 'Website & app', 'kingdom-church-suite' ) => array( 'content', 'website', 'app' ),
+				__( 'Website & app', 'kingdom-church-suite' ) => array( 'content', 'website', 'pages', 'app' ),
 				__( 'Account', 'kingdom-church-suite' )     => array( 'settings', 'subscription', 'domain' ),
 			)
 		);
@@ -104,6 +104,7 @@ class KCS_Church_Admin {
 			'content'      => __( 'Change your logo, photos, homepage words and contact details.', 'kingdom-church-suite' ),
 			'website'      => __( 'Colours, fonts, homepage banner, live stream and which sections show.', 'kingdom-church-suite' ),
 			'app'          => __( 'Your church app members install on their phones, and push notifications.', 'kingdom-church-suite' ),
+			'pages'        => __( 'Hide or show any page, add new pages with the page builder or your own HTML & CSS, and choose what is in the menu.', 'kingdom-church-suite' ),
 			'settings'     => __( 'Church details, service times, payment methods, emails and more.', 'kingdom-church-suite' ),
 			'subscription' => __( 'Your plan for this website and its payments.', 'kingdom-church-suite' ),
 			'domain'       => __( 'Use your own web address, such as yourchurch.org.', 'kingdom-church-suite' ),
@@ -689,6 +690,24 @@ class KCS_Church_Admin {
 				/* translators: %d: number of phones */
 				$msg = $n ? sprintf( _n( 'Sending to %d phone…', 'Sending to %d phones…', $n, 'kingdom-church-suite' ), $n ) : __( 'No phones have turned on notifications yet.', 'kingdom-church-suite' );
 				$type = $n ? 'success' : 'error';
+				break;
+
+			case 'page_create':
+			case 'page_save':
+			case 'page_mode':
+			case 'page_toggle':
+			case 'page_delete':
+				list( $msg, $type, $to ) = KCS_Pages::handle( $do, $d, $id );
+				$view = 'pages';
+				if ( $to ) {
+					if ( false !== strpos( $to, '/wp-admin/' ) ) {
+						// The page builder lives in wp-admin.
+						set_transient( 'kcs_admin_flash_' . get_current_user_id(), array( $msg, $type ), 60 );
+						wp_safe_redirect( $to );
+						exit;
+					}
+					$d['return'] = $to;
+				}
 				break;
 
 			case 'pastor_delete':
@@ -1601,7 +1620,7 @@ class KCS_Church_Admin {
 			echo '<article class="kca-card kca-item"><div><strong>' . esc_html( $v->name ) . '</strong> <span class="kcs-muted">' . esc_html( ( $v->visit_date ? mysql2date( 'D, ' . get_option( 'date_format' ), $v->visit_date ) : __( 'Date not set', 'kingdom-church-suite' ) ) . ( $v->service ? ' · ' . $v->service : '' ) ) . '</span><p class="kcs-muted">' . esc_html( sprintf( /* translators: 1: adults, 2: kids */ __( '%1$d adult(s), %2$d child(ren)', 'kingdom-church-suite' ), $v->adults, $v->kids ) . ' · ' . trim( $v->email . ' ' . $v->phone ) ) . '</p>' . ( $v->notes ? '<p>' . nl2br( esc_html( $v->notes ), false ) . '</p>' : '' ) . '</div><div class="kca-actions">' . $wa . self::status_form( 'visit_status', 'visits', $v->id, KCS_Visits::statuses(), $v->status ) . '</div></article>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 		if ( ! $rows ) {
-			echo '<p class="kcs-muted">' . esc_html__( 'No visit requests yet. They come from the “Plan your visit” form.', 'kingdom-church-suite' ) . '</p>';
+			echo '<p class="kcs-muted">' . esc_html__( 'No visit requests yet. They come from the Visit Us page.', 'kingdom-church-suite' ) . '</p>';
 		}
 		echo '</div>';
 	}
@@ -1623,6 +1642,17 @@ class KCS_Church_Admin {
 			echo '<p class="kcs-muted">' . esc_html__( 'No testimonies are waiting for review.', 'kingdom-church-suite' ) . '</p>';
 		}
 		echo '</div>';
+	}
+
+	/**
+	 * Pages: hide/show, new pages (page builder or HTML & CSS), menu.
+	 */
+	private static function view_pages() {
+		KCS_Pages::view(
+			function ( $do, $view, $id ) {
+				return self::fields( $do, $view, $id );
+			}
+		);
 	}
 
 	/**

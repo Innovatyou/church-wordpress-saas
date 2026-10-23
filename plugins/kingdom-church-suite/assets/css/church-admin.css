@@ -219,3 +219,11 @@ details.kca-card > summary::-webkit-details-marker { display: none; }
 .kca-order__name { flex: 1; font-weight: 700; }
 .kca-order__btns { display: flex; gap: .3rem; }
 .kca-order__btns .kcs-btn { min-width: 44px; padding: .35rem .6rem !important; }
+/* Pages */
+.kca-pill { display: inline-block; margin-left: .35rem; padding: .1rem .55rem; border-radius: 999px; font-size: .75rem; font-weight: 600; background: var(--kcs-surface-2); color: var(--kcs-muted); vertical-align: middle; }
+.kca-pill.is-on { background: color-mix(in srgb, var(--kcs-success, #1a7f37) 15%, transparent); color: var(--kcs-success, #1a7f37); }
+.kca-page.is-hidden strong { opacity: .6; }
+.kca-page .kcs-btn--danger { background: transparent !important; color: var(--kcs-error) !important; }
+.kca-newpage summary { cursor: pointer; }
+.kca-newpage[open] summary { margin-bottom: 1rem; }
+.kca-code { width: 100%; tab-size: 4; white-space: pre; overflow-wrap: normal; overflow-x: auto; }

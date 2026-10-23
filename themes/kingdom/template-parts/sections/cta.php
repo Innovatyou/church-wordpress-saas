@@ -12,7 +12,7 @@ $kingdom_args = wp_parse_args(
 	array(
 		'title'  => get_theme_mod( 'kingdom_cta_title', __( 'New here? We saved you a seat.', 'kingdom' ) ),
 		'text'   => get_theme_mod( 'kingdom_cta_text', __( 'Let us know you are coming and we will have someone ready to welcome you.', 'kingdom' ) ),
-		'button' => get_theme_mod( 'kingdom_cta_btn_text', __( 'Plan your visit', 'kingdom' ) ),
+		'button' => get_theme_mod( 'kingdom_cta_btn_text', __( 'Visit us', 'kingdom' ) ),
 		'url'    => kingdom_url( 'kingdom_cta_btn_url', 'template-plan-visit.php' ),
 	)
 );

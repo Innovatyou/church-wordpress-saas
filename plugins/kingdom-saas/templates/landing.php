@@ -39,7 +39,7 @@ $view  = $local ? 'local' : 'international';
 		<div class="ks-grid ks-grid--3">
 			<?php
 			$features = array(
-				array( '⛪', __( 'Beautiful church website', 'kingdom-saas' ), __( '25+ page designs, sermons, events, live streaming, prayer requests, testimonies and Plan-your-visit — all editable without code.', 'kingdom-saas' ) ),
+				array( '⛪', __( 'Beautiful church website', 'kingdom-saas' ), __( '25+ page designs, sermons, events, live streaming, prayer requests, testimonies and a Visit Us page — all editable without code.', 'kingdom-saas' ) ),
 				array( '♥', __( 'Partnership portal', 'kingdom-saas' ), __( 'Partners sign up, pay and get their own dashboard by plan. Unpaid partners are locked out until they renew.', 'kingdom-saas' ) ),
 				array( '₦', __( 'Tithe, offering & giving', 'kingdom-saas' ), __( 'Paystack, Flutterwave, Stripe, PayPal and bank transfer — in US dollars or your local currency.', 'kingdom-saas' ) ),
 				array( '◎', __( 'Church Admin dashboard', 'kingdom-saas' ), __( 'Manage partners, payments, prayers, visits and notifications from a simple dashboard — no WordPress skills needed.', 'kingdom-saas' ) ),

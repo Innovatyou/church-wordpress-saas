@@ -1,6 +1,6 @@
 <?php
 /**
- * Template Name: Plan Your Visit
+ * Template Name: Visit Us
  * Template Post Type: page
  *
  * Visitor information and questions, the visitor questionnaire, what to expect, service times

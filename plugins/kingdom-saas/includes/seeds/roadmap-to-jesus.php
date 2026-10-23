@@ -13,7 +13,7 @@ return array(
 	'charity_page' => 'Charity',
 	'mods'   => array(
 		'kingdom_vp_title'       => 'Visit Road Map To Jesus International Ministries',
-		'kingdom_vp_intro'       => 'Every year, The Road Map To Jesus International Ministries hosts thousands of national and international visitors. People travel from around the world to witness and receive from what God is doing through the life of Evangelist Godstime Ada. We welcome visitors from across the globe to stay with us and witness first-hand proof that Jesus Christ is the same yesterday, today and forever!',
+		'kingdom_vp_intro'       => 'Every year, The Road Map To Jesus International Ministries hosts thousands of national and international visitors. People travel from around the world to witness and receive from what God is doing through the life of Evangelist Godstime Adah. We welcome visitors from across the globe to stay with us and witness first-hand proof that Jesus Christ is the same yesterday, today and forever!',
 		'kingdom_vp_local_title' => 'For those from within Nigeria or Nigerians in other countries',
 		'kingdom_vp_local_text'  => 'If you would like to visit The Road Map To Jesus Ministries, please call us on one of these lines and wait for confirmation before coming:',
 		'kingdom_vp_hours'       => 'Call us: Mon-Fri 11am-10pm (GMT+1)',
@@ -24,7 +24,7 @@ return array(
 		'kingdom_vp_faq_title'   => 'For those from outside Nigeria',
 		'kingdom_vp_faq'         => "What is the procedure for visiting The Road Map To Jesus International Ministries?\n"
 			. "If you would like to visit The Road Map To Jesus International Ministries, simply go to the Questionnaire, fill it out in detail and submit it. Make sure your complete details are included. Please note, you must wait to receive confirmation of your visit from us before making any travel arrangements/ flight bookings.\n\n"
-			. "*All communication with The Road Map To Jesus International Ministries should be through the following email address: info@roadmaptojesus.org\n\n"
+			. "*All communication with The Road Map To Jesus International Ministries should be through the following email address: visit@roadmaptojesus.org\n\n"
 			. "Please note that any form of smoking or alcohol consumption is prohibited on the church premises.\n\n"
 			. "Will I need a visa?\n"
 			. "Yes. Unless you live in West Africa, you will need a visa to enter Nigeria. Visa applications are made through the Nigerian Embassy/ High Commission in your country and it is normally a simple procedure. We will send you an invitation letter which you will present to the embassy with your application form, passport, passport photo and the prescribed fee. Please contact us if you need more information.\n\n"
@@ -38,7 +38,7 @@ return array(
 			. "Akwa-Ibom temperature (high 20s to low 30s Centigrade) all year round with high humidity. For this reason, we recommend that you bring loose, cool and comfortable clothing.\n\n"
 			. "Is it safe to visit The Road Map To Jesus Ministries, Akwa-Ibom Nigeria?\n"
 			. "Yes, we take special care of all our international visitors. They are met at the airport by authorized church personnel and are then escorted to the church which is located in Uyo Akwa Ibom. The accommodation is on the church premises and visitors do not leave during their stay unless they are taken to the off-site prayer retreat center.\n\n"
-			. "Guided by the Holy Spirit, Evangelist Godstime Ada developed the Faith Resort Ground (known as the ‘Prayer Mountain’) with its many beautiful waterways, islands, prayer huts, prayer grounds and Biblical statues. There you will encounter prayer warriors who pray for the ministry, the nations and for partners throughout the world 24 hours a day, seven days a week in accordance with I Thessalonians 5:16. Man’s greatest privilege is to enjoy God’s presence; the Faith Resort Ground is a quiet place to meet with God in prayer (Mark 6:31).\n\n"
+			. "Guided by the Holy Spirit, Evangelist Godstime Adah developed the Faith Resort Ground (known as the ‘Prayer Mountain’) with its many beautiful waterways, islands, prayer huts, prayer grounds and Biblical statues. There you will encounter prayer warriors who pray for the ministry, the nations and for partners throughout the world 24 hours a day, seven days a week in accordance with 1 Thessalonians 5:17. Man’s greatest privilege is to enjoy God’s presence; the Faith Resort Ground is a quiet place to meet with God in prayer (Mark 6:31).\n\n"
 			. "Can I email or phone home?\n"
 			. 'Yes, full internet and telephone facilities are available. Cash payments only (US Dollar, Pound Sterling, and Euro) are accepted.',
 		'kingdom_vp_form_title'  => 'Questionnaire',
