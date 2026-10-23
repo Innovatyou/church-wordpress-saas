@@ -428,8 +428,15 @@ class KCS_Shortcodes {
 	 *
 	 * @return string
 	 */
-	public static function visit_form() {
-		$services = KCS_Livestream::schedule();
+	public static function visit_form( $atts = array() ) {
+		$atts = shortcode_atts( array( 'service' => 'yes' ), $atts, 'kcs_visit_form' );
+		/**
+		 * Ask which service the visitor will attend? The theme turns it off from Church Admin.
+		 *
+		 * @param bool $ask Ask.
+		 */
+		$ask      = 'no' !== $atts['service'] && apply_filters( 'kcs_visit_form_service', true );
+		$services = $ask ? KCS_Livestream::schedule() : array();
 		ob_start();
 		?>
 		<form class="kcs-form kcs-visit-form" data-kcs-visit>
@@ -439,7 +446,10 @@ class KCS_Shortcodes {
 				<label for="kcs-v-phone"><?php esc_html_e( 'Phone / WhatsApp', 'kingdom-church-suite' ); ?><input id="kcs-v-phone" name="phone" type="tel" autocomplete="tel"></label>
 				<label for="kcs-v-email"><?php esc_html_e( 'Email', 'kingdom-church-suite' ); ?><input id="kcs-v-email" name="email" type="email" autocomplete="email"></label>
 				<label for="kcs-v-date"><?php esc_html_e( 'Which day?', 'kingdom-church-suite' ); ?><input id="kcs-v-date" name="visit_date" type="date" min="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>"></label>
-				<label for="kcs-v-service"><?php esc_html_e( 'Service', 'kingdom-church-suite' ); ?><select id="kcs-v-service" name="service"><?php foreach ( $services as $s ) : ?><option><?php echo esc_html( $s['name'] . ' — ' . $s['day'] . ' ' . date_i18n( get_option( 'time_format' ), strtotime( $s['time'] ) ) ); ?></option><?php endforeach; ?></select></label>
+				<?php if ( $services ) : ?>
+					<label for="kcs-v-service"><?php esc_html_e( 'Service', 'kingdom-church-suite' ); ?><select id="kcs-v-service" name="service"><?php foreach ( $services as $s ) : ?><option><?php echo esc_html( $s['name'] . ' — ' . $s['day'] . ' ' . date_i18n( get_option( 'time_format' ), strtotime( $s['time'] ) ) ); ?></option><?php endforeach; ?></select></label>
+				<?php endif; ?>
+				<label for="kcs-v-country"><?php esc_html_e( 'Country', 'kingdom-church-suite' ); ?><?php echo kcs_country_select( 'country', 'kcs-v-country' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></label>
 				<div class="kcs-grid-2">
 					<label for="kcs-v-adults"><?php esc_html_e( 'Adults', 'kingdom-church-suite' ); ?><input id="kcs-v-adults" name="adults" type="number" min="1" max="50" value="1"></label>
 					<label for="kcs-v-kids"><?php esc_html_e( 'Children', 'kingdom-church-suite' ); ?><input id="kcs-v-kids" name="kids" type="number" min="0" max="50" value="0"></label>
@@ -479,8 +489,8 @@ class KCS_Shortcodes {
 					<label for="kcs-q-phone"><?php esc_html_e( 'Phone / WhatsApp (with country code)', 'kingdom-church-suite' ); ?><input id="kcs-q-phone" name="phone" type="tel" required autocomplete="tel" placeholder="+44 …"></label>
 					<label for="kcs-q-gender"><?php esc_html_e( 'Gender', 'kingdom-church-suite' ); ?><?php echo $select( 'gender', 'kcs-q-gender', array( '' => __( 'Choose…', 'kingdom-church-suite' ), 'male' => __( 'Male', 'kingdom-church-suite' ), 'female' => __( 'Female', 'kingdom-church-suite' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></label>
 					<label for="kcs-q-dob"><?php esc_html_e( 'Date of birth', 'kingdom-church-suite' ); ?><input id="kcs-q-dob" name="dob" type="date" max="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>"></label>
-					<label for="kcs-q-nationality"><?php esc_html_e( 'Nationality', 'kingdom-church-suite' ); ?><input id="kcs-q-nationality" name="nationality" autocomplete="off"></label>
-					<label for="kcs-q-country"><?php esc_html_e( 'Country you live in', 'kingdom-church-suite' ); ?><input id="kcs-q-country" name="country" required autocomplete="country-name"></label>
+					<label for="kcs-q-nationality"><?php esc_html_e( 'Nationality', 'kingdom-church-suite' ); ?><?php echo str_replace( ' autocomplete="country-name"', '', kcs_country_select( 'nationality', 'kcs-q-nationality' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></label>
+					<label for="kcs-q-country"><?php esc_html_e( 'Country you live in', 'kingdom-church-suite' ); ?><?php echo kcs_country_select( 'country', 'kcs-q-country', true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></label>
 					<label for="kcs-q-city"><?php esc_html_e( 'City', 'kingdom-church-suite' ); ?><input id="kcs-q-city" name="city" autocomplete="address-level2"></label>
 					<label for="kcs-q-occupation"><?php esc_html_e( 'Occupation', 'kingdom-church-suite' ); ?><input id="kcs-q-occupation" name="occupation"></label>
 					<label for="kcs-q-church"><?php esc_html_e( 'Your church or ministry', 'kingdom-church-suite' ); ?><input id="kcs-q-church" name="church"></label>

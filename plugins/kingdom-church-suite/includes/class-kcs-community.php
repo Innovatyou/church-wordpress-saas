@@ -285,7 +285,8 @@ class KCS_Visits {
 		if ( ! $name || ( ! is_email( $email ) && ! $phone ) ) {
 			return new WP_Error( 'kcs_visit', __( 'Please tell us your name and an email or phone number.', 'kingdom-church-suite' ), array( 'status' => 400 ) );
 		}
-		$date = preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) ( $data['visit_date'] ?? '' ) ) ? $data['visit_date'] : null;
+		$date    = preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) ( $data['visit_date'] ?? '' ) ) ? $data['visit_date'] : null;
+		$country = sanitize_text_field( $data['country'] ?? '' );
 		$wpdb->insert(
 			kcs_table( 'visits' ),
 			array(
@@ -296,7 +297,7 @@ class KCS_Visits {
 				'service'    => sanitize_text_field( $data['service'] ?? '' ),
 				'adults'     => max( 1, min( 50, (int) ( $data['adults'] ?? 1 ) ) ),
 				'kids'       => max( 0, min( 50, (int) ( $data['kids'] ?? 0 ) ) ),
-				'notes'      => sanitize_textarea_field( $data['notes'] ?? '' ),
+				'notes'      => trim( ( '' !== $country ? __( 'Country', 'kingdom-church-suite' ) . ': ' . $country . "\n" : '' ) . sanitize_textarea_field( $data['notes'] ?? '' ) ),
 				'status'     => 'new',
 				'created_at' => current_time( 'mysql' ),
 			)
@@ -315,7 +316,7 @@ class KCS_Visits {
 			KCS_Email::admin_recipients(),
 			/* translators: 1: name, 2: date */
 			sprintf( __( 'New visit: %1$s on %2$s', 'kingdom-church-suite' ), $name, $when ),
-			'<p>' . esc_html( $name ) . ' · ' . esc_html( $email ) . ' · ' . esc_html( $phone ) . '</p><p>' . esc_html( sanitize_text_field( $data['service'] ?? '' ) ) . '</p><p><a class="btn" href="' . esc_url( add_query_arg( 'view', 'visits', kcs_page_url( 'church_admin' ) ) ) . '">' . esc_html__( 'Open visits', 'kingdom-church-suite' ) . '</a></p>'
+			'<p>' . esc_html( $name ) . ' · ' . esc_html( $email ) . ' · ' . esc_html( $phone ) . '</p><p>' . esc_html( trim( sanitize_text_field( $data['service'] ?? '' ) . ' · ' . $country, ' ·' ) ) . '</p><p><a class="btn" href="' . esc_url( add_query_arg( 'view', 'visits', kcs_page_url( 'church_admin' ) ) ) . '">' . esc_html__( 'Open visits', 'kingdom-church-suite' ) . '</a></p>'
 		);
 		do_action( 'kcs_visit_created', $id );
 		KCS_Email::webhook( 'visit.created', array( 'id' => $id, 'name' => $name, 'visit_date' => $date ) );

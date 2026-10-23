@@ -48,6 +48,7 @@ return array(
 		'kingdom_charity_text'     => "Another Ministry is the humanitarian arm of The Road Map to Jesus International which is headed by Evangelist Godstime Adah and the Road Map to Jesus International Ministries team. The ministry is committed to catering to the needs of widows, dwarfs, the elderly, physically challenged, orphans and the destitute. The ministry provides scholarships to orphans and children of the underprivileged, with educational support given from primary to tertiary levels.\n\n"
 			. 'Remember, knowing God is not only seeing His works, but learning His way. Therefore, we should let love be uppermost in our hearts because all our doings without love are nothing. Join Another Ministry to feed the hungry, bring relief to the poor, support the weak the handicapped and bless the needy.',
 		'kingdom_charity_causes'   => "Widows\nDwarfs\nThe elderly\nThe physically challenged\nOrphans\nThe destitute\nScholarships",
-		'kingdom_charity_btn_text' => 'Join Another Ministry',
+		'kingdom_charity_btn_text' => 'Give',
+		'kingdom_vp_ask_service'   => false,
 	),
 );

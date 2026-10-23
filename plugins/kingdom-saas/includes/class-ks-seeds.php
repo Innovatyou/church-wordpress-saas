@@ -6,6 +6,8 @@
  *   match        Lower-case text the church's site name must contain.
  *   mods         Theme settings to fill in. Ones the church has already set are left alone.
  *   charity_page Optional: title of a Charity page to create (under About in the main menu).
+ *   replace      Optional: setting => array( old, new ), changed only while it still has the old value.
+ *   dedupe_charity Optional: remove extra empty Charity pages (keeps the oldest).
  *
  * A seed runs once per site; afterwards the church edits everything in Church Admin.
  *
@@ -46,7 +48,11 @@ class KS_Seeds {
 			if ( ! is_array( $seed ) || empty( $seed['match'] ) || false === strpos( $name, (string) $seed['match'] ) ) {
 				continue;
 			}
-			// Marked done first, so two requests at the same moment can't both apply it.
+			// add_option() is a single INSERT, so only one of two requests arriving at the same moment
+			// gets the lock and applies the seed.
+			if ( ! add_option( 'ks_seed_lock_' . $slug, time(), '', false ) ) {
+				continue;
+			}
 			$done[] = $slug;
 			update_option( 'ks_seeds_done', $done, false );
 			self::apply( $seed );
@@ -64,8 +70,50 @@ class KS_Seeds {
 				set_theme_mod( $key, $value );
 			}
 		}
+		foreach ( (array) ( $seed['replace'] ?? array() ) as $key => $pair ) {
+			if ( get_theme_mod( $key, null ) === $pair[0] ) {
+				set_theme_mod( $key, $pair[1] );
+			}
+		}
+		if ( ! empty( $seed['dedupe_charity'] ) ) {
+			self::dedupe_charity();
+		}
 		if ( ! empty( $seed['charity_page'] ) ) {
 			self::charity_page( (string) $seed['charity_page'] );
+		}
+	}
+
+	/**
+	 * Charity pages (template or slug), oldest first.
+	 *
+	 * @return WP_Post[]
+	 */
+	private static function charity_pages() {
+		$pages = get_posts( array( 'post_type' => 'page', 'post_status' => array( 'publish', 'draft', 'private' ), 'posts_per_page' => 20, 'orderby' => 'ID', 'order' => 'ASC', 'meta_key' => '_wp_page_template', 'meta_value' => 'page-templates/template-charity.php' ) ); // phpcs:ignore WordPress.DB.SlowDBQuery
+		$slug  = get_page_by_path( 'charity' );
+		if ( $slug && ! in_array( $slug->ID, wp_list_pluck( $pages, 'ID' ), true ) ) {
+			$pages[] = $slug;
+		}
+		return $pages;
+	}
+
+	/**
+	 * Keep one Charity page: extra ones that are still empty go to the bin with their menu items.
+	 */
+	private static function dedupe_charity() {
+		$pages = array_values(
+			array_filter(
+				self::charity_pages(),
+				function ( $p ) {
+					return 'page-templates/template-charity.php' === get_page_template_slug( $p ) && '' === trim( $p->post_content );
+				}
+			)
+		);
+		foreach ( array_slice( $pages, 1 ) as $page ) {
+			foreach ( wp_get_associated_nav_menu_items( $page->ID, 'post_type', 'page' ) as $item ) {
+				wp_delete_post( $item, true );
+			}
+			wp_trash_post( $page->ID );
 		}
 	}
 
@@ -76,8 +124,7 @@ class KS_Seeds {
 	 */
 	private static function charity_page( $title ) {
 		$template = 'page-templates/template-charity.php';
-		$existing = get_posts( array( 'post_type' => 'page', 'post_status' => 'any', 'posts_per_page' => 1, 'fields' => 'ids', 'meta_key' => '_wp_page_template', 'meta_value' => $template ) ); // phpcs:ignore WordPress.DB.SlowDBQuery
-		if ( $existing ) {
+		if ( self::charity_pages() ) {
 			return;
 		}
 		$page = wp_insert_post( array( 'post_type' => 'page', 'post_status' => 'publish', 'post_title' => $title, 'post_name' => sanitize_title( $title ), 'page_template' => $template ) );

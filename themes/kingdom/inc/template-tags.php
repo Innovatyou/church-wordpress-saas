@@ -224,6 +224,7 @@ function kingdom_visit_page_settings() {
 		'kingdom_vp_email'       => array( __( 'Email for visits (empty uses the church email)', 'kingdom' ), 'email', '' ),
 		'kingdom_vp_location'    => array( __( 'Where you are (empty uses the church address)', 'kingdom' ), 'textarea', '' ),
 		'kingdom_vp_person'      => array( __( 'Contact person (optional)', 'kingdom' ), 'text', '' ),
+		'kingdom_vp_ask_service' => array( __( 'Ask which service on the “Plan your visit” form', 'kingdom' ), 'checkbox', true ),
 		'kingdom_vp_faq_title'   => array( __( 'Questions: heading', 'kingdom' ), 'text', __( 'Visiting from abroad', 'kingdom' ) ),
 		'kingdom_vp_faq'         => array( __( 'Questions and answers (write each question on its own line ending with ?, and its answer on the lines below)', 'kingdom' ), 'longtext', __( "How do I arrange a visit?\nFill out the questionnaire below with your full details and submit it. Please wait for us to confirm your visit before you book flights or make travel plans.\n\nWill I need a visa?\nIt depends on your country. If you need one, we can send you an invitation letter to present at the embassy with your application.\n\nHow will I get to the church?\nOnce you have confirmed your arrival time with us, a church representative will meet you at the airport.\n\nWhere will I stay?\nTell us in the questionnaire if you need accommodation and we will share the options with you.\n\nHow long do visitors stay?\nMost visitors stay for about a week, attending services and fellowship during their stay.\n\nWhat is the weather like?\nDescribe the climate here and what clothes visitors should bring.", 'kingdom' ) ),
 		'kingdom_vp_form_show'   => array( __( 'Show the visitor questionnaire', 'kingdom' ), 'checkbox', true ),
@@ -1210,3 +1211,12 @@ function kingdom_logo_sizes( $px = false ) {
 	);
 }
 
+/**
+ * Church Admin → Visit page → "Ask which service" switches the service question on the visit form.
+ */
+add_filter(
+	'kcs_visit_form_service',
+	function ( $ask ) {
+		return $ask && (bool) get_theme_mod( 'kingdom_vp_ask_service', true );
+	}
+);
