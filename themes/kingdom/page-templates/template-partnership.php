@@ -13,11 +13,13 @@ kingdom_page_header( '', __( 'Join a family of partners carrying the gospel to t
 ?>
 <section class="k-section">
 	<div class="k-container">
+		<?php if ( ! kingdom_plugin_active() || '1' === (string) kcs_get_option( 'show_partnership_reasons', '1' ) ) : ?>
 		<div class="k-grid k-grid--3 k-mb">
 			<div class="k-feature" data-reveal><span class="k-feature__icon"><?php echo kingdom_icon( 'book' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><h3><?php esc_html_e( 'Preach the gospel', 'kingdom' ); ?></h3><p><?php esc_html_e( 'Fund crusades, media outreach and missions.', 'kingdom' ); ?></p></div>
 			<div class="k-feature" data-reveal><span class="k-feature__icon"><?php echo kingdom_icon( 'hands' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><h3><?php esc_html_e( 'Serve communities', 'kingdom' ); ?></h3><p><?php esc_html_e( 'Support welfare, scholarships and outreach to the needy.', 'kingdom' ); ?></p></div>
 			<div class="k-feature" data-reveal><span class="k-feature__icon"><?php echo kingdom_icon( 'users' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><h3><?php esc_html_e( 'Raise disciples', 'kingdom' ); ?></h3><p><?php esc_html_e( 'Train leaders and plant churches across the nations.', 'kingdom' ); ?></p></div>
 		</div>
+		<?php endif; ?>
 		<?php
 		if ( kingdom_content_has( 'kcs_partnership_plans' ) ) {
 			while ( have_posts() ) {

@@ -442,6 +442,19 @@ function kcs_status_badge( $status ) {
 }
 
 /**
+ * Benefit lines of a plan to show, or none when the church hides plan benefits.
+ *
+ * @param object $plan Plan.
+ * @return string[]
+ */
+function kcs_plan_benefits( $plan ) {
+	if ( ! $plan || '1' !== (string) kcs_get_option( 'show_plan_benefits', '1' ) ) {
+		return array();
+	}
+	return array_values( array_filter( array_map( 'trim', explode( "\n", (string) $plan->benefits ) ) ) );
+}
+
+/**
  * Countries (ISO code => English name), for country lists on forms.
  *
  * @return array

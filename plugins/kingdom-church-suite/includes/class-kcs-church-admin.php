@@ -476,8 +476,10 @@ class KCS_Church_Admin {
 				$settings['amounts_local']         = preg_replace( '/[^0-9.,]/', '', (string) ( $d['amounts_local'] ?? '' ) );
 				$gw                                = sanitize_key( $d['tithe_gateway'] ?? '' );
 				$settings['tithe_gateway']         = KCS_Payments::gateway( $gw ) || 'auto' === $gw ? $gw : 'none';
+				$settings['show_plan_benefits']    = empty( $d['show_plan_benefits'] ) ? '0' : '1';
+				$settings['show_partnership_reasons'] = empty( $d['show_partnership_reasons'] ) ? '0' : '1';
 				update_option( 'kcs_settings', $settings );
-				$msg  = __( 'Currency settings saved.', 'kingdom-church-suite' );
+				$msg  = __( 'Partnership settings saved.', 'kingdom-church-suite' );
 				$view = 'plans';
 				break;
 
@@ -1556,6 +1558,8 @@ class KCS_Church_Admin {
 				<label><?php esc_html_e( 'Local label', 'kingdom-church-suite' ); ?><input name="local_label" value="<?php echo esc_attr( kcs_get_option( 'local_label', 'Local' ) ); ?>" placeholder="<?php esc_attr_e( 'e.g. Nigeria', 'kingdom-church-suite' ); ?>"></label>
 				<label><?php esc_html_e( 'Quick amounts (international)', 'kingdom-church-suite' ); ?><input name="amounts_international" value="<?php echo esc_attr( implode( ',', kcs_region_amounts( 'international' ) ) ); ?>"></label>
 				<label><?php esc_html_e( 'Quick amounts (local)', 'kingdom-church-suite' ); ?><input name="amounts_local" value="<?php echo esc_attr( implode( ',', kcs_region_amounts( 'local' ) ) ); ?>"></label>
+				<label class="kcs-check"><input type="checkbox" name="show_plan_benefits" value="1" <?php checked( '1', (string) kcs_get_option( 'show_plan_benefits', '1' ) ); ?>> <?php esc_html_e( 'Show plan benefits (the list under each plan)', 'kingdom-church-suite' ); ?></label>
+				<label class="kcs-check"><input type="checkbox" name="show_partnership_reasons" value="1" <?php checked( '1', (string) kcs_get_option( 'show_partnership_reasons', '1' ) ); ?>> <?php esc_html_e( 'Show the three “why partner” cards on the Partnership page', 'kingdom-church-suite' ); ?></label>
 				<label><?php esc_html_e( 'Featured payment method on Tithe & Offering', 'kingdom-church-suite' ); ?>
 					<select name="tithe_gateway">
 						<option value="auto" <?php selected( kcs_get_option( 'tithe_gateway', 'auto' ), 'auto' ); ?>><?php esc_html_e( 'The first one in my order', 'kingdom-church-suite' ); ?></option>

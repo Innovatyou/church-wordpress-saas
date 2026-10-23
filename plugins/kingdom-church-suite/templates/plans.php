@@ -31,11 +31,14 @@ $region   = $partner ? kcs_currency_region( $partner->currency ) : 'internationa
 				<?php endif; ?>
 			</div>
 			<?php if ( $plan->description ) : ?><p class="kcs-plan__desc"><?php echo esc_html( $plan->description ); ?></p><?php endif; ?>
-			<ul class="kcs-plan__benefits">
-				<?php foreach ( array_filter( array_map( 'trim', explode( "\n", (string) $plan->benefits ) ) ) as $benefit ) : ?>
-					<li><?php echo esc_html( $benefit ); ?></li>
-				<?php endforeach; ?>
-			</ul>
+			<?php $benefits = kcs_plan_benefits( $plan ); ?>
+			<?php if ( $benefits ) : ?>
+				<ul class="kcs-plan__benefits">
+					<?php foreach ( $benefits as $benefit ) : ?>
+						<li><?php echo esc_html( $benefit ); ?></li>
+					<?php endforeach; ?>
+				</ul>
+			<?php endif; ?>
 			<?php if ( $is_ptn && (int) $partner->plan_id === (int) $plan->id ) : ?>
 				<a class="kcs-btn kcs-btn--block kcs-btn--ghost" href="<?php echo esc_url( kcs_page_url( 'partner_dashboard' ) ); ?>"><?php esc_html_e( 'Your current plan', 'kingdom-church-suite' ); ?></a>
 			<?php elseif ( $is_ptn ) : ?>

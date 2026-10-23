@@ -80,7 +80,7 @@ $completed = array_filter(
 			<div class="kcs-stat"><span><?php esc_html_e( 'Next due', 'kingdom-church-suite' ); ?></span><strong><?php echo $partner->next_due_date && 'one_time' !== $partner->frequency ? esc_html( date_i18n( get_option( 'date_format' ), strtotime( $partner->next_due_date ) ) ) : '—'; ?></strong></div>
 			<div class="kcs-stat"><span><?php esc_html_e( 'Total given', 'kingdom-church-suite' ); ?></span><strong><?php echo esc_html( KCS_Partners::total_given_label( $partner ) ); ?></strong><small><?php /* translators: %d: number of gifts */ printf( esc_html( _n( '%d gift', '%d gifts', count( $completed ), 'kingdom-church-suite' ) ), count( $completed ) ); ?></small></div>
 		</div>
-		<?php $benefits = $plan ? array_filter( array_map( 'trim', explode( "\n", (string) $plan->benefits ) ) ) : array(); ?>
+		<?php $benefits = kcs_plan_benefits( $plan ); ?>
 		<?php if ( $benefits ) : ?>
 			<div class="kcs-benefits">
 				<h3><?php /* translators: %s: plan */ printf( esc_html__( 'Your %s benefits', 'kingdom-church-suite' ), esc_html( $plan->name ) ); ?></h3>
@@ -185,7 +185,7 @@ $completed = array_filter(
 							<strong><?php esc_html_e( 'Your amount', 'kingdom-church-suite' ); ?></strong>
 						<?php endif; ?>
 					</div>
-					<ul class="kcs-plan__benefits"><?php foreach ( array_filter( array_map( 'trim', explode( "\n", (string) $pl->benefits ) ) ) as $b ) : ?><li><?php echo esc_html( $b ); ?></li><?php endforeach; ?></ul>
+					<?php if ( kcs_plan_benefits( $pl ) ) : ?><ul class="kcs-plan__benefits"><?php foreach ( kcs_plan_benefits( $pl ) as $b ) : ?><li><?php echo esc_html( $b ); ?></li><?php endforeach; ?></ul><?php endif; ?>
 					<?php if ( $custom ) : ?>
 						<div class="kcs-grid-2">
 							<label for="kcs-amt-<?php echo (int) $pl->id; ?>"><?php esc_html_e( 'Amount', 'kingdom-church-suite' ); ?> <?php foreach ( kcs_regions() as $rk => $r ) : ?><span class="kcs-in-<?php echo esc_attr( $rk ); ?>">(<?php echo esc_html( $r['currency'] ); ?>)</span><?php endforeach; ?><input id="kcs-amt-<?php echo (int) $pl->id; ?>" type="number" step="0.01" min="1" name="amount" value="<?php echo esc_attr( $is_current ? $partner->amount : '' ); ?>" required></label>
