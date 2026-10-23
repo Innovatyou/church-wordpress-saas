@@ -1881,7 +1881,7 @@ class KCS_Church_Admin {
 						<p class="kcs-muted"><?php esc_html_e( 'Choose a ready-made pairing (a heading font and a body text font that look good together), or Custom to pick your own. The preview updates as you choose.', 'kingdom-church-suite' ); ?></p>
 						<?php self::font_preview(); ?>
 					<?php elseif ( 'pictures' === $group ) : ?>
-						<p class="kcs-muted"><?php esc_html_e( 'Upload your own photos from your phone or computer. Remove a photo to go back to the built-in illustration. Wide photos work best for the banner.', 'kingdom-church-suite' ); ?></p>
+						<p class="kcs-muted"><?php esc_html_e( 'Upload your own photos from your phone or computer. Remove a photo to go back to the built-in illustration; gallery photos you leave empty are simply not shown (with none, the gallery is hidden). Wide photos work best for the banner.', 'kingdom-church-suite' ); ?></p>
 					<?php elseif ( 'texts' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'The words on your homepage banner and welcome section. Button links are optional: leave them empty to use the usual pages.', 'kingdom-church-suite' ); ?></p>
 					<?php elseif ( 'visitpage' === $group ) : ?>

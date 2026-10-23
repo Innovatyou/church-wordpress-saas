@@ -689,7 +689,15 @@ body:not(.k-3d) .k-hero__scene { display: none; }
 
 /* Church gallery & visit booking */
 .k-gallery { display: grid; gap: .75rem; grid-template-columns: repeat(2, 1fr); grid-auto-rows: 160px; }
-@media (min-width: 860px) { .k-gallery { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 210px; gap: 1rem; } .k-gallery__item--1 { grid-column: span 2; grid-row: span 2; } .k-gallery__item--6 { grid-column: span 2; } }
+@media (max-width: 859px) { .k-gallery--odd .k-gallery__item:last-child { grid-column: span 2; } }
+@media (min-width: 860px) {
+	.k-gallery { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 210px; gap: 1rem; }
+	.k-gallery--1 .k-gallery__item { grid-column: span 4; grid-row: span 2; }
+	.k-gallery--2 .k-gallery__item { grid-column: span 2; grid-row: span 2; }
+	.k-gallery--3 .k-gallery__item, .k-gallery--4 .k-gallery__item--4 { grid-column: span 2; }
+	.k-gallery--3 .k-gallery__item--1, .k-gallery--4 .k-gallery__item--1, .k-gallery--5 .k-gallery__item--1, .k-gallery--6 .k-gallery__item--1 { grid-column: span 2; grid-row: span 2; }
+	.k-gallery--6 .k-gallery__item--6 { grid-column: span 4; }
+}
 .k-gallery__item { position: relative; margin: 0; border-radius: var(--k-radius); overflow: hidden; background: var(--k-surface-2); }
 .k-gallery__item img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s; }
 .k-gallery__item:hover img { transform: scale(1.06); }
