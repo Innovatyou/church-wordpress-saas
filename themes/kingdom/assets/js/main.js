@@ -110,6 +110,67 @@
 	var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 	var finePointer = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
+	/* Banner text animations that need the title split into words or letters, or typed. */
+	document.querySelectorAll('[data-hero-anim]').forEach(function (box) {
+		var kind = box.getAttribute('data-hero-anim');
+		var title = box.querySelector('.k-hero__title');
+		if (!title || reduceMotion || ['words', 'letters', 'typewriter'].indexOf(kind) < 0) { return; }
+		var text = title.textContent.trim();
+		var speed = parseFloat(getComputedStyle(box).getPropertyValue('--k-as')) || 1;
+		title.setAttribute('aria-label', text);
+		title.textContent = '';
+		var words = text.split(/\s+/);
+		var holder = document.createElement('span');
+		holder.setAttribute('aria-hidden', 'true');
+		title.appendChild(holder);
+		if (kind === 'words') {
+			words.forEach(function (w, i) {
+				var s = document.createElement('span');
+				s.className = 'k-anim-w';
+				s.style.setProperty('--i', i);
+				s.textContent = w;
+				holder.appendChild(s);
+				if (i < words.length - 1) { holder.appendChild(document.createTextNode(' ')); }
+			});
+			box.style.setProperty('--k-after', ((words.length * 0.09 + 0.5) * speed) + 's');
+		} else if (kind === 'letters') {
+			var n = 0;
+			words.forEach(function (w, wi) {
+				var word = document.createElement('span');
+				word.className = 'k-anim-word';
+				Array.prototype.forEach.call(w, function (ch) {
+					var s = document.createElement('span');
+					s.className = 'k-anim-l';
+					s.style.setProperty('--i', n++);
+					s.textContent = ch;
+					word.appendChild(s);
+				});
+				holder.appendChild(word);
+				if (wi < words.length - 1) { holder.appendChild(document.createTextNode(' ')); }
+			});
+			box.style.setProperty('--k-after', ((n * 0.035 + 0.5) * speed) + 's');
+		} else {
+			var typed = document.createTextNode('');
+			var caret = document.createElement('span');
+			caret.className = 'k-anim-caret';
+			// The untyped rest stays in place, invisible, so the banner doesn't jump while typing.
+			var rest = document.createElement('span');
+			rest.style.visibility = 'hidden';
+			rest.textContent = text;
+			holder.appendChild(typed);
+			holder.appendChild(caret);
+			holder.appendChild(rest);
+			var step = 70 * speed;
+			box.style.setProperty('--k-after', ((text.length * step + 400) / 1000) + 's');
+			var i = 0;
+			setTimeout(function type() {
+				typed.nodeValue = text.slice(0, ++i);
+				rest.textContent = text.slice(i);
+				if (i < text.length) { setTimeout(type, step); } else { caret.classList.add('is-done'); }
+			}, 350 * speed);
+		}
+	});
+
 	/* 3D tilt cards */
 	if (document.body.classList.contains('k-3d') && !reduceMotion && finePointer) {
 		document.querySelectorAll('[data-tilt]').forEach(function (card) {

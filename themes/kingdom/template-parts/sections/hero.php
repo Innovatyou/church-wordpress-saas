@@ -31,6 +31,9 @@ if ( ! $kingdom_bg && 'video' === $kingdom_variant && $kingdom_video ) {
 	$kingdom_bg = kingdom_video_source( $kingdom_video );
 }
 $kingdom_notext  = (bool) get_theme_mod( 'kingdom_hero_hide_text', false );
+$kingdom_anim    = (string) get_theme_mod( 'kingdom_hero_text_anim', 'fade' );
+$kingdom_anim    = array_key_exists( $kingdom_anim, kingdom_hero_animations() ) ? $kingdom_anim : 'fade';
+$kingdom_speed   = sanitize_html_class( get_theme_mod( 'kingdom_hero_anim_speed', 'normal' ) );
 $kingdom_height  = sanitize_html_class( get_theme_mod( 'kingdom_hero_height', 'full' ) );
 $kingdom_yt      = kingdom_youtube_id( get_theme_mod( 'kingdom_hero_youtube' ) );
 $kingdom_overlay = min( 90, absint( get_theme_mod( 'kingdom_hero_overlay', 55 ) ) ) / 100;
@@ -119,7 +122,7 @@ $kingdom_buttons = function () use ( $kingdom_b1t, $kingdom_b1u, $kingdom_b2t, $
 		</div>
 		<?php endif; ?>
 		<div class="k-container k-hero__inner<?php echo 'classic' === $kingdom_variant ? ' k-center' : ''; ?>">
-			<div class="k-hero__content" data-reveal>
+			<div class="k-hero__content<?php echo 'fade' === $kingdom_anim ? '' : ' k-anim k-anim--' . esc_attr( $kingdom_anim ) . ' k-anim--' . esc_attr( $kingdom_speed ); ?>"<?php echo 'fade' === $kingdom_anim ? ' data-reveal' : ' data-hero-anim="' . esc_attr( $kingdom_anim ) . '"'; ?>>
 				<?php if ( $kingdom_eyebrow ) : ?><span class="k-eyebrow k-eyebrow--light"><?php echo esc_html( $kingdom_eyebrow ); ?></span><?php endif; ?>
 				<h1 class="k-hero__title"><?php echo esc_html( $kingdom_title ); ?></h1>
 				<p class="k-hero__text"><?php echo esc_html( $kingdom_text ); ?></p>

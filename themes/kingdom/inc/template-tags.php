@@ -122,6 +122,8 @@ function kingdom_website_settings() {
 		'kingdom_hero_hide_text'    => array( __( 'Hide all banner text and buttons (show only the video/image)', 'kingdom' ), 'checkbox', 'banner', false ),
 		'kingdom_hero_sound_button' => array( __( 'Show a "Watch with sound" button on YouTube banners', 'kingdom' ), 'checkbox', 'banner', true ),
 		'kingdom_hero_height'       => array( __( 'Banner height', 'kingdom' ), 'select', 'banner', 'full', array( 'full' => __( 'Full screen', 'kingdom' ), 'tall' => __( 'Tall (80%)', 'kingdom' ), 'medium' => __( 'Medium (60%)', 'kingdom' ), 'video' => __( 'Fit the video (16:9)', 'kingdom' ) ) ),
+		'kingdom_hero_text_anim'    => array( __( 'Banner text animation', 'kingdom' ), 'select', 'banner', 'fade', kingdom_hero_animations() ),
+		'kingdom_hero_anim_speed'   => array( __( 'Animation speed', 'kingdom' ), 'select', 'banner', 'normal', array( 'slow' => __( 'Slow', 'kingdom' ), 'normal' => __( 'Normal', 'kingdom' ), 'fast' => __( 'Fast', 'kingdom' ) ) ),
 		'kingdom_hero_overlay'      => array( __( 'Banner darkness over the video/image (0–90)', 'kingdom' ), 'number', 'banner', 55 ),
 	);
 	$palettes = array();
@@ -205,6 +207,28 @@ function kingdom_website_settings() {
 		$out[ $key ] = array( $f[0], $f[1], 'contact', '' );
 	}
 	return $out;
+}
+
+/**
+ * Banner text animations (slug => label).
+ *
+ * @return array
+ */
+function kingdom_hero_animations() {
+	return array(
+		'fade'       => __( 'Gentle fade (default)', 'kingdom' ),
+		'rise'       => __( 'Rise up, one line after another', 'kingdom' ),
+		'words'      => __( 'Title word by word', 'kingdom' ),
+		'letters'    => __( 'Title letter by letter', 'kingdom' ),
+		'typewriter' => __( 'Typewriter', 'kingdom' ),
+		'zoom'       => __( 'Zoom in', 'kingdom' ),
+		'slide'      => __( 'Slide in from the side', 'kingdom' ),
+		'blur'       => __( 'Blur to sharp', 'kingdom' ),
+		'flip'       => __( '3D flip', 'kingdom' ),
+		'bounce'     => __( 'Bounce in', 'kingdom' ),
+		'shine'      => __( 'Shine across the title', 'kingdom' ),
+		'none'       => __( 'No animation', 'kingdom' ),
+	);
 }
 
 /**
