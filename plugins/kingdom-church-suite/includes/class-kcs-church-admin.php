@@ -54,6 +54,7 @@ class KCS_Church_Admin {
 			'transfers'   => array( __( 'Confirm payments', 'kingdom-church-suite' ), '⇄' ),
 			'prayers'     => array( __( 'Prayer requests', 'kingdom-church-suite' ), '✦' ),
 			'visits'      => array( __( 'First-time visitors', 'kingdom-church-suite' ), '☺' ),
+			'messages'    => array( __( 'Contact messages', 'kingdom-church-suite' ), '✉' ),
 			'testimonies' => array( __( 'Testimonies', 'kingdom-church-suite' ), '❝' ),
 			'notify'      => array( __( 'Message partners', 'kingdom-church-suite' ), '✉' ),
 			'pastors'     => array( __( 'Pastors & WhatsApp', 'kingdom-church-suite' ), '☎' ),
@@ -74,7 +75,7 @@ class KCS_Church_Admin {
 			'kcs_church_admin_groups',
 			array(
 				''                                          => array( 'overview' ),
-				__( 'People', 'kingdom-church-suite' )      => array( 'partners', 'prayers', 'visits', 'testimonies' ),
+				__( 'People', 'kingdom-church-suite' )      => array( 'partners', 'prayers', 'visits', 'messages', 'testimonies' ),
 				__( 'Giving', 'kingdom-church-suite' )      => array( 'transfers', 'payments', 'plans' ),
 				__( 'Messages', 'kingdom-church-suite' )    => array( 'notify', 'newsletter', 'pastors' ),
 				__( 'Website & app', 'kingdom-church-suite' ) => array( 'content', 'website', 'pages', 'app' ),
@@ -94,6 +95,7 @@ class KCS_Church_Admin {
 			'partners'     => __( 'Everyone who has joined your partnership: their plan, payments and contact details.', 'kingdom-church-suite' ),
 			'prayers'      => __( 'Prayer requests sent from your website. Mark them as prayed for when done.', 'kingdom-church-suite' ),
 			'visits'       => __( 'People who booked a visit. Call or WhatsApp them to welcome them.', 'kingdom-church-suite' ),
+			'messages'     => __( 'Messages sent from the form on your Contact Us page.', 'kingdom-church-suite' ),
 			'testimonies'  => __( 'Testimonies shared by members. Approve them to show them on your website.', 'kingdom-church-suite' ),
 			'transfers'    => __( 'Givers who paid by bank transfer or your payment link. Check your bank or provider dashboard, then confirm or reject.', 'kingdom-church-suite' ),
 			'payments'     => __( 'Every tithe, offering and partnership payment received online.', 'kingdom-church-suite' ),
@@ -539,6 +541,16 @@ class KCS_Church_Admin {
 						case 'email':
 							$value = sanitize_email( $raw );
 							break;
+						case 'emails':
+							$value = implode( ', ', array_filter( array_map( 'sanitize_email', preg_split( '/[\s,;]+/', (string) $raw ) ), 'is_email' ) );
+							break;
+						case 'map':
+							// A pasted Google Maps embed code (<iframe src="…">) or its link.
+							if ( preg_match( '/src\s*=\s*["\']([^"\']+)["\']/i', (string) $raw, $m ) ) {
+								$raw = html_entity_decode( $m[1] );
+							}
+							$value = 0 === strpos( trim( (string) $raw ), 'https://' ) ? esc_url_raw( trim( (string) $raw ) ) : '';
+							break;
 						default:
 							$value = sanitize_text_field( $raw );
 					}
@@ -690,6 +702,12 @@ class KCS_Church_Admin {
 				/* translators: %d: number of phones */
 				$msg = $n ? sprintf( _n( 'Sending to %d phone…', 'Sending to %d phones…', $n, 'kingdom-church-suite' ), $n ) : __( 'No phones have turned on notifications yet.', 'kingdom-church-suite' );
 				$type = $n ? 'success' : 'error';
+				break;
+
+			case 'message_read':
+			case 'message_delete':
+				$msg  = KCS_Contact::handle( $do, $id );
+				$view = 'messages';
 				break;
 
 			case 'page_create':
@@ -866,6 +884,7 @@ class KCS_Church_Admin {
 		return $cache = array(
 			'prayers'     => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'prayer_requests' ) . " WHERE status = 'new'" ),
 			'visits'      => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'visits' ) . " WHERE status = 'new'" ),
+			'messages'    => KCS_Contact::unread(),
 			'payments'    => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'payments' ) .  " WHERE status = 'review' AND gateway NOT IN ('" . implode( "','", KCS_Transfers::MANUAL ) . "')" ),
 			'transfers'   => KCS_Transfers::count_waiting(),
 			'testimonies' => (int) wp_count_posts( 'kcs_testimony' )->pending,
@@ -902,6 +921,7 @@ class KCS_Church_Admin {
 				'payments'    => array( $counts['payments'], _n( '%d payment to review', '%d payments to review', $counts['payments'], 'kingdom-church-suite' ) ),
 				'prayers'     => array( $counts['prayers'], _n( '%d new prayer request', '%d new prayer requests', $counts['prayers'], 'kingdom-church-suite' ) ),
 				'visits'      => array( $counts['visits'], _n( '%d first-time visitor to welcome', '%d first-time visitors to welcome', $counts['visits'], 'kingdom-church-suite' ) ),
+				'messages'    => array( $counts['messages'], _n( '%d new contact message', '%d new contact messages', $counts['messages'], 'kingdom-church-suite' ) ),
 				'testimonies' => array( $counts['testimonies'], _n( '%d testimony to approve', '%d testimonies to approve', $counts['testimonies'], 'kingdom-church-suite' ) ),
 				'partners'    => array( $counts['partners'], _n( '%d partner is behind on payments', '%d partners are behind on payments', $counts['partners'], 'kingdom-church-suite' ) ),
 			),
@@ -1645,6 +1665,17 @@ class KCS_Church_Admin {
 	}
 
 	/**
+	 * Contact messages.
+	 */
+	private static function view_messages() {
+		KCS_Contact::view(
+			function ( $do, $view, $id ) {
+				return self::fields( $do, $view, $id );
+			}
+		);
+	}
+
+	/**
 	 * Pages: hide/show, new pages (page builder or HTML & CSS), menu.
 	 */
 	private static function view_pages() {
@@ -1936,6 +1967,10 @@ class KCS_Church_Admin {
 							</div>
 						<?php elseif ( 'email' === $f[1] ) : ?>
 							<label><?php echo esc_html( $f[0] ); ?><input type="email" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>"></label>
+						<?php elseif ( 'emails' === $f[1] ) : ?>
+							<label><?php echo esc_html( $f[0] ); ?><input type="text" inputmode="email" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>" placeholder="<?php echo esc_attr( implode( ', ', KCS_Email::admin_recipients() ) ); ?>"></label>
+						<?php elseif ( 'map' === $f[1] ) : ?>
+							<label><?php echo esc_html( $f[0] ); ?><textarea name="<?php echo esc_attr( $key ); ?>" rows="3" class="kca-code" placeholder="&lt;iframe src=&quot;https://www.google.com/maps/embed?pb=…&quot;&gt;&lt;/iframe&gt;"><?php echo esc_textarea( $value ); ?></textarea></label>
 						<?php elseif ( 'select' === $f[1] ) : ?>
 							<label><?php echo esc_html( $f[0] ); ?><select name="<?php echo esc_attr( $key ); ?>"><?php foreach ( (array) $f[4] as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $value, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select></label>
 						<?php else : ?>

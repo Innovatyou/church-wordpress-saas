@@ -31,7 +31,7 @@ function kingdom_starter_pages() {
 		'new'         => array( __( "I'm New", 'kingdom' ), 'template-new-here.php', '', '' ),
 		'prayer'      => array( __( 'Prayer Request', 'kingdom' ), 'template-prayer.php', '', 'prayer' ),
 		'testimonies' => array( __( 'Testimonies', 'kingdom' ), 'template-testimonies.php', '', '' ),
-		'contact'     => array( __( 'Contact', 'kingdom' ), 'template-contact.php', '', '' ),
+		'contact'     => array( __( 'Contact Us', 'kingdom' ), 'template-contact.php', '', '' ),
 		'blog'        => array( __( 'News', 'kingdom' ), '', '', '' ),
 	);
 }
@@ -227,3 +227,23 @@ function kingdom_activation_notice() {
 	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Thanks for choosing Ministry OS!', 'kingdom' ) . ' <a class="button button-primary" href="' . esc_url( admin_url( 'themes.php?page=kingdom-setup' ) ) . '">' . esc_html__( 'Run the one-click setup', 'kingdom' ) . '</a></p></div>';
 }
 add_action( 'admin_notices', 'kingdom_activation_notice' );
+
+/**
+ * Every church site gets a Contact Us page once (in the main menu), if it has none yet.
+ */
+function kingdom_ensure_contact_page() {
+	if ( ( is_multisite() && is_main_site() ) || get_option( 'kingdom_contact_page_added' ) || ! add_option( 'kingdom_contact_page_added', 1, '', false ) ) {
+		return;
+	}
+	$template = 'page-templates/template-contact.php';
+	$existing = get_posts( array( 'post_type' => 'page', 'post_status' => array( 'publish', 'draft', 'private' ), 'posts_per_page' => 1, 'fields' => 'ids', 'meta_key' => '_wp_page_template', 'meta_value' => $template ) ); // phpcs:ignore WordPress.DB.SlowDBQuery
+	if ( $existing || get_page_by_path( 'contact-us' ) || get_page_by_path( 'contact' ) ) {
+		return;
+	}
+	$page = wp_insert_post( array( 'post_type' => 'page', 'post_status' => 'publish', 'post_title' => __( 'Contact Us', 'kingdom' ), 'post_name' => 'contact-us', 'page_template' => $template ) );
+	$locations = (array) get_theme_mod( 'nav_menu_locations', array() );
+	if ( $page && ! is_wp_error( $page ) && ! empty( $locations['primary'] ) ) {
+		wp_update_nav_menu_item( $locations['primary'], 0, array( 'menu-item-object-id' => $page, 'menu-item-object' => 'page', 'menu-item-type' => 'post_type', 'menu-item-status' => 'publish' ) );
+	}
+}
+add_action( 'init', 'kingdom_ensure_contact_page', 40 );

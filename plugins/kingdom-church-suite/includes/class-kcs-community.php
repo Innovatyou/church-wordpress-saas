@@ -272,6 +272,17 @@ class KCS_Visits {
 	}
 
 	/**
+	 * Who receives Visit Us bookings and visitor questionnaires: the addresses set in Church Admin
+	 * (Pictures & text → Visit page), else the church's notification email.
+	 *
+	 * @return array
+	 */
+	public static function recipients() {
+		$list = array_filter( array_map( 'sanitize_email', (array) apply_filters( 'kcs_visit_recipients', KCS_Email::admin_recipients() ) ) );
+		return $list ? array_values( $list ) : KCS_Email::admin_recipients();
+	}
+
+	/**
 	 * Create a visit request.
 	 *
 	 * @param array $data name,email,phone,visit_date,service,adults,kids,notes.
@@ -313,10 +324,11 @@ class KCS_Visits {
 			);
 		}
 		KCS_Email::send(
-			KCS_Email::admin_recipients(),
+			self::recipients(),
 			/* translators: 1: name, 2: date */
 			sprintf( __( 'New visit: %1$s on %2$s', 'kingdom-church-suite' ), $name, $when ),
-			'<p>' . esc_html( $name ) . ' · ' . esc_html( $email ) . ' · ' . esc_html( $phone ) . '</p><p>' . esc_html( trim( sanitize_text_field( $data['service'] ?? '' ) . ' · ' . $country, ' ·' ) ) . '</p><p><a class="btn" href="' . esc_url( add_query_arg( 'view', 'visits', kcs_page_url( 'church_admin' ) ) ) . '">' . esc_html__( 'Open visits', 'kingdom-church-suite' ) . '</a></p>'
+			'<p>' . esc_html( $name ) . ' · ' . esc_html( $email ) . ' · ' . esc_html( $phone ) . '</p><p>' . esc_html( trim( sanitize_text_field( $data['service'] ?? '' ) . ' · ' . $country, ' ·' ) ) . '</p><p><a class="btn" href="' . esc_url( add_query_arg( 'view', 'visits', kcs_page_url( 'church_admin' ) ) ) . '">' . esc_html__( 'Open visits', 'kingdom-church-suite' ) . '</a></p>',
+			is_email( $email ) ? array( 'reply_to' => $name . ' <' . $email . '>' ) : array()
 		);
 		do_action( 'kcs_visit_created', $id );
 		KCS_Email::webhook( 'visit.created', array( 'id' => $id, 'name' => $name, 'visit_date' => $date ) );
@@ -407,10 +419,11 @@ class KCS_Visits {
 			'<p>' . esc_html( sprintf( /* translators: %s: name */ __( 'Hi %s, thank you for your interest in visiting us. We have received your questionnaire and will reply to confirm your visit.', 'kingdom-church-suite' ), $name ) ) . '</p><p><strong>' . esc_html__( 'Please wait for our confirmation before booking flights or making travel arrangements.', 'kingdom-church-suite' ) . '</strong></p>'
 		);
 		KCS_Email::send(
-			KCS_Email::admin_recipients(),
+			self::recipients(),
 			/* translators: 1: name, 2: country */
 			sprintf( __( 'Visitor questionnaire: %1$s (%2$s)', 'kingdom-church-suite' ), $name, sanitize_text_field( $data['country'] ?? '' ) ),
-			'<p>' . esc_html( $name ) . ' · ' . esc_html( $email ) . ' · ' . esc_html( $phone ) . '</p><table cellpadding="6">' . $rows . '</table><p><a class="btn" href="' . esc_url( add_query_arg( 'view', 'visits', kcs_page_url( 'church_admin' ) ) ) . '">' . esc_html__( 'Open visits', 'kingdom-church-suite' ) . '</a></p>'
+			'<p>' . esc_html( $name ) . ' · ' . esc_html( $email ) . ' · ' . esc_html( $phone ) . '</p><table cellpadding="6">' . $rows . '</table><p><a class="btn" href="' . esc_url( add_query_arg( 'view', 'visits', kcs_page_url( 'church_admin' ) ) ) . '">' . esc_html__( 'Open visits', 'kingdom-church-suite' ) . '</a></p>',
+			array( 'reply_to' => $name . ' <' . $email . '>' )
 		);
 		do_action( 'kcs_visit_created', $id );
 		KCS_Email::webhook( 'visit.created', array( 'id' => $id, 'name' => $name, 'visit_date' => $date, 'questionnaire' => true ) );

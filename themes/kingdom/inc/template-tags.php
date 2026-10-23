@@ -194,7 +194,7 @@ function kingdom_website_settings() {
 		'kingdom_address'           => array( __( 'Address', 'kingdom' ), 'textarea' ),
 		'kingdom_phone'             => array( __( 'Phone', 'kingdom' ), 'text' ),
 		'kingdom_email'             => array( __( 'Email', 'kingdom' ), 'email' ),
-		'kingdom_map'               => array( __( 'Google Maps embed link (Google Maps → Share → Embed a map → copy only the src link)', 'kingdom' ), 'url' ),
+		'kingdom_map'               => array( __( 'Google map: paste the embed code (Google Maps → Share → Embed a map → Copy HTML). Empty shows a map of your address.', 'kingdom' ), 'map' ),
 		'kingdom_social_facebook'   => array( 'Facebook', 'url' ),
 		'kingdom_social_instagram'  => array( 'Instagram', 'url' ),
 		'kingdom_social_youtube'    => array( 'YouTube', 'url' ),
@@ -206,6 +206,12 @@ function kingdom_website_settings() {
 	foreach ( $contact as $key => $f ) {
 		$out[ $key ] = array( $f[0], $f[1], 'contact', '' );
 	}
+	// Contact Us page.
+	$out['kingdom_contact_title']     = array( __( 'Contact page: title', 'kingdom' ), 'text', 'contact', __( 'We would love to hear from you', 'kingdom' ) );
+	$out['kingdom_contact_intro']     = array( __( 'Contact page: text (optional)', 'kingdom' ), 'textarea', 'contact', '' );
+	$out['kingdom_contact_form_show'] = array( __( 'Show the contact form', 'kingdom' ), 'checkbox', 'contact', true );
+	$out['kingdom_contact_to']        = array( __( 'Send contact form messages to (one or more emails, separated by commas; empty uses the church notification email)', 'kingdom' ), 'emails', 'contact', '' );
+	$out['kingdom_contact_map_auto']  = array( __( 'No map code? Show a map of the church address', 'kingdom' ), 'checkbox', 'contact', true );
 	return $out;
 }
 
@@ -252,6 +258,7 @@ function kingdom_visit_page_settings() {
 		'kingdom_vp_faq_title'   => array( __( 'Questions: heading', 'kingdom' ), 'text', __( 'Visiting from abroad', 'kingdom' ) ),
 		'kingdom_vp_faq'         => array( __( 'Questions and answers (write each question on its own line ending with ?, and its answer on the lines below)', 'kingdom' ), 'longtext', __( "How do I arrange a visit?\nFill out the questionnaire below with your full details and submit it. Please wait for us to confirm your visit before you book flights or make travel plans.\n\nWill I need a visa?\nIt depends on your country. If you need one, we can send you an invitation letter to present at the embassy with your application.\n\nHow will I get to the church?\nOnce you have confirmed your arrival time with us, a church representative will meet you at the airport.\n\nWhere will I stay?\nTell us in the questionnaire if you need accommodation and we will share the options with you.\n\nHow long do visitors stay?\nMost visitors stay for about a week, attending services and fellowship during their stay.\n\nWhat is the weather like?\nDescribe the climate here and what clothes visitors should bring.", 'kingdom' ) ),
 		'kingdom_vp_form_show'   => array( __( 'Show the visitor questionnaire', 'kingdom' ), 'checkbox', true ),
+		'kingdom_vp_form_to'     => array( __( 'Send Visit Us bookings and questionnaires to (one or more emails, separated by commas; empty uses the church notification email)', 'kingdom' ), 'emails', '' ),
 		'kingdom_vp_form_title'  => array( __( 'Questionnaire: heading', 'kingdom' ), 'text', __( 'Visitor questionnaire', 'kingdom' ) ),
 		'kingdom_vp_form_text'   => array( __( 'Questionnaire: text', 'kingdom' ), 'textarea', __( 'Fill out your questionnaire here. We will reply to confirm your visit.', 'kingdom' ) ),
 	);
@@ -1244,3 +1251,51 @@ add_filter(
 		return $ask && (bool) get_theme_mod( 'kingdom_vp_ask_service', true );
 	}
 );
+
+/**
+ * Emails typed in Church Admin (comma separated) as a list.
+ *
+ * @param string $mod Theme setting.
+ * @return array
+ */
+function kingdom_setting_emails( $mod ) {
+	return array_values( array_filter( array_map( 'sanitize_email', preg_split( '/[\s,;]+/', (string) get_theme_mod( $mod, '' ) ) ), 'is_email' ) );
+}
+
+/**
+ * Church Admin → Visit page / Contact & social: where the forms are sent.
+ */
+add_filter(
+	'kcs_visit_recipients',
+	function ( $emails ) {
+		$set = kingdom_setting_emails( 'kingdom_vp_form_to' );
+		return $set ? $set : $emails;
+	}
+);
+add_filter(
+	'kcs_contact_recipients',
+	function ( $emails ) {
+		$set = kingdom_setting_emails( 'kingdom_contact_to' );
+		return $set ? $set : $emails;
+	}
+);
+
+/**
+ * The Google map to show: the embed the church pasted, else (when allowed) a map of its address.
+ *
+ * @return string Embed URL or ''.
+ */
+function kingdom_map_src() {
+	$map = trim( (string) get_theme_mod( 'kingdom_map', '' ) );
+	if ( preg_match( '/src\s*=\s*["\']([^"\']+)["\']/i', $map, $m ) ) {
+		$map = html_entity_decode( $m[1] );
+	}
+	if ( 0 === strpos( $map, 'https://' ) ) {
+		return $map;
+	}
+	$address = trim( (string) get_theme_mod( 'kingdom_address', '' ) );
+	if ( $address && get_theme_mod( 'kingdom_contact_map_auto', true ) ) {
+		return 'https://www.google.com/maps?q=' . rawurlencode( preg_replace( '/\s+/', ' ', $address ) ) . '&output=embed';
+	}
+	return '';
+}

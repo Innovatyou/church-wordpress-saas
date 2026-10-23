@@ -52,6 +52,7 @@ final class KCS_Plugin {
 		KCS_Prayer::init();
 		KCS_Church_Admin::init();
 		KCS_Pages::init();
+		KCS_Contact::init();
 		KCS_Push::init();
 		KCS_PWA::init();
 		KCS_SEO::init();

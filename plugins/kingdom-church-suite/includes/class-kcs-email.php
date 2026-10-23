@@ -164,7 +164,7 @@ class KCS_Email {
 	 * @param string|array $to      Recipient(s).
 	 * @param string       $subject Subject.
 	 * @param string       $body    Inner HTML.
-	 * @param array        $args    Extra: unsubscribe_url, preheader.
+	 * @param array        $args    Extra: unsubscribe_url, preheader, reply_to.
 	 * @return bool
 	 */
 	public static function send( $to, $subject, $body, $args = array() ) {
@@ -175,6 +175,9 @@ class KCS_Email {
 			'Content-Type: text/html; charset=UTF-8',
 			sprintf( 'From: %s <%s>', wp_specialchars_decode( $name, ENT_QUOTES ), $from ),
 		);
+		if ( ! empty( $args['reply_to'] ) ) {
+			$headers[] = 'Reply-To: ' . str_replace( array( "\r", "\n" ), '', (string) $args['reply_to'] );
+		}
 		if ( ! empty( $args['unsubscribe_url'] ) ) {
 			$headers[] = 'List-Unsubscribe: <' . esc_url_raw( $args['unsubscribe_url'] ) . '>';
 		}
