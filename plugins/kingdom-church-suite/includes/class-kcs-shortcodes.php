@@ -37,6 +37,7 @@ class KCS_Shortcodes {
 			'kcs_testimony_form'    => 'testimony_form',
 			'kcs_social'            => 'social',
 			'kcs_visit_form'        => 'visit_form',
+			'kcs_visit_questionnaire' => 'visit_questionnaire',
 		);
 		foreach ( $map as $tag => $method ) {
 			add_shortcode( $tag, array( __CLASS__, $method ) );
@@ -447,6 +448,63 @@ class KCS_Shortcodes {
 			<label for="kcs-v-notes"><?php esc_html_e( 'Anything we should know? (optional)', 'kingdom-church-suite' ); ?><textarea id="kcs-v-notes" name="notes" rows="3"></textarea></label>
 			<input type="text" name="website" class="kcs-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
 			<button type="submit" class="kcs-btn"><?php esc_html_e( 'Save my seat', 'kingdom-church-suite' ); ?></button>
+			<div class="kcs-form-msg" aria-live="polite"></div>
+		</form>
+		<?php
+		return ob_get_clean();
+	}
+
+	/**
+	 * Visitor questionnaire (visitors travelling from far away, often from abroad).
+	 *
+	 * @return string
+	 */
+	public static function visit_questionnaire() {
+		$yes_no = array( '' => __( 'Choose…', 'kingdom-church-suite' ), 'yes' => __( 'Yes', 'kingdom-church-suite' ), 'no' => __( 'No', 'kingdom-church-suite' ) );
+		$select = function ( $name, $id, $options ) {
+			$h = '<select id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '">';
+			foreach ( $options as $value => $label ) {
+				$h .= '<option value="' . esc_attr( $value ) . '">' . esc_html( $label ) . '</option>';
+			}
+			return $h . '</select>';
+		};
+		ob_start();
+		?>
+		<form class="kcs-form kcs-questionnaire" data-kcs-questionnaire>
+			<fieldset>
+				<legend><?php esc_html_e( 'About you', 'kingdom-church-suite' ); ?></legend>
+				<div class="kcs-grid-2">
+					<label for="kcs-q-name"><?php esc_html_e( 'Full name (as on your passport)', 'kingdom-church-suite' ); ?><input id="kcs-q-name" name="name" required autocomplete="name"></label>
+					<label for="kcs-q-email"><?php esc_html_e( 'Email', 'kingdom-church-suite' ); ?><input id="kcs-q-email" name="email" type="email" required autocomplete="email"></label>
+					<label for="kcs-q-phone"><?php esc_html_e( 'Phone / WhatsApp (with country code)', 'kingdom-church-suite' ); ?><input id="kcs-q-phone" name="phone" type="tel" required autocomplete="tel" placeholder="+44 …"></label>
+					<label for="kcs-q-gender"><?php esc_html_e( 'Gender', 'kingdom-church-suite' ); ?><?php echo $select( 'gender', 'kcs-q-gender', array( '' => __( 'Choose…', 'kingdom-church-suite' ), 'male' => __( 'Male', 'kingdom-church-suite' ), 'female' => __( 'Female', 'kingdom-church-suite' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></label>
+					<label for="kcs-q-dob"><?php esc_html_e( 'Date of birth', 'kingdom-church-suite' ); ?><input id="kcs-q-dob" name="dob" type="date" max="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>"></label>
+					<label for="kcs-q-nationality"><?php esc_html_e( 'Nationality', 'kingdom-church-suite' ); ?><input id="kcs-q-nationality" name="nationality" autocomplete="off"></label>
+					<label for="kcs-q-country"><?php esc_html_e( 'Country you live in', 'kingdom-church-suite' ); ?><input id="kcs-q-country" name="country" required autocomplete="country-name"></label>
+					<label for="kcs-q-city"><?php esc_html_e( 'City', 'kingdom-church-suite' ); ?><input id="kcs-q-city" name="city" autocomplete="address-level2"></label>
+					<label for="kcs-q-occupation"><?php esc_html_e( 'Occupation', 'kingdom-church-suite' ); ?><input id="kcs-q-occupation" name="occupation"></label>
+					<label for="kcs-q-church"><?php esc_html_e( 'Your church or ministry', 'kingdom-church-suite' ); ?><input id="kcs-q-church" name="church"></label>
+				</div>
+			</fieldset>
+			<fieldset>
+				<legend><?php esc_html_e( 'Your visit', 'kingdom-church-suite' ); ?></legend>
+				<div class="kcs-grid-2">
+					<label for="kcs-q-arrive"><?php esc_html_e( 'Planned arrival date', 'kingdom-church-suite' ); ?><input id="kcs-q-arrive" name="visit_date" type="date" min="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>"></label>
+					<label for="kcs-q-leave"><?php esc_html_e( 'Planned departure date', 'kingdom-church-suite' ); ?><input id="kcs-q-leave" name="departure" type="date" min="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>"></label>
+					<label for="kcs-q-adults"><?php esc_html_e( 'Adults travelling (including you)', 'kingdom-church-suite' ); ?><input id="kcs-q-adults" name="adults" type="number" min="1" max="50" value="1"></label>
+					<label for="kcs-q-kids"><?php esc_html_e( 'Children travelling', 'kingdom-church-suite' ); ?><input id="kcs-q-kids" name="kids" type="number" min="0" max="50" value="0"></label>
+					<label for="kcs-q-visa"><?php esc_html_e( 'Do you need an invitation letter for your visa?', 'kingdom-church-suite' ); ?><?php echo $select( 'visa', 'kcs-q-visa', $yes_no ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></label>
+					<label for="kcs-q-stay"><?php esc_html_e( 'Do you need accommodation?', 'kingdom-church-suite' ); ?><?php echo $select( 'stay', 'kcs-q-stay', $yes_no ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></label>
+					<label for="kcs-q-first"><?php esc_html_e( 'Is this your first visit to us?', 'kingdom-church-suite' ); ?><?php echo $select( 'first_visit', 'kcs-q-first', $yes_no ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></label>
+					<label for="kcs-q-heard"><?php esc_html_e( 'How did you hear about us?', 'kingdom-church-suite' ); ?><input id="kcs-q-heard" name="heard"></label>
+				</div>
+				<label for="kcs-q-purpose"><?php esc_html_e( 'Why would you like to visit?', 'kingdom-church-suite' ); ?><textarea id="kcs-q-purpose" name="purpose" rows="3" required></textarea></label>
+				<label for="kcs-q-prayer"><?php esc_html_e( 'Prayer requests (optional)', 'kingdom-church-suite' ); ?><textarea id="kcs-q-prayer" name="prayer" rows="3"></textarea></label>
+				<label for="kcs-q-health"><?php esc_html_e( 'Health conditions, diet or special needs we should know about (optional)', 'kingdom-church-suite' ); ?><textarea id="kcs-q-health" name="health" rows="2"></textarea></label>
+			</fieldset>
+			<label class="kcs-check"><input type="checkbox" name="agree" value="1" required> <?php esc_html_e( 'I will wait for confirmation of my visit before booking flights or making travel plans, and I will respect the rules of the church premises.', 'kingdom-church-suite' ); ?></label>
+			<input type="text" name="website" class="kcs-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+			<button type="submit" class="kcs-btn"><?php esc_html_e( 'Submit questionnaire', 'kingdom-church-suite' ); ?></button>
 			<div class="kcs-form-msg" aria-live="polite"></div>
 		</form>
 		<?php

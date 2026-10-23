@@ -3,7 +3,7 @@
  * Plugin Name:       Ministry OS Cloud (SaaS)
  * Plugin URI:        https://example.com/kingdom-cloud
  * Description:       Sell Ministry OS websites as a service: church sign-up with free trial, a site per church (yourplatform.com/church or church.yourplatform.com), custom domains, subscription billing (Paystack, Flutterwave, Stripe, bank transfer), plan limits, automatic suspension and a platform dashboard. Sets up WordPress Multisite for you (Tools → Ministry OS Cloud setup).
- * Version:           1.12.1
+ * Version:           1.12.2
  * Update URI:        https://github.com/Innovatyou/church-wordpress-saas
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'KS_VERSION', '1.12.1' );
+define( 'KS_VERSION', '1.12.2' );
 define( 'KS_DB_VERSION', '1.1.0' );
 define( 'KS_FILE', __FILE__ );
 define( 'KS_PATH', plugin_dir_path( __FILE__ ) );
@@ -49,6 +49,7 @@ require_once KS_PATH . 'includes/class-ks-seo.php';
 require_once KS_PATH . 'includes/class-ks-network-admin.php';
 require_once KS_PATH . 'includes/class-ks-network-setup.php';
 require_once KS_PATH . 'includes/class-ks-veltrix.php';
+require_once KS_PATH . 'includes/class-ks-seeds.php';
 
 // Before Veltrix for WordPress loads (network plugins load in name order: kingdom-saas, then veltrix…).
 KS_Veltrix::define_constants();
@@ -72,6 +73,7 @@ add_action(
 		KS_Provisioner::init();
 		KS_Network_Admin::init();
 		KS_Veltrix::init();
+		KS_Seeds::init();
 	},
 	20
 );

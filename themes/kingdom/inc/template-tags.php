@@ -181,6 +181,12 @@ function kingdom_website_settings() {
 	foreach ( $texts as $key => $f ) {
 		$out[ $key ] = array( $f[0], $f[1], 'texts', $f[2] );
 	}
+	foreach ( kingdom_visit_page_settings() as $key => $f ) {
+		$out[ $key ] = array( $f[0], $f[1], 'visitpage', $f[2] );
+	}
+	foreach ( kingdom_charity_settings() as $key => $f ) {
+		$out[ $key ] = array( $f[0], $f[1], 'charity', $f[2] );
+	}
 	// Contact & social.
 	$contact = array(
 		'kingdom_address'           => array( __( 'Address', 'kingdom' ), 'textarea' ),
@@ -199,6 +205,109 @@ function kingdom_website_settings() {
 		$out[ $key ] = array( $f[0], $f[1], 'contact', '' );
 	}
 	return $out;
+}
+
+/**
+ * Visit page texts (key => array( label, type, default )). Sample wording for every church to edit.
+ *
+ * @return array
+ */
+function kingdom_visit_page_settings() {
+	return array(
+		'kingdom_vp_show'        => array( __( 'Show this visitor information on the Visit page', 'kingdom' ), 'checkbox', true ),
+		'kingdom_vp_title'       => array( __( 'Title', 'kingdom' ), 'text', __( 'Visit us', 'kingdom' ) ),
+		'kingdom_vp_intro'       => array( __( 'Introduction', 'kingdom' ), 'longtext', __( "Every year we welcome visitors from near and far who come to worship with us, receive prayer and see what God is doing in our church family.\n\nWhether you live nearby or are travelling from another country, you are welcome. Read the information below, then get in touch so we can prepare for your visit.", 'kingdom' ) ),
+		'kingdom_vp_local_title' => array( __( 'Visitors from within the country: heading', 'kingdom' ), 'text', __( 'Visiting from within the country', 'kingdom' ) ),
+		'kingdom_vp_local_text'  => array( __( 'Visitors from within the country: text', 'kingdom' ), 'longtext', __( 'If you would like to visit, please call us on one of these lines and wait for confirmation before coming.', 'kingdom' ) ),
+		'kingdom_vp_hours'       => array( __( 'Call hours', 'kingdom' ), 'text', __( 'Call us: Mon–Fri 9am–5pm', 'kingdom' ) ),
+		'kingdom_vp_phones'      => array( __( 'Phone numbers for visits (one per line; empty uses the church phone)', 'kingdom' ), 'textarea', '' ),
+		'kingdom_vp_email'       => array( __( 'Email for visits (empty uses the church email)', 'kingdom' ), 'email', '' ),
+		'kingdom_vp_location'    => array( __( 'Where you are (empty uses the church address)', 'kingdom' ), 'textarea', '' ),
+		'kingdom_vp_person'      => array( __( 'Contact person (optional)', 'kingdom' ), 'text', '' ),
+		'kingdom_vp_faq_title'   => array( __( 'Questions: heading', 'kingdom' ), 'text', __( 'Visiting from abroad', 'kingdom' ) ),
+		'kingdom_vp_faq'         => array( __( 'Questions and answers (write each question on its own line ending with ?, and its answer on the lines below)', 'kingdom' ), 'longtext', __( "How do I arrange a visit?\nFill out the questionnaire below with your full details and submit it. Please wait for us to confirm your visit before you book flights or make travel plans.\n\nWill I need a visa?\nIt depends on your country. If you need one, we can send you an invitation letter to present at the embassy with your application.\n\nHow will I get to the church?\nOnce you have confirmed your arrival time with us, a church representative will meet you at the airport.\n\nWhere will I stay?\nTell us in the questionnaire if you need accommodation and we will share the options with you.\n\nHow long do visitors stay?\nMost visitors stay for about a week, attending services and fellowship during their stay.\n\nWhat is the weather like?\nDescribe the climate here and what clothes visitors should bring.", 'kingdom' ) ),
+		'kingdom_vp_form_show'   => array( __( 'Show the visitor questionnaire', 'kingdom' ), 'checkbox', true ),
+		'kingdom_vp_form_title'  => array( __( 'Questionnaire: heading', 'kingdom' ), 'text', __( 'Visitor questionnaire', 'kingdom' ) ),
+		'kingdom_vp_form_text'   => array( __( 'Questionnaire: text', 'kingdom' ), 'textarea', __( 'Fill out your questionnaire here. We will reply to confirm your visit.', 'kingdom' ) ),
+	);
+}
+
+/**
+ * Charity section texts (key => array( label, type, default )).
+ *
+ * @return array
+ */
+function kingdom_charity_settings() {
+	return array(
+		'kingdom_charity_eyebrow'  => array( __( 'Small label', 'kingdom' ), 'text', __( 'Charity', 'kingdom' ) ),
+		'kingdom_charity_title'    => array( __( 'Title', 'kingdom' ), 'text', __( 'Our charity outreach', 'kingdom' ) ),
+		'kingdom_charity_text'     => array( __( 'Text (leave an empty line between paragraphs)', 'kingdom' ), 'longtext', __( "Our charity is the humanitarian arm of our church. We care for widows, orphans, the elderly, people living with disabilities and families in need in our community.\n\nThrough food drives, medical outreaches and scholarships for children from underprivileged homes, we share the love of Jesus in practical ways. Join us to feed the hungry, bring relief to the poor and bless the needy.", 'kingdom' ) ),
+		'kingdom_charity_causes'   => array( __( 'Who you help (one per line)', 'kingdom' ), 'textarea', __( "Widows\nOrphans\nThe elderly\nPeople living with disabilities\nScholarships for children", 'kingdom' ) ),
+		'kingdom_charity_image'    => array( __( 'Picture (optional)', 'kingdom' ), 'image', '' ),
+		'kingdom_charity_btn_text' => array( __( 'Button text', 'kingdom' ), 'text', __( 'Support our charity', 'kingdom' ) ),
+		'kingdom_charity_btn_url'  => array( __( 'Button link (optional; empty opens Give Online)', 'kingdom' ), 'url', '' ),
+	);
+}
+
+/**
+ * Theme setting text with its sample default from the settings lists above.
+ *
+ * @param string $key Setting.
+ * @return string
+ */
+function kingdom_text_setting( $key ) {
+	static $defaults = null;
+	if ( null === $defaults ) {
+		$defaults = array_map(
+			function ( $f ) {
+				return $f[2];
+			},
+			kingdom_visit_page_settings() + kingdom_charity_settings()
+		);
+	}
+	return (string) get_theme_mod( $key, $defaults[ $key ] ?? '' );
+}
+
+/**
+ * Paragraphs from plain text: an empty line starts a new paragraph, single line breaks are kept.
+ *
+ * @param string $text Text.
+ * @return string HTML.
+ */
+function kingdom_paragraphs( $text ) {
+	$out = '';
+	foreach ( preg_split( '/\R\s*\R/', trim( (string) $text ) ) as $block ) {
+		if ( '' !== trim( $block ) ) {
+			$out .= '<p>' . nl2br( esc_html( trim( $block ) ), false ) . '</p>';
+		}
+	}
+	return $out;
+}
+
+/**
+ * Questions and answers from plain text: a line ending with "?" starts a question, the lines
+ * below it are its answer.
+ *
+ * @param string $text Text.
+ * @return array[] Each array( question, answer ).
+ */
+function kingdom_faq_items( $text ) {
+	$items = array();
+	$i     = -1;
+	foreach ( preg_split( '/\R/', (string) $text ) as $line ) {
+		$line = trim( $line );
+		if ( '' !== $line && '?' === substr( $line, -1 ) && strlen( $line ) <= 200 ) {
+			$items[ ++$i ] = array( rtrim( $line, '?' ) . '?', '' );
+		} elseif ( $i >= 0 ) {
+			$items[ $i ][1] .= $line . "\n";
+		}
+	}
+	return array_map(
+		function ( $item ) {
+			return array( $item[0], trim( preg_replace( "/\n{3,}/", "\n\n", $item[1] ) ) );
+		},
+		$items
+	);
 }
 
 /**
@@ -275,6 +384,7 @@ function kingdom_available_sections() {
 		'blog'          => __( 'Latest news', 'kingdom' ),
 		'newsletter'    => __( 'Newsletter sign-up', 'kingdom' ),
 		'visit'         => __( 'Plan your visit', 'kingdom' ),
+		'charity'       => __( 'Charity', 'kingdom' ),
 		'social'        => __( 'Social media connect', 'kingdom' ),
 		'gallery'       => __( 'Church photo gallery', 'kingdom' ),
 		'contact'       => __( 'Contact & map', 'kingdom' ),

@@ -526,6 +526,7 @@ class KCS_Church_Admin {
 							$value = array_key_exists( $raw, (array) ( $f[4] ?? array() ) ) ? $raw : $f[3];
 							break;
 						case 'textarea':
+						case 'longtext':
 							$value = sanitize_textarea_field( $raw );
 							break;
 						case 'image':
@@ -1007,6 +1008,8 @@ class KCS_Church_Admin {
 			'pictures' => array( 'content', __( 'Pictures & logo', 'kingdom-church-suite' ) ),
 			'texts'    => array( 'content', __( 'Homepage text', 'kingdom-church-suite' ) ),
 			'contact'  => array( 'content', __( 'Contact & social', 'kingdom-church-suite' ) ),
+			'visitpage' => array( 'content', __( 'Visit page', 'kingdom-church-suite' ) ),
+			'charity'  => array( 'content', __( 'Charity', 'kingdom-church-suite' ) ),
 		);
 		foreach ( (array) apply_filters( 'kcs_website_settings', array() ) as $key => $f ) {
 			if ( isset( $groups[ $f[2] ] ) && isset( $views[ $groups[ $f[2] ][0] ] ) ) {
@@ -1595,7 +1598,7 @@ class KCS_Church_Admin {
 		echo '<div class="kca-stack">';
 		foreach ( $rows as $v ) {
 			$wa = $v->phone ? '<a class="kcs-btn kcs-btn--ghost" target="_blank" rel="noopener" href="' . esc_url( 'https://wa.me/' . preg_replace( '/\D+/', '', $v->phone ) ) . '">WhatsApp</a>' : '';
-			echo '<article class="kca-card kca-item"><div><strong>' . esc_html( $v->name ) . '</strong> <span class="kcs-muted">' . esc_html( ( $v->visit_date ? mysql2date( 'D, ' . get_option( 'date_format' ), $v->visit_date ) : __( 'Date not set', 'kingdom-church-suite' ) ) . ( $v->service ? ' · ' . $v->service : '' ) ) . '</span><p class="kcs-muted">' . esc_html( sprintf( /* translators: 1: adults, 2: kids */ __( '%1$d adult(s), %2$d child(ren)', 'kingdom-church-suite' ), $v->adults, $v->kids ) . ' · ' . trim( $v->email . ' ' . $v->phone ) ) . '</p>' . ( $v->notes ? '<p>' . esc_html( $v->notes ) . '</p>' : '' ) . '</div><div class="kca-actions">' . $wa . self::status_form( 'visit_status', 'visits', $v->id, KCS_Visits::statuses(), $v->status ) . '</div></article>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo '<article class="kca-card kca-item"><div><strong>' . esc_html( $v->name ) . '</strong> <span class="kcs-muted">' . esc_html( ( $v->visit_date ? mysql2date( 'D, ' . get_option( 'date_format' ), $v->visit_date ) : __( 'Date not set', 'kingdom-church-suite' ) ) . ( $v->service ? ' · ' . $v->service : '' ) ) . '</span><p class="kcs-muted">' . esc_html( sprintf( /* translators: 1: adults, 2: kids */ __( '%1$d adult(s), %2$d child(ren)', 'kingdom-church-suite' ), $v->adults, $v->kids ) . ' · ' . trim( $v->email . ' ' . $v->phone ) ) . '</p>' . ( $v->notes ? '<p>' . nl2br( esc_html( $v->notes ), false ) . '</p>' : '' ) . '</div><div class="kca-actions">' . $wa . self::status_form( 'visit_status', 'visits', $v->id, KCS_Visits::statuses(), $v->status ) . '</div></article>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 		if ( ! $rows ) {
 			echo '<p class="kcs-muted">' . esc_html__( 'No visit requests yet. They come from the “Plan your visit” form.', 'kingdom-church-suite' ) . '</p>';
@@ -1806,6 +1809,8 @@ class KCS_Church_Admin {
 				'pictures' => __( 'Pictures & logo', 'kingdom-church-suite' ),
 				'texts'    => __( 'Homepage text', 'kingdom-church-suite' ),
 				'contact'  => __( 'Contact & social', 'kingdom-church-suite' ),
+				'visitpage' => __( 'Visit page', 'kingdom-church-suite' ),
+				'charity'  => __( 'Charity', 'kingdom-church-suite' ),
 			),
 			'content'
 		);
@@ -1849,6 +1854,11 @@ class KCS_Church_Admin {
 						<p class="kcs-muted"><?php esc_html_e( 'Upload your own photos from your phone or computer. Remove a photo to go back to the built-in illustration. Wide photos work best for the banner.', 'kingdom-church-suite' ); ?></p>
 					<?php elseif ( 'texts' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'The words on your homepage banner and welcome section. Button links are optional: leave them empty to use the usual pages.', 'kingdom-church-suite' ); ?></p>
+					<?php elseif ( 'visitpage' === $group ) : ?>
+						<p class="kcs-muted"><?php esc_html_e( 'The information visitors read on your Visit page, the questions and answers for visitors from abroad, and the visitor questionnaire. Answers to the questionnaire arrive in First-time visitors and by email. The sample text is there to be replaced with your own.', 'kingdom-church-suite' ); ?></p>
+						<?php if ( kcs_get_option( 'page_visit' ) ) : ?><p><a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( kcs_page_url( 'visit' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View the Visit page', 'kingdom-church-suite' ); ?></a></p><?php endif; ?>
+					<?php elseif ( 'charity' === $group ) : ?>
+						<p class="kcs-muted"><?php esc_html_e( 'Your church’s humanitarian outreach. It shows on the About page and the Charity page. Untick “Charity” in Design & live stream → Show or hide sections to hide it everywhere.', 'kingdom-church-suite' ); ?></p>
 					<?php elseif ( 'contact' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'Shown in the menu, the footer and the contact section. Leave a social link empty to hide its icon.', 'kingdom-church-suite' ); ?></p>
 					<?php elseif ( 'footer' === $group ) : ?>
@@ -1870,8 +1880,8 @@ class KCS_Church_Admin {
 							<label class="kcs-check kca-switch"><input type="checkbox" name="<?php echo esc_attr( $key ); ?>" value="1" <?php checked( (bool) $value ); ?>> <?php echo esc_html( $f[0] ); ?></label>
 						<?php elseif ( 'color' === $f[1] ) : ?>
 							<label class="kca-colour"><input type="color" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>"> <span><?php echo esc_html( $f[0] ); ?> <code><?php echo esc_html( $value ); ?></code></span></label>
-						<?php elseif ( 'textarea' === $f[1] ) : ?>
-							<label><?php echo esc_html( $f[0] ); ?><textarea name="<?php echo esc_attr( $key ); ?>" rows="3"><?php echo esc_textarea( $value ); ?></textarea></label>
+						<?php elseif ( in_array( $f[1], array( 'textarea', 'longtext' ), true ) ) : ?>
+							<label><?php echo esc_html( $f[0] ); ?><textarea name="<?php echo esc_attr( $key ); ?>" rows="<?php echo 'longtext' === $f[1] ? 12 : 3; ?>"><?php echo esc_textarea( $value ); ?></textarea></label>
 						<?php elseif ( in_array( $f[1], array( 'image', 'image_id' ), true ) ) : ?>
 							<?php $preview = 'image_id' === $f[1] ? ( $value ? (string) wp_get_attachment_image_url( (int) $value, 'medium' ) : '' ) : (string) $value; ?>
 							<div class="kca-image" data-kcs-media-field>

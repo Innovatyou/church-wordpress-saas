@@ -999,3 +999,26 @@ html.k-drawer-open, html.k-drawer-open body { overflow: hidden; }
 	.k-drawer__more, .k-drawer__btn, .k-drawer__social a { border-color: rgba(255, 255, 255, .5); }
 	.k-3d .k-floating-card, .k-3d .k-palette__panel, .k-visit__photo figcaption { background: var(--k-surface); }
 }
+
+/* Visit page: visitor information, questions & questionnaire */
+.k-visit-info .k-section__text p { margin: 0 0 .8rem; }
+.k-visit-info__grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(1.25rem, 4vw, 2.5rem); align-items: start; }
+.k-visit-info__card { padding: clamp(1.25rem, 3vw, 2rem); border-radius: calc(var(--k-radius) * 1.4); border: 1px solid var(--k-border); background: var(--k-surface); box-shadow: var(--k-shadow); }
+.k-visit-info__card h3, .k-visit-info__faq h3 { margin: 0 0 .75rem; }
+.k-visit-info__card p { color: var(--k-muted); }
+.k-visit-info__list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .7rem; }
+.k-visit-info__list li { display: flex; gap: .6rem; align-items: flex-start; overflow-wrap: anywhere; }
+.k-visit-info__list .k-icon { flex: 0 0 20px; width: 20px; height: 20px; margin-top: .15rem; color: var(--k-primary); }
+.k-visit-info__list a { font-weight: 600; }
+.k-visit-info__faq .k-faq p + p { margin-top: .6rem; }
+.k-visit-info__faq > p { margin-top: 1.25rem; }
+.k-visit-info__form { max-width: 820px; margin: clamp(2.5rem, 6vw, 4rem) auto 0; scroll-margin-top: calc(var(--k-header-h, 72px) + 1rem); }
+@media (max-width: 860px) { .k-visit-info__grid { grid-template-columns: 1fr; } }
+
+/* Charity */
+.k-charity__media { margin: 0; border-radius: calc(var(--k-radius) * 1.4); overflow: hidden; box-shadow: var(--k-shadow-lg); }
+.k-charity__media img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.k-charity__causes { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.25rem 0 1.5rem; padding: 0; }
+.k-charity__causes li { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .85rem; border-radius: 999px; background: color-mix(in srgb, var(--k-primary) 10%, transparent); color: var(--k-text); font-size: .92rem; font-weight: 600; }
+.k-charity__causes .k-icon { width: 16px; height: 16px; color: var(--k-primary); }
+@media (max-width: 860px) { .k-charity .k-split { grid-template-columns: 1fr; } }

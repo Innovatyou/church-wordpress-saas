@@ -302,3 +302,6 @@
 .kcs-phone-needed { font-weight: 600; }
 .kcs-phone-needed input { border-color: var(--kcs-primary, #5b2a86); }
 .kcs-phone-needed .kcs-optional { display: none; }
+.kcs-questionnaire { display: grid; gap: 1.5rem; }
+.kcs-questionnaire legend { font-size: 1.05rem; }
+.kcs-questionnaire .kcs-check { align-items: flex-start; }

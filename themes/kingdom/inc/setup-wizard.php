@@ -19,6 +19,7 @@ function kingdom_starter_pages() {
 		'leadership'  => array( __( 'Leadership', 'kingdom' ), 'template-leadership.php', '<p>Meet the pastors and leaders who serve our church family.</p>', '' ),
 		'beliefs'     => array( __( 'What We Believe', 'kingdom' ), 'template-beliefs.php', "<h3>The Bible</h3><p>We believe the Bible is the inspired, infallible Word of God.</p><h3>God</h3><p>We believe in one God, eternally existing in three persons: Father, Son and Holy Spirit.</p><h3>Jesus Christ</h3><p>We believe in the deity of Jesus, His virgin birth, sinless life, atoning death, bodily resurrection and soon return.</p><h3>Salvation</h3><p>We believe salvation is by grace through faith in Jesus Christ alone.</p><h3>The Holy Spirit</h3><p>We believe in the present ministry of the Holy Spirit who empowers believers for godly living and service.</p><h3>The Church</h3><p>We believe the Church is the body of Christ, called to worship, fellowship, discipleship and mission.</p>", '' ),
 		'ministries'  => array( __( 'Ministries', 'kingdom' ), 'template-ministries.php', '', '' ),
+		'charity'     => array( __( 'Charity', 'kingdom' ), 'template-charity.php', '', '' ),
 		'sermons'     => array( __( 'Sermons', 'kingdom' ), 'template-sermons.php', '', '' ),
 		'events'      => array( __( 'Events', 'kingdom' ), 'template-events.php', '', '' ),
 		'watch'       => array( __( 'Watch Live', 'kingdom' ), 'template-watch-live.php', '', 'watch_live' ),
@@ -165,7 +166,7 @@ function kingdom_build_starter_site( $home_tpl = 'template-home-classic.php' ) {
 	}
 
 	// Menus.
-	$primary = array( 'home', 'about' => array( 'leadership', 'beliefs', 'testimonies' ), 'ministries', 'sermons', 'events', 'watch', 'partnership', 'contact' );
+	$primary = array( 'home', 'about' => array( 'leadership', 'beliefs', 'charity', 'testimonies' ), 'ministries', 'sermons', 'events', 'watch', 'partnership', 'contact' );
 	$menus   = array(
 		'primary' => array( __( 'Main Menu', 'kingdom' ), $primary ),
 		'footer'  => array( __( 'Footer Menu', 'kingdom' ), array( 'new', 'visit', 'prayer', 'give', 'tithe', 'portal', 'blog' ) ),

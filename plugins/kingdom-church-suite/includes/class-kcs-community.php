@@ -321,6 +321,100 @@ class KCS_Visits {
 		KCS_Email::webhook( 'visit.created', array( 'id' => $id, 'name' => $name, 'visit_date' => $date ) );
 		return $id;
 	}
+
+	/**
+	 * Questionnaire questions: field => label (the answers are kept in the visit's notes).
+	 *
+	 * @return array
+	 */
+	public static function questionnaire_fields() {
+		return array(
+			'gender'      => __( 'Gender', 'kingdom-church-suite' ),
+			'dob'         => __( 'Date of birth', 'kingdom-church-suite' ),
+			'nationality' => __( 'Nationality', 'kingdom-church-suite' ),
+			'country'     => __( 'Country', 'kingdom-church-suite' ),
+			'city'        => __( 'City', 'kingdom-church-suite' ),
+			'occupation'  => __( 'Occupation', 'kingdom-church-suite' ),
+			'church'      => __( 'Church or ministry', 'kingdom-church-suite' ),
+			'departure'   => __( 'Departure date', 'kingdom-church-suite' ),
+			'visa'        => __( 'Needs a visa invitation letter', 'kingdom-church-suite' ),
+			'stay'        => __( 'Needs accommodation', 'kingdom-church-suite' ),
+			'first_visit' => __( 'First visit', 'kingdom-church-suite' ),
+			'heard'       => __( 'Heard about us through', 'kingdom-church-suite' ),
+			'purpose'     => __( 'Reason for visiting', 'kingdom-church-suite' ),
+			'prayer'      => __( 'Prayer requests', 'kingdom-church-suite' ),
+			'health'      => __( 'Health, diet or special needs', 'kingdom-church-suite' ),
+		);
+	}
+
+	/**
+	 * Save a visitor questionnaire as a visit (status New) and email the church and the visitor.
+	 *
+	 * @param array $data Answers.
+	 * @return int|WP_Error
+	 */
+	public static function create_questionnaire( $data ) {
+		global $wpdb;
+		$name  = sanitize_text_field( $data['name'] ?? '' );
+		$email = sanitize_email( $data['email'] ?? '' );
+		$phone = sanitize_text_field( $data['phone'] ?? '' );
+		if ( ! $name || ! is_email( $email ) || ! $phone ) {
+			return new WP_Error( 'kcs_visit', __( 'Please enter your full name, email and phone number.', 'kingdom-church-suite' ), array( 'status' => 400 ) );
+		}
+		if ( empty( $data['agree'] ) ) {
+			return new WP_Error( 'kcs_visit', __( 'Please tick the box to confirm you will wait for our confirmation.', 'kingdom-church-suite' ), array( 'status' => 400 ) );
+		}
+		$answers = array();
+		$labels  = array( 'yes' => __( 'Yes', 'kingdom-church-suite' ), 'no' => __( 'No', 'kingdom-church-suite' ), 'male' => __( 'Male', 'kingdom-church-suite' ), 'female' => __( 'Female', 'kingdom-church-suite' ) );
+		foreach ( self::questionnaire_fields() as $key => $label ) {
+			$value = trim( sanitize_textarea_field( (string) ( $data[ $key ] ?? '' ) ) );
+			if ( '' !== $value ) {
+				$answers[ $label ] = $labels[ $value ] ?? mb_substr( $value, 0, 2000 );
+			}
+		}
+		$notes = '';
+		foreach ( $answers as $label => $value ) {
+			$notes .= $label . ': ' . $value . "\n";
+		}
+		$date = preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) ( $data['visit_date'] ?? '' ) ) ? $data['visit_date'] : null;
+		$wpdb->insert(
+			kcs_table( 'visits' ),
+			array(
+				'name'       => $name,
+				'email'      => $email,
+				'phone'      => $phone,
+				'visit_date' => $date,
+				'service'    => __( 'Visitor questionnaire', 'kingdom-church-suite' ),
+				'adults'     => max( 1, min( 50, (int) ( $data['adults'] ?? 1 ) ) ),
+				'kids'       => max( 0, min( 50, (int) ( $data['kids'] ?? 0 ) ) ),
+				'notes'      => trim( $notes ),
+				'status'     => 'new',
+				'created_at' => current_time( 'mysql' ),
+			)
+		);
+		$id     = (int) $wpdb->insert_id;
+		$church = kcs_get_option( 'church_name', get_bloginfo( 'name' ) );
+		$when   = $date ? date_i18n( get_option( 'date_format' ), strtotime( $date ) ) : __( 'Not given', 'kingdom-church-suite' );
+		$rows   = '<tr><th align="left">' . esc_html__( 'Arrival date', 'kingdom-church-suite' ) . '</th><td>' . esc_html( $when ) . '</td></tr>';
+		foreach ( $answers as $label => $value ) {
+			$rows .= '<tr><th align="left" valign="top">' . esc_html( $label ) . '</th><td>' . nl2br( esc_html( $value ) ) . '</td></tr>';
+		}
+		KCS_Email::send(
+			$email,
+			/* translators: %s: church */
+			sprintf( __( 'We received your visitor questionnaire — %s', 'kingdom-church-suite' ), $church ),
+			'<p>' . esc_html( sprintf( /* translators: %s: name */ __( 'Hi %s, thank you for your interest in visiting us. We have received your questionnaire and will reply to confirm your visit.', 'kingdom-church-suite' ), $name ) ) . '</p><p><strong>' . esc_html__( 'Please wait for our confirmation before booking flights or making travel arrangements.', 'kingdom-church-suite' ) . '</strong></p>'
+		);
+		KCS_Email::send(
+			KCS_Email::admin_recipients(),
+			/* translators: 1: name, 2: country */
+			sprintf( __( 'Visitor questionnaire: %1$s (%2$s)', 'kingdom-church-suite' ), $name, sanitize_text_field( $data['country'] ?? '' ) ),
+			'<p>' . esc_html( $name ) . ' · ' . esc_html( $email ) . ' · ' . esc_html( $phone ) . '</p><table cellpadding="6">' . $rows . '</table><p><a class="btn" href="' . esc_url( add_query_arg( 'view', 'visits', kcs_page_url( 'church_admin' ) ) ) . '">' . esc_html__( 'Open visits', 'kingdom-church-suite' ) . '</a></p>'
+		);
+		do_action( 'kcs_visit_created', $id );
+		KCS_Email::webhook( 'visit.created', array( 'id' => $id, 'name' => $name, 'visit_date' => $date, 'questionnaire' => true ) );
+		return $id;
+	}
 }
 
 /**
