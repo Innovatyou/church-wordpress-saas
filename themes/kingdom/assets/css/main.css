@@ -188,7 +188,7 @@ p { margin: 0 0 1.1em; }
 /* Hero ------------------------------------------------------------------- */
 .k-hero { position: relative; overflow: hidden; }
 .k-hero--cover { min-height: min(100vh, 900px); display: flex; align-items: center; color: #fff; background-color: var(--k-dark); background-image: var(--k-img, linear-gradient(135deg, var(--k-primary), var(--k-dark))); background-size: cover; background-position: center; padding-block: calc(var(--k-header-h) + 4rem) 5rem; }
-.k-hero__video { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+.k-hero__video { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .k-hero__overlay { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: linear-gradient(180deg, rgba(10,8,14,.75), rgba(10,8,14,.55) 40%, rgba(10,8,14,.85)); }
 .k-hero__inner { position: relative; z-index: 2; }
 .k-hero__content { max-width: 760px; }

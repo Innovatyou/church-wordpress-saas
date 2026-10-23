@@ -18,6 +18,19 @@ class KS_Limits {
 	public static function init() {
 		add_filter( 'kcs_can_create_partner', array( __CLASS__, 'partner_limit' ), 10, 2 );
 		add_filter( 'kingdom_footer_credit', array( __CLASS__, 'credit' ) );
+		add_filter( 'site_option_fileupload_maxk', array( __CLASS__, 'upload_max' ) );
+	}
+
+	/**
+	 * WordPress multisite allows only 1.5 MB uploads by default, too small for a banner video.
+	 * While the network still has that default, allow 64 MB (the server's PHP limit still applies).
+	 * Any other value set in Network Admin → Settings → Max upload file size is kept.
+	 *
+	 * @param mixed $kb Max upload in KB.
+	 * @return mixed
+	 */
+	public static function upload_max( $kb ) {
+		return ( false === $kb || 1500 === (int) $kb ) ? 65536 : $kb;
 	}
 
 	/**

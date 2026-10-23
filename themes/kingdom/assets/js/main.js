@@ -351,6 +351,26 @@
 		document.addEventListener('visibilitychange', function () { if (!document.hidden) { poll(); } });
 	});
 
+	/* Uploaded banner video: always playing, always muted (picks the phone version on small screens). */
+	document.querySelectorAll('[data-k-bgvideo]').forEach(function (video) {
+		video.muted = true;
+		// Phone version: not every browser honours media="" on <source>, so pick it here too.
+		var small = video.querySelector('source[media]');
+		if (small && window.matchMedia) {
+			var want = window.matchMedia(small.getAttribute('media')).matches ? small.src : video.querySelector('source:not([media])').src;
+			if (video.currentSrc !== want) { video.src = want; }
+		}
+		function play() {
+			if (video.paused) { var p = video.play(); if (p && p.catch) { p.catch(function () {}); } }
+		}
+		play();
+		// Browsers may pause it in a background tab or on low power; start it again.
+		video.addEventListener('pause', function () { setTimeout(play, 300); });
+		document.addEventListener('visibilitychange', function () { if (!document.hidden) { play(); } });
+		// Phones that block autoplay start it on the first touch.
+		document.addEventListener('touchstart', play, { once: true, passive: true });
+	});
+
 	/* Filter selects navigate to the chosen archive */
 	document.querySelectorAll('[data-filter-select]').forEach(function (sel) {
 		sel.addEventListener('change', function () { if (sel.value) { window.location.href = sel.value; } });

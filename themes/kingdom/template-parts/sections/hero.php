@@ -23,6 +23,10 @@ if ( ! $kingdom_image ) {
 }
 $kingdom_video   = get_theme_mod( 'kingdom_hero_video' );
 $kingdom_bg      = kingdom_video_source( get_theme_mod( 'kingdom_hero_bg_video' ) );
+if ( $kingdom_bg && 'file' === $kingdom_bg['type'] ) {
+	$kingdom_small = kingdom_video_source( get_theme_mod( 'kingdom_hero_bg_video_small' ) );
+	$kingdom_bg['small'] = $kingdom_small && 'file' === $kingdom_small['type'] ? $kingdom_small['src'] : '';
+}
 if ( ! $kingdom_bg && 'video' === $kingdom_variant && $kingdom_video ) {
 	$kingdom_bg = kingdom_video_source( $kingdom_video );
 }

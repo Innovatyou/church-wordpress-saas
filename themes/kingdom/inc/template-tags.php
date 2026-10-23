@@ -87,7 +87,25 @@ function kingdom_background_video( $src, $poster = '' ) {
 	if ( 'vimeo' === $src['type'] ) {
 		return '<iframe class="k-hero__bgvideo" src="' . esc_url( 'https://player.vimeo.com/video/' . rawurlencode( $src['id'] ) . '?background=1&autoplay=1&loop=1&muted=1&dnt=1' ) . '" title="' . $title . '" allow="autoplay; fullscreen" tabindex="-1" aria-hidden="true"></iframe>';
 	}
-	return '<video class="k-hero__video" autoplay muted loop playsinline preload="metadata"' . ( $poster ? ' poster="' . esc_url( $poster ) . '"' : '' ) . ' aria-hidden="true"><source src="' . esc_url( $src['src'] ) . '"></video>';
+	// A phone video (optional) comes first with a media query so phones never download the big one.
+	$sources = '';
+	if ( ! empty( $src['small'] ) ) {
+		$sources .= '<source src="' . esc_url( $src['small'] ) . '" media="(max-width: 767px)"' . kingdom_video_type( $src['small'] ) . '>';
+	}
+	$sources .= '<source src="' . esc_url( $src['src'] ) . '"' . kingdom_video_type( $src['src'] ) . '>';
+	return '<video class="k-hero__video" autoplay muted loop playsinline preload="metadata" disablepictureinpicture disableremoteplayback' . ( $poster ? ' poster="' . esc_url( $poster ) . '"' : '' ) . ' aria-hidden="true" data-k-bgvideo>' . $sources . '</video>';
+}
+
+/**
+ * type="" attribute for a video file the browser can check before downloading it.
+ *
+ * @param string $url Video file URL.
+ * @return string
+ */
+function kingdom_video_type( $url ) {
+	$ext   = strtolower( pathinfo( (string) wp_parse_url( $url, PHP_URL_PATH ), PATHINFO_EXTENSION ) );
+	$types = array( 'mp4' => 'video/mp4', 'm4v' => 'video/mp4', 'webm' => 'video/webm', 'ogv' => 'video/ogg' );
+	return isset( $types[ $ext ] ) ? ' type="' . $types[ $ext ] . '"' : '';
 }
 
 /**
@@ -99,7 +117,8 @@ function kingdom_background_video( $src, $poster = '' ) {
  */
 function kingdom_website_settings() {
 	$out = array(
-		'kingdom_hero_bg_video'     => array( __( 'Banner video (YouTube, Vimeo or MP4 link)', 'kingdom' ), 'url', 'banner', '' ),
+		'kingdom_hero_bg_video'     => array( __( 'Banner video (upload one, or paste a YouTube, Vimeo or MP4 link)', 'kingdom' ), 'video', 'banner', '' ),
+		'kingdom_hero_bg_video_small' => array( __( 'Phone version of the uploaded video (optional: a smaller or upright video for phones)', 'kingdom' ), 'video', 'banner', '' ),
 		'kingdom_hero_hide_text'    => array( __( 'Hide all banner text and buttons (show only the video/image)', 'kingdom' ), 'checkbox', 'banner', false ),
 		'kingdom_hero_sound_button' => array( __( 'Show a "Watch with sound" button on YouTube banners', 'kingdom' ), 'checkbox', 'banner', true ),
 		'kingdom_hero_height'       => array( __( 'Banner height', 'kingdom' ), 'select', 'banner', 'full', array( 'full' => __( 'Full screen', 'kingdom' ), 'tall' => __( 'Tall (80%)', 'kingdom' ), 'medium' => __( 'Medium (60%)', 'kingdom' ), 'video' => __( 'Fit the video (16:9)', 'kingdom' ) ) ),

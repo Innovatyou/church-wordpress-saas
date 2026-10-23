@@ -198,6 +198,9 @@ class KCS_Church_Admin {
 					'remove' => __( 'Remove', 'kingdom-church-suite' ),
 					'title'  => __( 'Choose a picture', 'kingdom-church-suite' ),
 					'use'    => __( 'Use this picture', 'kingdom-church-suite' ),
+					'chooseVideo' => __( 'Upload or choose video', 'kingdom-church-suite' ),
+					'titleVideo'  => __( 'Choose a video', 'kingdom-church-suite' ),
+					'useVideo'    => __( 'Use this video', 'kingdom-church-suite' ),
 				)
 			);
 		}
@@ -510,6 +513,7 @@ class KCS_Church_Admin {
 							$value = ! empty( $raw );
 							break;
 						case 'url':
+						case 'video':
 							$value = esc_url_raw( $raw );
 							break;
 						case 'number':
@@ -1833,7 +1837,7 @@ class KCS_Church_Admin {
 				<section class="kca-card kcs-form" id="group-<?php echo esc_attr( $group ); ?>">
 					<h3><?php echo esc_html( $title ); ?></h3>
 					<?php if ( 'banner' === $group ) : ?>
-						<p class="kcs-muted"><?php esc_html_e( 'Paste a YouTube, Vimeo or MP4 link to play it, muted and looping, behind the homepage banner. Leave it empty to use the banner image.', 'kingdom-church-suite' ); ?></p>
+						<p class="kcs-muted"><?php esc_html_e( 'Upload a video from your phone or computer, or paste a YouTube, Vimeo or MP4 link. It plays muted and looping behind the homepage banner and fills the banner on every screen size. Leave it empty to use the banner image.', 'kingdom-church-suite' ); ?></p>
 					<?php elseif ( 'brand' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'Pick a ready-made palette, or choose Custom and set your own church colours. Button text switches between white and dark automatically so it stays readable.', 'kingdom-church-suite' ); ?></p>
 					<?php elseif ( 'media' === $group ) : ?>
@@ -1877,6 +1881,17 @@ class KCS_Church_Admin {
 									<input type="hidden" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ? $value : '' ); ?>" data-kcs-media="<?php echo 'image_id' === $f[1] ? 'id' : 'url'; ?>">
 								<?php elseif ( 'image' === $f[1] ) : ?>
 									<input type="url" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>" placeholder="https://…/photo.jpg">
+								<?php endif; ?>
+							</div>
+						<?php elseif ( 'video' === $f[1] ) : ?>
+							<?php $is_file = (bool) preg_match( '~\.(mp4|m4v|webm|ogv|mov)(\?.*)?$~i', (string) $value ); ?>
+							<div class="kca-image kca-video" data-kcs-media-field>
+								<label class="kca-image__label" for="kca-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $f[0] ); ?></label>
+								<video class="kca-image__preview" src="<?php echo esc_url( $is_file ? $value : '' ); ?>" muted loop playsinline preload="metadata"<?php echo $is_file ? '' : ' hidden'; ?>></video>
+								<input type="url" id="kca-<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>" placeholder="<?php echo false !== strpos( $key, 'small' ) ? 'https://…/banner-phone.mp4' : 'https://youtu.be/…'; ?>"<?php echo $can_upload ? ' data-kcs-media="video"' : ''; ?>>
+								<?php if ( $can_upload ) : ?>
+									<?php /* translators: %s: largest file size, e.g. 50 MB */ ?>
+									<small class="kcs-muted"><?php printf( esc_html__( 'Best: MP4, 15–30 seconds, 720p or 1080p, no sound needed. Largest upload allowed: %s.', 'kingdom-church-suite' ), esc_html( size_format( wp_max_upload_size() ) ) ); ?></small>
 								<?php endif; ?>
 							</div>
 						<?php elseif ( 'email' === $f[1] ) : ?>

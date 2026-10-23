@@ -3,12 +3,14 @@
 	'use strict';
 	var t = window.kcsChurchAdmin || {};
 
-	function pick(onSelect) {
+	function pick(onSelect, video) {
 		if (!window.wp || !wp.media) { return; }
-		var frame = wp.media({ title: t.title || 'Choose a picture', button: { text: t.use || 'Use this picture' }, library: { type: 'image' }, multiple: false });
+		var frame = video
+			? wp.media({ title: t.titleVideo || 'Choose a video', button: { text: t.useVideo || 'Use this video' }, library: { type: 'video' }, multiple: false })
+			: wp.media({ title: t.title || 'Choose a picture', button: { text: t.use || 'Use this picture' }, library: { type: 'image' }, multiple: false });
 		frame.on('select', function () {
 			var a = frame.state().get('selection').first().toJSON();
-			var url = (a.sizes && a.sizes.large ? a.sizes.large.url : a.url);
+			var url = (!video && a.sizes && a.sizes.large ? a.sizes.large.url : a.url);
 			onSelect(a, url);
 		});
 		frame.open();
@@ -31,18 +33,25 @@
 		if (field) { btns.appendChild(remove); }
 		var preview = field ? field.querySelector('.kca-image__preview') : null;
 
+		var video = mode === 'video';
 		function sync() {
 			var has = !!input.value && input.value !== '0';
-			choose.textContent = has && field ? (t.change || 'Change') : (t.choose || 'Choose picture');
+			choose.textContent = video ? (t.chooseVideo || 'Upload or choose video') : (has && field ? (t.change || 'Change') : (t.choose || 'Choose picture'));
 			remove.hidden = !has;
-			if (preview) { preview.hidden = !has; }
+			if (preview) {
+				// Video preview only for uploaded files, not YouTube/Vimeo links.
+				var show = has && (!video || /\.(mp4|m4v|webm|ogv|mov)(\?.*)?$/i.test(input.value));
+				if (video && show && preview.getAttribute('src') !== input.value) { preview.src = input.value; }
+				preview.hidden = !show;
+			}
 		}
+		if (video) { input.addEventListener('change', sync); }
 		choose.addEventListener('click', function () {
 			pick(function (a, url) {
 				input.value = mode === 'id' ? a.id : url;
 				if (preview) { preview.src = url; }
 				sync();
-			});
+			}, video);
 		});
 		remove.addEventListener('click', function () {
 			input.value = '';
