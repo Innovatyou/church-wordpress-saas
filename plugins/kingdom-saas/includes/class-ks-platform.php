@@ -200,6 +200,7 @@ class KS_Platform {
 			array( __( 'Paystack keys', 'kingdom-saas' ), $set . ' → ' . __( 'Payments', 'kingdom-saas' ), $u( 'settings', 'set-payments' ), 'paystack secret key gateway' ),
 			array( __( 'Flutterwave keys', 'kingdom-saas' ), $set . ' → ' . __( 'Payments', 'kingdom-saas' ), $u( 'settings', 'set-payments' ), 'flutterwave public secret hash webhook' ),
 			array( __( 'Stripe keys', 'kingdom-saas' ), $set . ' → ' . __( 'Payments', 'kingdom-saas' ), $u( 'settings', 'set-payments' ), 'stripe secret webhook card dollars' ),
+			array( __( 'Veltrix (email, SMS & WhatsApp for churches)', 'kingdom-saas' ), $set, $u( 'settings', 'set-veltrix' ), 'veltrix sms whatsapp marketing referral' ),
 			array( __( 'Bot protection (Cloudflare Turnstile)', 'kingdom-saas' ), $set . ' → ' . __( 'Payments', 'kingdom-saas' ), $u( 'settings', 'set-payments' ), 'captcha spam turnstile signup' ),
 			array( __( 'Test mode', 'kingdom-saas' ), $set . ' → ' . __( 'Payments', 'kingdom-saas' ), $u( 'settings', 'set-payments' ), 'test simulated payment sandbox' ),
 			array( __( 'Bank accounts for bank transfer', 'kingdom-saas' ), $set . ' → ' . __( 'Bank transfer', 'kingdom-saas' ), $u( 'settings', 'set-bank' ), 'bank account number transfer offline' ),

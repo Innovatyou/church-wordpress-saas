@@ -409,6 +409,19 @@ $badges = array( 'invoices' => KS_Bank::count_waiting() );
 						<label class="ks-span-2"><?php esc_html_e( 'Send from (an address of this mailbox, e.g. no-reply@yourplatform.com)', 'kingdom-saas' ); ?><input type="email" name="smtp_from" value="<?php echo esc_attr( ks_get( 'smtp_from' ) ); ?>" placeholder="<?php echo esc_attr( ks_get( 'smtp_user' ) ? ks_get( 'smtp_user' ) : 'no-reply@' . ks_get( 'base_domain' ) ); ?>"></label>
 					</div>
 				</fieldset>
+				<fieldset class="ks-card ks-form ks-span-2" id="set-veltrix">
+					<legend><?php esc_html_e( 'Veltrix (email, SMS & WhatsApp for churches)', 'kingdom-saas' ); ?></legend>
+					<p class="ks-small"><?php esc_html_e( 'Network-activate the “Veltrix for WordPress” plugin and each church gets “Email & SMS (Veltrix)” in Church Admin, where it connects its own Veltrix account. Never enter an API key here: every church uses its own account, so sending, contacts and billing stay separate. Church sites must use https.', 'kingdom-saas' ); ?></p>
+					<div class="ks-grid ks-grid--2">
+						<label><?php esc_html_e( 'Your Veltrix customer ID (credits church sign-ups to you, optional)', 'kingdom-saas' ); ?><input name="veltrix_referral" value="<?php echo esc_attr( ks_get( 'veltrix_referral' ) ); ?>" autocomplete="off"<?php echo defined( 'VELTRIX_REFERRAL' ) && ! ks_get( 'veltrix_referral' ) ? ' placeholder="' . esc_attr__( 'Set in wp-config.php', 'kingdom-saas' ) . '"' : ''; ?>></label>
+						<p class="ks-small">
+							<?php
+							/* translators: 1: platform name shown on Veltrix, 2: active or not */
+							printf( esc_html__( 'Shown on the Veltrix approval screen as “on %1$s”. Plugin: %2$s.', 'kingdom-saas' ), esc_html( defined( 'VELTRIX_PLATFORM_NAME' ) ? VELTRIX_PLATFORM_NAME : ks_get( 'platform_name' ) ), KS_Veltrix::active() ? esc_html__( 'network-activated', 'kingdom-saas' ) : esc_html__( 'not active yet', 'kingdom-saas' ) );
+							?>
+						</p>
+					</div>
+				</fieldset>
 				<fieldset class="ks-card ks-form ks-span-2" id="set-seo">
 					<legend><?php esc_html_e( 'Search & sharing (SEO)', 'kingdom-saas' ); ?></legend>
 					<p class="ks-small"><?php esc_html_e( 'How your landing page appears on Google, WhatsApp and social media. Leave empty to use the built-in Nigeria-focused wording.', 'kingdom-saas' ); ?></p>

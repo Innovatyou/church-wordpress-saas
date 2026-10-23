@@ -57,6 +57,7 @@ function ks_default_settings() {
 		'smtp_user'       => '',
 		'smtp_pass'       => '',
 		'smtp_from'       => '',
+		'veltrix_referral' => '',
 		'seo_title'       => '',
 		'seo_description' => '',
 		'seo_image'       => '',
