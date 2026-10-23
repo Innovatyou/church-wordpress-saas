@@ -103,7 +103,7 @@ if ( ! $gateways ) {
 			<label><?php esc_html_e( 'Full name', 'kingdom-church-suite' ); ?><input type="text" name="name" required value="<?php echo esc_attr( $name ); ?>" autocomplete="name"></label>
 			<label><?php esc_html_e( 'Email', 'kingdom-church-suite' ); ?><input type="email" name="email" required value="<?php echo esc_attr( $email ); ?>" autocomplete="email"></label>
 		</div>
-		<label><?php esc_html_e( 'Phone (optional)', 'kingdom-church-suite' ); ?><input type="tel" name="phone" autocomplete="tel"></label>
+		<label><?php esc_html_e( 'Phone', 'kingdom-church-suite' ); ?> <span class="kcs-optional"><?php esc_html_e( '(optional)', 'kingdom-church-suite' ); ?></span><input type="tel" name="phone" autocomplete="tel"></label>
 	<?php endif; ?>
 
 	<fieldset class="kcs-gateways">

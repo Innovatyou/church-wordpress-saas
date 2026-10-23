@@ -33,3 +33,7 @@ $ok( 'pending' === $q->status, 'not found at GlobalPay → stays pending' );
 $GLOBALS['gp_reply'] = null;
 $p = $mk( 100 ); $p->phone = ''; $r = KCS_Payments::gateway( 'globalpay' )->initialize( $p );
 $ok( is_wp_error( $r ) && false !== strpos( $r->get_error_message(), 'phone' ), 'no phone → clear message: ' . ( is_wp_error( $r ) ? $r->get_error_message() : '' ) );
+$ok( array( 'Seyi', 'Seyi' ) === KCS_Gateway_GlobalPay::names( 'Seyi' ), 'one name → used as first and last name' );
+$ok( array( 'Seyi', 'Ade' ) === KCS_Gateway_GlobalPay::names( 'Pastor Seyi Ade' ), 'titles dropped' );
+$ok( array( 'Chukwuemeka', 'ONeil Obi' ) === KCS_Gateway_GlobalPay::names( 'Dr. Chukwuemeka O’Neil-Obi' ), 'letters only' );
+$ok( array( 'John', 'Doe' ) === KCS_Gateway_GlobalPay::names( '123', 'john.doe@example.com' ), 'no usable name → from email' );

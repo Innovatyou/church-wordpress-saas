@@ -105,6 +105,35 @@ class KCS_Gateway_GlobalPay extends KCS_Gateway {
 	}
 
 	/**
+	 * First and last name as GlobalPay accepts them: letters only, both filled.
+	 * Titles ("Pastor", "Dr.") are dropped; a single name is used for both.
+	 *
+	 * @param string $name  Name typed by the giver.
+	 * @param string $email Email (fallback).
+	 * @return array [ first, last ]
+	 */
+	public static function names( $name, $email = '' ) {
+		$titles = array( 'mr', 'mrs', 'ms', 'miss', 'dr', 'prof', 'pastor', 'pst', 'rev', 'revd', 'bishop', 'apostle', 'evangelist', 'evang', 'prophet', 'prophetess', 'deacon', 'deaconess', 'elder', 'bro', 'brother', 'sis', 'sister', 'chief', 'engr', 'barr', 'hon', 'sir', 'madam', 'mummy', 'daddy' );
+		$clean  = function ( $text ) {
+			$text = str_replace( array( "'", '’' ), '', remove_accents( $text ) );
+			return trim( preg_replace( '/[^A-Za-z]+/', ' ', $text ) );
+		};
+		$words = array();
+		foreach ( explode( ' ', $clean( $name ) ) as $w ) {
+			if ( '' !== $w && ! in_array( strtolower( $w ), $titles, true ) ) {
+				$words[] = $w;
+			}
+		}
+		if ( ! $words ) {
+			$local = $clean( str_replace( array( '.', '_', '-' ), ' ', strstr( $email, '@', true ) ?: '' ) );
+			$words = '' !== $local ? array_map( 'ucfirst', explode( ' ', $local ) ) : array( 'Church', 'Giver' );
+		}
+		$first = substr( array_shift( $words ), 0, 50 );
+		$last  = $words ? substr( implode( ' ', $words ), 0, 50 ) : $first;
+		return array( $first, $last );
+	}
+
+	/**
 	 * Start a payment: GlobalPay returns its checkout page.
 	 *
 	 * @param object $payment Payment.
@@ -115,7 +144,7 @@ class KCS_Gateway_GlobalPay extends KCS_Gateway {
 		if ( strlen( $phone ) < 7 ) {
 			return new WP_Error( 'kcs_globalpay_phone', __( 'Please enter your phone number to pay with Zenith GlobalPay.', 'kingdom-church-suite' ) );
 		}
-		$parts = preg_split( '/\s+/', trim( (string) $payment->name ), 2 );
+		$parts = self::names( (string) $payment->name, (string) $payment->email );
 		$res   = $this->http(
 			'POST',
 			self::API . '/generate-payment-link',
@@ -127,8 +156,8 @@ class KCS_Gateway_GlobalPay extends KCS_Gateway {
 					'merchantTransactionReference' => $payment->reference,
 					'redirectUrl'                  => $this->callback_url( $payment ),
 					'customer'                     => array(
-						'firstName'    => $parts[0] ?? '',
-						'lastName'     => $parts[1] ?? '',
+						'firstName'    => $parts[0],
+						'lastName'     => $parts[1],
 						'currency'     => strtoupper( $payment->currency ),
 						'phoneNumber'  => $phone,
 						'address'      => '',
