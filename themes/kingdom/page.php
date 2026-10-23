@@ -18,6 +18,11 @@ while ( have_posts() ) :
 		continue;
 	endif;
 	kingdom_page_header();
+	// The church's Visit page shows its visitor information, questions and questionnaire with any
+	// layout (it may have been created with the standard page layout).
+	if ( kingdom_plugin_active() && get_the_ID() === (int) kcs_get_option( 'page_visit', 0 ) ) {
+		kingdom_section( 'visit-info' );
+	}
 	?>
 	<div class="k-container k-container--narrow k-section">
 		<article id="post-<?php the_ID(); ?>" <?php post_class( 'k-entry' ); ?>>

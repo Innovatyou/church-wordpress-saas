@@ -3,7 +3,7 @@
  * One-time content for particular churches (wording they sent us), applied on their own site.
  *
  * Each file in includes/seeds/ returns:
- *   match        Lower-case text the church's site name must contain.
+ *   match        Text the church's site name or address must contain (letters only are compared).
  *   mods         Theme settings to fill in. Ones the church has already set are left alone.
  *   charity_page Optional: title of a Charity page to create (under About in the main menu).
  *   replace      Optional: setting => array( old, new ), changed only while it still has the old value.
@@ -42,7 +42,8 @@ class KS_Seeds {
 			return;
 		}
 		$done  = (array) get_option( 'ks_seeds_done', array() );
-		$name  = strtolower( (string) get_option( 'blogname' ) );
+		// Letters only, so "Road Map to Jesus", "Roadmap to Jesus" and roadmaptojesus.com all match.
+		$name  = self::letters( get_option( 'blogname' ) ) . '|' . self::letters( home_url() );
 		$files = (array) glob( KS_PATH . 'includes/seeds/*.php' );
 		// Nothing new since the last check (same site name, same seeds): skip reading the files.
 		$stamp = md5( $name . '|' . implode( ',', array_map( 'basename', $files ) ) . '|' . implode( ',', $done ) );
@@ -55,7 +56,7 @@ class KS_Seeds {
 				continue;
 			}
 			$seed = include $file;
-			if ( ! is_array( $seed ) || empty( $seed['match'] ) || false === strpos( $name, (string) $seed['match'] ) ) {
+			if ( ! is_array( $seed ) || empty( $seed['match'] ) || false === strpos( $name, self::letters( $seed['match'] ) ) ) {
 				continue;
 			}
 			// add_option() is a single INSERT, so only one of two requests arriving at the same moment
@@ -68,6 +69,16 @@ class KS_Seeds {
 			self::apply( $seed );
 		}
 		update_option( 'ks_seeds_checked', md5( $name . '|' . implode( ',', array_map( 'basename', $files ) ) . '|' . implode( ',', $done ) ), false );
+	}
+
+	/**
+	 * Lower-case letters only.
+	 *
+	 * @param string $text Text.
+	 * @return string
+	 */
+	private static function letters( $text ) {
+		return (string) preg_replace( '/[^a-z]/', '', strtolower( (string) $text ) );
 	}
 
 	/**
