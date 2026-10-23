@@ -10,6 +10,7 @@
 
 get_header();
 kingdom_section( 'hero', array( 'variant' => 'mega' ) );
+kingdom_section( 'announcements' );
 kingdom_section( 'welcome' );
 kingdom_section( 'stats' );
 kingdom_section( 'youtube-live' );

@@ -10,6 +10,7 @@
 
 get_header();
 kingdom_section( 'hero', array( 'variant' => 'video' ) );
+kingdom_section( 'announcements' );
 kingdom_section( 'welcome' );
 kingdom_section( 'youtube-live' );
 kingdom_section( 'sermons', array( 'layout' => 'featured' ) );

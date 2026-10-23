@@ -62,6 +62,8 @@ class KCS_Church_Admin {
 			'content'     => array( __( 'Pictures & text', 'kingdom-church-suite' ), '▧' ),
 			'newsletter'  => array( __( 'Newsletter', 'kingdom-church-suite' ), '✎' ),
 			'app'         => array( __( 'Church app', 'kingdom-church-suite' ), '▤' ),
+			'slides'      => array( __( 'Announcement slider', 'kingdom-church-suite' ), '⇆' ),
+			'popups'      => array( __( 'Popups', 'kingdom-church-suite' ), '◰' ),
 		) + ( current_user_can( 'edit_pages' ) ? array( 'pages' => array( __( 'Pages', 'kingdom-church-suite' ), '❐' ) ) : array() ) + ( current_user_can( 'manage_options' ) ? array( 'settings' => array( __( 'Settings', 'kingdom-church-suite' ), '⚙' ) ) : array() ) );
 	}
 
@@ -78,7 +80,7 @@ class KCS_Church_Admin {
 				__( 'People', 'kingdom-church-suite' )      => array( 'partners', 'prayers', 'visits', 'messages', 'testimonies' ),
 				__( 'Giving', 'kingdom-church-suite' )      => array( 'transfers', 'payments', 'plans' ),
 				__( 'Messages', 'kingdom-church-suite' )    => array( 'notify', 'newsletter', 'pastors' ),
-				__( 'Website & app', 'kingdom-church-suite' ) => array( 'content', 'website', 'pages', 'app' ),
+				__( 'Website & app', 'kingdom-church-suite' ) => array( 'content', 'website', 'pages', 'slides', 'popups', 'app' ),
 				__( 'Account', 'kingdom-church-suite' )     => array( 'settings', 'subscription', 'domain' ),
 			)
 		);
@@ -106,6 +108,8 @@ class KCS_Church_Admin {
 			'content'      => __( 'Change your logo, photos, homepage words and contact details.', 'kingdom-church-suite' ),
 			'website'      => __( 'Colours, fonts, homepage banner, live stream and which sections show.', 'kingdom-church-suite' ),
 			'app'          => __( 'Your church app members install on their phones, and push notifications.', 'kingdom-church-suite' ),
+			'slides'       => __( 'Announcements that slide across the top of your homepage and partner dashboard.', 'kingdom-church-suite' ),
+			'popups'       => __( 'A popup for an event, crusade or giving drive, with rules for the pages, people and devices that see it and how often.', 'kingdom-church-suite' ),
 			'pages'        => __( 'Hide or show any page, add new pages with the page builder or your own HTML & CSS, and choose what is in the menu.', 'kingdom-church-suite' ),
 			'settings'     => __( 'Church details, service times, payment methods, emails and more.', 'kingdom-church-suite' ),
 			'subscription' => __( 'Your plan for this website and its payments.', 'kingdom-church-suite' ),
@@ -704,6 +708,27 @@ class KCS_Church_Admin {
 				/* translators: %d: number of phones */
 				$msg = $n ? sprintf( _n( 'Sending to %d phone…', 'Sending to %d phones…', $n, 'kingdom-church-suite' ), $n ) : __( 'No phones have turned on notifications yet.', 'kingdom-church-suite' );
 				$type = $n ? 'success' : 'error';
+				break;
+
+			case 'slide_save':
+			case 'slide_delete':
+			case 'slide_move':
+			case 'slider_settings':
+				list( $msg, $type ) = KCS_Slides::handle( $do, $d );
+				$view               = 'slides';
+				if ( 'slide_save' === $do && 'success' === $type ) {
+					$d['return'] = self::url( 'slides' );
+				}
+				break;
+
+			case 'popup_save':
+			case 'popup_toggle':
+			case 'popup_delete':
+				list( $msg, $type ) = KCS_Popups::handle( $do, $d );
+				$view               = 'popups';
+				if ( 'popup_save' === $do && 'success' === $type ) {
+					$d['return'] = self::url( 'popups' );
+				}
 				break;
 
 			case 'message_read':
@@ -1666,6 +1691,28 @@ class KCS_Church_Admin {
 			echo '<p class="kcs-muted">' . esc_html__( 'No testimonies are waiting for review.', 'kingdom-church-suite' ) . '</p>';
 		}
 		echo '</div>';
+	}
+
+	/**
+	 * Announcement slider.
+	 */
+	private static function view_slides() {
+		KCS_Slides::view(
+			function ( $do, $view, $id ) {
+				return self::fields( $do, $view, $id );
+			}
+		);
+	}
+
+	/**
+	 * Popups.
+	 */
+	private static function view_popups() {
+		KCS_Popups::view(
+			function ( $do, $view, $id ) {
+				return self::fields( $do, $view, $id );
+			}
+		);
 	}
 
 	/**

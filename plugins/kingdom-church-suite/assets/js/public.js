@@ -313,3 +313,104 @@ document.querySelectorAll('[data-kcs-payment-form], form.kcs-pay-form').forEach(
 	form.addEventListener('change', function (e) { if (e.target.name === 'gateway') { sync(); } });
 	sync();
 });
+
+/* Announcement slider: swipe or arrows, dots, auto-advance (paused on hover/touch/focus). */
+(function () {
+	'use strict';
+	var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+	document.querySelectorAll('[data-kcs-slider]').forEach(function (box) {
+		var track = box.querySelector('[data-track]');
+		var slides = track.children;
+		var dots = box.querySelectorAll('[data-dots] button');
+		if (slides.length < 2) { return; }
+		var current = 0, timer = null, paused = false;
+		var wait = (parseInt(box.getAttribute('data-seconds'), 10) || 6) * 1000;
+		function go(i) {
+			current = (i + slides.length) % slides.length;
+			track.scrollTo({ left: slides[current].offsetLeft - track.offsetLeft, behavior: reduce ? 'auto' : 'smooth' });
+		}
+		function mark() {
+			var i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+			current = Math.max(0, Math.min(slides.length - 1, i));
+			dots.forEach(function (d, n) { if (n === current) { d.setAttribute('aria-current', 'true'); } else { d.removeAttribute('aria-current'); } });
+		}
+		function start() { stop(); if (!reduce && !paused) { timer = setInterval(function () { if (!document.hidden) { go(current + 1); } }, wait); } }
+		function stop() { if (timer) { clearInterval(timer); timer = null; } }
+		var t;
+		track.addEventListener('scroll', function () { clearTimeout(t); t = setTimeout(mark, 60); }, { passive: true });
+		var prev = box.querySelector('[data-prev]'), next = box.querySelector('[data-next]');
+		if (prev) { prev.addEventListener('click', function () { go(current - 1); start(); }); }
+		if (next) { next.addEventListener('click', function () { go(current + 1); start(); }); }
+		dots.forEach(function (d, n) { d.addEventListener('click', function () { go(n); start(); }); });
+		track.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') { go(current + 1); } if (e.key === 'ArrowLeft') { go(current - 1); } });
+		// Pause while a mouse is over it (phones fire fake mouse events after a tap, so check the pointer type).
+		box.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse') { paused = true; stop(); } });
+		box.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') { paused = false; start(); } });
+		box.addEventListener('focusin', function () { if (box.matches(':focus-visible, :focus-within') && document.activeElement !== document.body) { paused = true; stop(); } });
+		box.addEventListener('focusout', function () { paused = false; start(); });
+		track.addEventListener('touchstart', function () { stop(); }, { passive: true });
+		track.addEventListener('touchend', function () { setTimeout(start, 4000); }, { passive: true });
+		window.addEventListener('resize', function () { go(current); });
+		start();
+	});
+})();
+
+/* Popups: device, trigger and frequency rules (pages, audience and dates are checked on the server). */
+(function () {
+	'use strict';
+	var el = document.querySelector('[data-kcs-popup]');
+	if (!el) { return; }
+	var cfg = {};
+	try { cfg = JSON.parse(el.getAttribute('data-kcs-popup')) || {}; } catch (e) { return; }
+	var phone = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+	if ((cfg.device === 'mobile' && !phone) || (cfg.device === 'desktop' && phone)) { return; }
+	var key = 'kcs_popup_' + cfg.id;
+	function get(store) { try { return store.getItem(key); } catch (e) { return null; } }
+	function set(store, v) { try { store.setItem(key, v); } catch (e) {} }
+	var last = parseInt(get(window.localStorage), 10) || 0;
+	if (cfg.frequency === 'once' && last) { return; }
+	if (cfg.frequency === 'days' && last && Date.now() - last < (cfg.days || 7) * 86400000) { return; }
+	if (cfg.frequency === 'session' && get(window.sessionStorage)) { return; }
+	var shown = false, before = null;
+	function remember() { set(window.localStorage, String(Date.now())); set(window.sessionStorage, '1'); }
+	function close() {
+		el.hidden = true;
+		document.body.classList.remove('kcs-popup-open');
+		document.removeEventListener('keydown', onKey);
+		if (before && before.focus) { before.focus(); }
+	}
+	function onKey(e) {
+		if (e.key === 'Escape') { close(); }
+		if (e.key === 'Tab') {
+			var f = el.querySelectorAll('a[href], button');
+			if (!f.length) { return; }
+			if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+			else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+		}
+	}
+	function open() {
+		if (shown) { return; }
+		shown = true;
+		before = document.activeElement;
+		el.hidden = false;
+		document.body.classList.add('kcs-popup-open');
+		if (cfg.frequency !== 'always') { remember(); }
+		var c = el.querySelector('.kcs-popup__close');
+		if (c) { c.focus(); }
+		document.addEventListener('keydown', onKey);
+	}
+	el.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', close); });
+	if (cfg.trigger === 'scroll') {
+		var onScroll = function () {
+			var h = document.documentElement.scrollHeight - window.innerHeight;
+			if (h <= 0 || (window.scrollY / h) * 100 >= (cfg.scroll || 50)) { window.removeEventListener('scroll', onScroll); open(); }
+		};
+		window.addEventListener('scroll', onScroll, { passive: true });
+		onScroll();
+	} else if (cfg.trigger === 'exit') {
+		if (phone) { setTimeout(open, 30000); }
+		else { document.addEventListener('mouseout', function (e) { if (!e.relatedTarget && e.clientY <= 0) { open(); } }); }
+	} else {
+		setTimeout(open, Math.max(0, cfg.delay || 0) * 1000);
+	}
+})();

@@ -171,7 +171,7 @@ function kingdom_customize_register( $wp ) {
 	}
 
 	// Homepage sections.
-	$add( 'kingdom_home', 'kingdom_home_sections', __( 'Section order', 'kingdom' ), 'textarea', 'hero, service-times, welcome, youtube-live, sermons, videos, audio, ministries, events, stats, partnership, gallery, testimonies, prayer, visit, give, social, newsletter', array(), __( 'Used when the front page is your latest posts or a page without a template. Available: ', 'kingdom' ) . implode( ', ', array_keys( kingdom_available_sections() ) ) );
+	$add( 'kingdom_home', 'kingdom_home_sections', __( 'Section order', 'kingdom' ), 'textarea', 'hero, service-times, announcements, welcome, youtube-live, sermons, videos, audio, ministries, events, stats, partnership, gallery, testimonies, prayer, visit, give, social, newsletter', array(), __( 'Used when the front page is your latest posts or a page without a template. Available: ', 'kingdom' ) . implode( ', ', array_keys( kingdom_available_sections() ) ) );
 	$add( 'kingdom_home', 'kingdom_sermons_title', __( 'Sermons title', 'kingdom' ), 'text', __( 'Latest messages', 'kingdom' ) );
 	$add( 'kingdom_home', 'kingdom_events_title', __( 'Events title', 'kingdom' ), 'text', __( 'Upcoming events', 'kingdom' ) );
 	$add( 'kingdom_home', 'kingdom_ministries_title', __( 'Ministries title', 'kingdom' ), 'text', __( 'Find your place', 'kingdom' ) );

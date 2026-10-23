@@ -11,6 +11,7 @@
 get_header();
 kingdom_section( 'hero', array( 'variant' => 'classic' ) );
 kingdom_section( 'service-times' );
+kingdom_section( 'announcements' );
 kingdom_section( 'welcome' );
 kingdom_section( 'youtube-live' );
 kingdom_section( 'sermons' );

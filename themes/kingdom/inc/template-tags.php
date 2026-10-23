@@ -397,6 +397,7 @@ function kingdom_available_sections() {
 	return array(
 		'hero'          => __( 'Hero', 'kingdom' ),
 		'service-times' => __( 'Service times bar', 'kingdom' ),
+		'announcements' => __( 'Announcement slider', 'kingdom' ),
 		'welcome'       => __( 'Welcome / pastor message', 'kingdom' ),
 		'youtube-live'  => __( 'YouTube live stream', 'kingdom' ),
 		'live'          => __( 'Live stream (Church Suite schedule & chat)', 'kingdom' ),

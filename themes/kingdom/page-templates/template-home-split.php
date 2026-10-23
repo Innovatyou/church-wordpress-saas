@@ -10,6 +10,7 @@
 
 get_header();
 kingdom_section( 'hero', array( 'variant' => 'split' ) );
+kingdom_section( 'announcements' );
 kingdom_section( 'visit' );
 kingdom_section( 'welcome' );
 kingdom_section( 'ministries' );

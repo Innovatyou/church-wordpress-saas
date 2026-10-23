@@ -38,6 +38,7 @@ $completed = array_filter(
 		</div>
 		<a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( wp_logout_url( home_url( '/' ) ) ); ?>"><?php esc_html_e( 'Log out', 'kingdom-church-suite' ); ?></a>
 	</header>
+	<?php echo KCS_Slides::shortcode( array( 'where' => 'dashboard' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 
 	<?php $due_in = KCS_Access::days_to_due( $partner ); ?>
 	<?php if ( null !== $due_in && $due_in <= 5 ) : ?>

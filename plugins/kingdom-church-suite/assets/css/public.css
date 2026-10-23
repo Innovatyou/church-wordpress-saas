@@ -305,3 +305,48 @@
 .kcs-questionnaire { display: grid; gap: 1.5rem; }
 .kcs-questionnaire legend { font-size: 1.05rem; }
 .kcs-questionnaire .kcs-check { align-items: flex-start; }
+
+/* Announcement slider */
+.kcs-slider { position: relative; margin: 0 auto; max-width: 1200px; }
+.kcs-slider__track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; border-radius: 20px; outline: none; }
+.kcs-slider__track::-webkit-scrollbar { display: none; }
+.kcs-slide { position: relative; flex: 0 0 100%; scroll-snap-align: start; display: grid; grid-template-columns: 1fr; min-height: 220px; border-radius: 20px; overflow: hidden; color: #fff; background: linear-gradient(120deg, var(--kcs-primary, #5b2a86), color-mix(in srgb, var(--kcs-primary, #5b2a86) 55%, #000)); }
+.kcs-slide.has-image { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
+.kcs-slide__img { width: 100%; height: 100%; min-height: 220px; object-fit: cover; display: block; }
+.kcs-slide__body { display: flex; flex-direction: column; justify-content: center; gap: .55rem; padding: clamp(1.5rem, 4vw, 3rem) clamp(1.25rem, 5vw, 4rem); }
+.kcs-slide__label { align-self: flex-start; padding: .25rem .7rem; border-radius: 999px; background: rgba(255,255,255,.18); font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.kcs-slide__title { margin: 0; color: inherit; font-size: clamp(1.3rem, 2.6vw, 2rem); line-height: 1.2; }
+.kcs-slide__text { margin: 0; color: rgba(255,255,255,.88); max-width: 60ch; }
+.kcs-slide__btn { align-self: flex-start; margin-top: .4rem; background: #fff !important; color: var(--kcs-primary, #5b2a86) !important; border-color: #fff !important; }
+.kcs-slider__nav { position: absolute; top: 50%; transform: translateY(-50%); width: 42px; height: 42px; border-radius: 50%; border: 0; background: rgba(0,0,0,.35); color: #fff; font-size: 1.6rem; line-height: 1; cursor: pointer; backdrop-filter: blur(6px); }
+.kcs-slider__nav--prev { left: .6rem; }
+.kcs-slider__nav--next { right: .6rem; }
+.kcs-slider__dots { display: flex; justify-content: center; gap: .4rem; margin-top: .8rem; }
+.kcs-slider__dots button { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 999px; background: color-mix(in srgb, currentColor 25%, transparent); cursor: pointer; transition: width .25s, background .25s; }
+.kcs-slider__dots button[aria-current="true"] { width: 26px; background: var(--kcs-primary, #5b2a86); }
+.kcs-slider--home { padding: clamp(1.5rem, 4vw, 2.5rem) 1rem 0; }
+.kcs-slider--dashboard { margin-bottom: 1.25rem; }
+@media (max-width: 700px) {
+	.kcs-slide.has-image { grid-template-columns: 1fr; }
+	.kcs-slide__img { min-height: 0; aspect-ratio: 16 / 9; height: auto; }
+	.kcs-slide { min-height: 0; }
+	.kcs-slider__nav { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .kcs-slider__track { scroll-behavior: auto; } }
+
+/* Popups */
+.kcs-popup { position: fixed; inset: 0; z-index: 100000; display: grid; place-items: center; padding: 1rem; }
+.kcs-popup[hidden] { display: none; }
+.kcs-popup__backdrop { position: absolute; inset: 0; background: rgba(10, 8, 20, .6); backdrop-filter: blur(3px); animation: kcs-pop-fade .25s ease both; }
+.kcs-popup__box { position: relative; width: min(520px, 100%); max-height: calc(100vh - 2rem); overflow: auto; border-radius: 20px; background: var(--kcs-surface, #fff); color: var(--kcs-text, #1b1525); box-shadow: 0 30px 80px rgba(0,0,0,.35); animation: kcs-pop-in .35s cubic-bezier(.2, .8, .2, 1) both; }
+.kcs-popup__img { display: block; width: 100%; max-height: 320px; object-fit: cover; }
+.kcs-popup__body { padding: 1.5rem 1.5rem 1.75rem; text-align: center; }
+.kcs-popup__title { margin: 0 0 .5rem; font-size: clamp(1.3rem, 4vw, 1.7rem); line-height: 1.2; }
+.kcs-popup__text { margin: 0 0 1.1rem; color: var(--kcs-muted, #6b6478); }
+.kcs-popup__close { position: absolute; top: .6rem; right: .6rem; z-index: 1; width: 38px; height: 38px; border: 0; border-radius: 50%; background: rgba(0,0,0,.45); color: #fff; font-size: 1.5rem; line-height: 1; cursor: pointer; }
+@media (max-width: 600px) { .kcs-popup { place-items: end center; padding: 0; } .kcs-popup__box { width: 100%; border-radius: 20px 20px 0 0; max-height: 90vh; animation-name: kcs-pop-up; } }
+@keyframes kcs-pop-fade { from { opacity: 0; } }
+@keyframes kcs-pop-in { from { opacity: 0; transform: translateY(16px) scale(.96); } }
+@keyframes kcs-pop-up { from { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { .kcs-popup__backdrop, .kcs-popup__box { animation: none; } }
+body.kcs-popup-open { overflow: hidden; }
