@@ -29,6 +29,7 @@ class KCS_Shortcodes {
 			'kcs_live_badge'        => 'live_badge',
 			'kcs_prayer_form'       => 'prayer_form',
 			'kcs_prayer_wall'       => 'prayer_wall',
+			'kcs_todays_word'       => 'todays_word',
 			'kcs_service_countdown' => 'countdown',
 			'kcs_service_times'     => 'service_times',
 			'kcs_sermons'           => 'sermons',
@@ -99,12 +100,14 @@ class KCS_Shortcodes {
 		if ( ! $partner ) {
 			return '<div class="kcs-alert kcs-alert--info">' . esc_html__( 'You are not a partner yet.', 'kingdom-church-suite' ) . ' <a class="kcs-btn" href="' . esc_url( kcs_page_url( 'partner_register' ) ) . '">' . esc_html__( 'Become a partner', 'kingdom-church-suite' ) . '</a></div>';
 		}
-		$payments = KCS_Payments::query( array( 'partner_id' => $partner->id, 'per_page' => 50 ) );
+		$hpg      = kcs_current_page( 'hpg' );
+		$payments = KCS_Payments::query( array( 'partner_id' => $partner->id, 'per_page' => 10, 'page' => $hpg ) );
 		$vars     = array(
 			'partner'  => $partner,
 			'plan'     => $partner->plan_id ? KCS_Plans::get( $partner->plan_id ) : null,
 			'plans'    => KCS_Plans::all( true ),
 			'payments' => $payments['items'],
+			'pager'    => kcs_pager( $payments['total'], 10, $hpg, get_permalink(), array(), array( 'param' => 'hpg', 'per_param' => false, 'fragment' => 'history' ) ),
 			'user'     => wp_get_current_user(),
 			'lock'     => KCS_Access::lock_reason( $partner ),
 			'tier'     => KCS_Access::tier( $partner ),
@@ -257,6 +260,10 @@ class KCS_Shortcodes {
 	 * @return string
 	 */
 	public static function prayer_form() {
+		// The prayer wall has its own request form; do not show two on one page.
+		if ( apply_filters( 'kcs_hide_prayer_form', is_singular() && has_shortcode( (string) get_post_field( 'post_content', get_queried_object_id() ), 'kcs_prayer_wall' ) ) ) {
+			return '';
+		}
 		ob_start();
 		?>
 		<form class="kcs-form kcs-prayer-form" data-kcs-prayer>
@@ -281,28 +288,18 @@ class KCS_Shortcodes {
 	 * @param array $atts limit.
 	 * @return string
 	 */
+	public static function todays_word() {
+		return KCS_Devotionals::shortcode();
+	}
+
+	/**
+	 * Prayer wall.
+	 *
+	 * @param array $atts Attributes.
+	 * @return string
+	 */
 	public static function prayer_wall( $atts ) {
-		$atts  = shortcode_atts( array( 'limit' => 12 ), $atts, 'kcs_prayer_wall' );
-		$items = KCS_Prayer::wall( (int) $atts['limit'] );
-		if ( ! $items ) {
-			return '';
-		}
-		ob_start();
-		echo '<div class="kcs-prayer-wall"><h3>' . esc_html__( 'Prayer Wall', 'kingdom-church-suite' ) . '</h3><div class="kcs-cards">';
-		foreach ( $items as $item ) {
-			?>
-			<article class="kcs-card kcs-prayer-card<?php echo 'answered' === $item->status ? ' is-answered' : ''; ?>">
-				<?php if ( 'answered' === $item->status ) : ?><span class="kcs-badge kcs-badge--completed"><?php esc_html_e( 'Answered', 'kingdom-church-suite' ); ?></span><?php endif; ?>
-				<p><?php echo esc_html( wp_trim_words( $item->request, 60 ) ); ?></p>
-				<footer>
-					<small>— <?php echo esc_html( $item->name ? $item->name : __( 'Anonymous', 'kingdom-church-suite' ) ); ?>, <?php echo esc_html( human_time_diff( strtotime( $item->created_at ), current_time( 'timestamp' ) ) ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested ?> <?php esc_html_e( 'ago', 'kingdom-church-suite' ); ?></small>
-					<button type="button" class="kcs-pray-btn" data-kcs-pray="<?php echo (int) $item->id; ?>">🙏 <?php esc_html_e( 'I prayed', 'kingdom-church-suite' ); ?> <span><?php echo (int) $item->prayer_count; ?></span></button>
-				</footer>
-			</article>
-			<?php
-		}
-		echo '</div></div>';
-		return ob_get_clean();
+		return KCS_Prayer_Wall::render( (array) $atts );
 	}
 
 	/**

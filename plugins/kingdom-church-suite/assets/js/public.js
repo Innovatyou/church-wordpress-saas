@@ -136,7 +136,7 @@
 			e.preventDefault();
 			busy(form, true);
 			var data = formData(form);
-			data.source = 'website';
+			data.source = data.source || 'website';
 			api('subscribe', 'POST', data)
 				.then(function (res) { msg(form, res.message, 'success'); form.reset(); })
 				.catch(function (err) { msg(form, err.message, 'error'); })
@@ -285,7 +285,26 @@
 			var b = e.target.closest('[data-tab],[data-tab-link]');
 			if (b) { show(b.dataset.tab || b.dataset.tabLink); }
 		});
-		show(wrap.dataset.active || 'overview');
+		var hash = (location.hash || '').slice(1);
+		show(hash && wrap.querySelector('[data-panel="' + hash.replace(/[^a-z0-9_-]/gi, '') + '"]') ? hash : (wrap.dataset.active || 'overview'));
+	});
+
+	/* Today's Word: read aloud ------------------------------------------- */
+	document.querySelectorAll('[data-kcs-listen]').forEach(function (btn) {
+		if (!('speechSynthesis' in window)) { return; }
+		btn.hidden = false;
+		var label = btn.querySelector('span');
+		btn.addEventListener('click', function () {
+			var synth = window.speechSynthesis;
+			if (synth.speaking) { synth.cancel(); return; }
+			var u = new SpeechSynthesisUtterance(btn.dataset.text || '');
+			u.lang = document.documentElement.lang || 'en';
+			u.rate = 0.95;
+			u.onend = u.onerror = function () { label.textContent = btn.dataset.play; btn.classList.remove('is-on'); };
+			label.textContent = btn.dataset.stop;
+			btn.classList.add('is-on');
+			synth.speak(u);
+		});
 	});
 
 	/* Share -------------------------------------------------------------- */

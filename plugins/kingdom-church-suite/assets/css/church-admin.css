@@ -109,9 +109,6 @@
 .kca-person img, .kca-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex: none; }
 .kca-avatar { display: grid; place-items: center; color: #fff; font-weight: 800; background: linear-gradient(135deg, var(--kcs-primary), var(--kcs-accent)); }
 .kca-person small { display: block; }
-.kca-pager { display: flex; flex-wrap: wrap; gap: .35rem; }
-.kca-pager a { min-width: 40px; min-height: 40px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--kcs-border); text-decoration: none; color: inherit; }
-.kca-pager a[aria-current] { background: var(--kcs-primary); color: #fff; border-color: var(--kcs-primary); }
 
 .kca-wa-row { display: grid; gap: .5rem; padding: .6rem 0; border-bottom: 1px dashed var(--kcs-border); }
 @media (min-width: 720px) { .kca-wa-row { grid-template-columns: 1fr 1fr 2fr; } }
@@ -273,3 +270,12 @@ details.kca-card > summary::-webkit-details-marker { display: none; }
 .kca-pics__name { font-size: .82rem; font-weight: 600; }
 .kca-pics__btns { display: flex; gap: .35rem; flex-wrap: wrap; }
 .kca-pics__btns .kcs-btn { padding: .35rem .8rem; font-size: .82rem; min-height: 0; }
+/* Prayer requests: praise reports and encouragements */
+.kca-praise { margin: .5rem 0 0; padding: .6rem .8rem; border-radius: 10px; background: color-mix(in srgb, #e2b13c 12%, transparent); }
+.kca-encs { margin-top: .6rem; }
+.kca-encs summary { cursor: pointer; font-weight: 600; font-size: .9rem; }
+.kca-encs ul { display: grid; gap: .5rem; margin: .6rem 0 0; padding: 0; list-style: none; }
+.kca-encs li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem; padding: .5rem .7rem; border-radius: 10px; background: var(--kcs-surface-2); }
+.kca-encs li.is-pending { outline: 2px dashed var(--kcs-accent); }
+.kca-encs li.is-hidden { opacity: .6; }
+.kca-encs .kcs-btn { padding: .3rem .7rem; font-size: .8rem; }

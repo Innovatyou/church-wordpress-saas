@@ -61,6 +61,7 @@ class KCS_Church_Admin {
 			'website'     => array( __( 'Design & live stream', 'kingdom-church-suite' ), '▣' ),
 			'content'     => array( __( 'Pictures & text', 'kingdom-church-suite' ), '▧' ),
 			'newsletter'  => array( __( 'Newsletter', 'kingdom-church-suite' ), '✎' ),
+			'word'        => array( __( 'Today’s Word', 'kingdom-church-suite' ), '☀' ),
 			'app'         => array( __( 'Church app', 'kingdom-church-suite' ), '▤' ),
 			'slides'      => array( __( 'Announcement slider', 'kingdom-church-suite' ), '⇆' ),
 			'popups'      => array( __( 'Popups', 'kingdom-church-suite' ), '◰' ),
@@ -81,7 +82,7 @@ class KCS_Church_Admin {
 				''                                          => array( 'overview' ),
 				__( 'People', 'kingdom-church-suite' )      => array( 'partners', 'prayers', 'visits', 'messages', 'testimonies' ),
 				__( 'Giving', 'kingdom-church-suite' )      => array( 'transfers', 'payments', 'plans' ),
-				__( 'Messages', 'kingdom-church-suite' )    => array( 'notify', 'newsletter', 'pastors' ),
+				__( 'Messages', 'kingdom-church-suite' )    => array( 'notify', 'newsletter', 'word', 'pastors' ),
 				__( 'Website & app', 'kingdom-church-suite' ) => array( 'content', 'website', 'pages', 'slides', 'popups', 'app' ),
 				__( 'Account', 'kingdom-church-suite' )     => array( 'settings', 'team', 'subscription', 'domain' ),
 			)
@@ -106,6 +107,7 @@ class KCS_Church_Admin {
 			'plans'        => __( 'The partnership plans people can choose, their prices and currencies.', 'kingdom-church-suite' ),
 			'notify'       => __( 'Send an announcement to your partners by email and on their dashboard.', 'kingdom-church-suite' ),
 			'newsletter'   => __( 'Write and send email newsletters to your subscribers.', 'kingdom-church-suite' ),
+			'word'         => __( 'A short daily devotional: write ahead, pick the day, and it shows on your website and app — and can go to subscribers by email each morning.', 'kingdom-church-suite' ),
 			'pastors'      => __( 'The WhatsApp chat button on your website and the pastors partners can reach.', 'kingdom-church-suite' ),
 			'content'      => __( 'Change your logo, photos, homepage words and contact details.', 'kingdom-church-suite' ),
 			'website'      => __( 'Colours, fonts, homepage banner, live stream and which sections show.', 'kingdom-church-suite' ),
@@ -454,6 +456,11 @@ class KCS_Church_Admin {
 				}
 				break;
 
+			case 'prayer_enc':
+				KCS_Prayer::moderate( $id, sanitize_key( $d['decision'] ?? '' ) );
+				$msg = __( 'Encouragement updated.', 'kingdom-church-suite' );
+				break;
+
 			case 'visit_status':
 				$status = sanitize_key( $d['status'] ?? '' );
 				if ( array_key_exists( $status, KCS_Visits::statuses() ) ) {
@@ -777,6 +784,10 @@ class KCS_Church_Admin {
 			case 'app_save':
 				kcs_update_option( 'pwa_enabled', empty( $d['pwa_enabled'] ) ? '0' : '1' );
 				kcs_update_option( 'pwa_banner', empty( $d['pwa_banner'] ) ? '0' : '1' );
+				kcs_update_option( 'pwa_start_app', empty( $d['pwa_start_app'] ) ? '0' : '1' );
+				if ( ! empty( $d['pwa_start_app'] ) ) {
+					KCS_App_Home::create_page();
+				}
 				kcs_update_option( 'pwa_live_push', empty( $d['pwa_live_push'] ) ? '0' : '1' );
 				kcs_update_option( 'pwa_name', sanitize_text_field( $d['pwa_name'] ?? '' ) );
 				kcs_update_option( 'pwa_short_name', mb_substr( sanitize_text_field( $d['pwa_short_name'] ?? '' ), 0, 14 ) );
@@ -818,6 +829,36 @@ class KCS_Church_Admin {
 				if ( 'slide_save' === $do && 'success' === $type ) {
 					$d['return'] = self::url( 'slides' );
 				}
+				break;
+
+			case 'word_save':
+				$saved = KCS_Devotionals::save( $d, $id );
+				if ( is_wp_error( $saved ) ) {
+					$msg  = $saved->get_error_message();
+					$type = 'error';
+				} else {
+					$msg         = __( 'Devotional saved.', 'kingdom-church-suite' );
+					$d['return'] = self::url( 'word' );
+				}
+				$view = 'word';
+				break;
+
+			case 'word_delete':
+				if ( KCS_Devotionals::TYPE === get_post_type( $id ) ) {
+					wp_delete_post( $id, true );
+					$msg = __( 'Devotional deleted.', 'kingdom-church-suite' );
+				}
+				$view = 'word';
+				break;
+
+			case 'word_settings':
+				kcs_update_option( 'todays_word_email', empty( $d['todays_word_email'] ) ? '0' : '1' );
+				kcs_update_option( 'todays_word_hour', (string) min( 23, absint( $d['todays_word_hour'] ?? 6 ) ) );
+				if ( ! empty( $d['create_page'] ) ) {
+					KCS_Devotionals::create_page();
+				}
+				$msg  = __( 'Today’s Word settings saved.', 'kingdom-church-suite' );
+				$view = 'word';
 				break;
 
 			case 'popup_save':
@@ -1373,7 +1414,9 @@ class KCS_Church_Admin {
 		// phpcs:enable
 		$plans = KCS_Plans::all();
 		if ( $id && ( $p = KCS_Partners::get( $id ) ) ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.Found,Squiz.PHP.DisallowMultipleAssignments.FoundInControlStructure
-			$pays = KCS_Payments::query( array( 'partner_id' => $p->id, 'per_page' => 20 ) )['items'];
+			$ppg  = kcs_current_page( 'ppg' );
+			$payq = KCS_Payments::query( array( 'partner_id' => $p->id, 'per_page' => 10, 'page' => $ppg ) );
+			$pays = $payq['items'];
 			$lock = KCS_Access::lock_reason( $p );
 			?>
 			<p><a href="<?php echo esc_url( self::url( 'partners' ) ); ?>">← <?php esc_html_e( 'All partners', 'kingdom-church-suite' ); ?></a></p>
@@ -1407,6 +1450,7 @@ class KCS_Church_Admin {
 						<?php endforeach; ?>
 						<?php if ( ! $pays ) : ?><li class="kcs-muted"><?php esc_html_e( 'No payments yet.', 'kingdom-church-suite' ); ?></li><?php endif; ?>
 					</ul>
+					<?php self::pager( $payq['total'], 10, $ppg, array( 'view' => 'partners', 'id' => $p->id ), 'ppg' ); ?>
 					<?php if ( $p->phone ) : ?><p><a class="kcs-btn kcs-btn--ghost" target="_blank" rel="noopener" href="<?php echo esc_url( 'https://wa.me/' . preg_replace( '/\D+/', '', $p->phone ) ); ?>"><?php esc_html_e( 'WhatsApp this partner', 'kingdom-church-suite' ); ?></a></p><?php endif; ?>
 				</section>
 			</div>
@@ -1428,7 +1472,8 @@ class KCS_Church_Admin {
 			return;
 		}
 
-		$result = KCS_Partners::query( array( 'search' => $search, 'status' => $status, 'per_page' => 25, 'page' => $page ) );
+		$per    = kcs_per_page();
+		$result = KCS_Partners::query( array( 'search' => $search, 'status' => $status, 'per_page' => $per, 'page' => $page ) );
 		$names  = array();
 		foreach ( $plans as $pl ) {
 			$names[ $pl->id ] = $pl->name;
@@ -1458,7 +1503,7 @@ class KCS_Church_Admin {
 			</table>
 		</div>
 		<?php
-		self::pager( $result['total'], 25, $page, array( 'view' => 'partners', 'find' => $search, 'status' => $status ) );
+		self::pager( $result['total'], $per, $page, array( 'view' => 'partners', 'find' => $search, 'status' => $status ) );
 	}
 
 	/**
@@ -1479,7 +1524,8 @@ class KCS_Church_Admin {
 		$purposes = kcs_all_purposes();
 		$filters  = array( 'status' => $status, 'search' => $search, 'purpose' => $purpose, 'gateway' => $gateway, 'date_from' => $from, 'date_to' => $to );
 		global $wpdb;
-		$result   = KCS_Payments::query( array_merge( $filters, array( 'per_page' => 25, 'page' => $page ) ) );
+		$per      = kcs_per_page();
+		$result   = KCS_Payments::query( array_merge( $filters, array( 'per_page' => $per, 'page' => $page ) ) );
 		$export   = wp_nonce_url( add_query_arg( array_filter( array( 'action' => 'kcs_export', 'type' => 'payments', 'status' => $status, 's' => $search, 'purpose' => $purpose, 'gateway' => $gateway, 'date_from' => $from, 'date_to' => $to ) ), admin_url( 'admin-post.php' ) ), 'kcs_export' );
 		$can_conf = KCS_Transfers::can_confirm();
 		$failed_n = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'payments' ) . " WHERE status IN ('failed','cancelled')" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
@@ -1569,7 +1615,7 @@ class KCS_Church_Admin {
 			</table>
 		</div>
 		<?php
-		self::pager( $result['total'], 25, $page, array_filter( array( 'view' => 'payments', 'find' => $search, 'status' => $status, 'purpose' => $purpose, 'gateway' => $gateway, 'from' => $from, 'to' => $to ) ) );
+		self::pager( $result['total'], $per, $page, array_filter( array( 'view' => 'payments', 'find' => $search, 'status' => $status, 'purpose' => $purpose, 'gateway' => $gateway, 'from' => $from, 'to' => $to ) ) );
 		$r = KCS_Receipts::settings();
 		?>
 		<details class="kca-card kcs-form kca-receipt-settings">
@@ -1607,7 +1653,10 @@ class KCS_Church_Admin {
 		$can_confirm = KCS_Transfers::can_confirm();
 		$can_setup   = current_user_can( 'manage_options' );
 		$purposes    = kcs_all_purposes();
-		$waiting     = KCS_Payments::query( array( 'gateway' => KCS_Transfers::MANUAL, 'status' => 'review', 'per_page' => 50 ) )['items'];
+		$wpg         = kcs_current_page();
+		$wper        = kcs_per_page();
+		$waitq       = KCS_Payments::query( array( 'gateway' => KCS_Transfers::MANUAL, 'status' => 'review', 'per_page' => $wper, 'page' => $wpg ) );
+		$waiting     = $waitq['items'];
 		$started     = KCS_Payments::query( array( 'gateway' => KCS_Transfers::MANUAL, 'status' => 'pending', 'date_from' => gmdate( 'Y-m-d', strtotime( current_time( 'Y-m-d' ) . ' -30 days' ) ), 'per_page' => 20 ) )['items'];
 		$label       = function ( $pay ) use ( $purposes ) {
 			return $purposes[ $pay->purpose ] ?? ucwords( str_replace( array( '-', '_' ), ' ', $pay->purpose ) );
@@ -1627,7 +1676,7 @@ class KCS_Church_Admin {
 		<?php endif; ?>
 
 		<section class="kca-card">
-			<h3><?php esc_html_e( 'Waiting for you to confirm', 'kingdom-church-suite' ); ?> <?php if ( $waiting ) : ?><span class="kcs-badge kcs-badge--review"><?php echo count( $waiting ); ?></span><?php endif; ?></h3>
+			<h3><?php esc_html_e( 'Waiting for you to confirm', 'kingdom-church-suite' ); ?> <?php if ( $waiting ) : ?><span class="kcs-badge kcs-badge--review"><?php echo (int) $waitq['total']; ?></span><?php endif; ?></h3>
 			<?php if ( ! $waiting ) : ?><p class="kcs-muted"><?php esc_html_e( 'Nothing to confirm. When a giver says they have paid, it appears here and you get an email.', 'kingdom-church-suite' ); ?></p><?php endif; ?>
 			<div class="kca-transfers">
 				<?php foreach ( $waiting as $pay ) : ?>
@@ -1660,6 +1709,7 @@ class KCS_Church_Admin {
 					</article>
 				<?php endforeach; ?>
 			</div>
+			<?php self::pager( $waitq['total'], $wper, $wpg, array( 'view' => 'transfers' ) ); ?>
 		</section>
 
 		<?php if ( $started ) : ?>
@@ -1822,39 +1872,128 @@ class KCS_Church_Admin {
 	 */
 	private static function view_prayers() {
 		global $wpdb;
-		$rows = $wpdb->get_results( 'SELECT * FROM ' . kcs_table( 'prayer_requests' ) . " ORDER BY FIELD(status,'new','praying','approved','answered','archived'), id DESC LIMIT 100" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		echo '<p class="kcs-muted">' . esc_html__( 'Requests marked “On prayer wall” or “Answered” (and not private) appear on the public prayer wall.', 'kingdom-church-suite' ) . '</p><div class="kca-stack">';
-		foreach ( $rows as $r ) {
-			echo '<article class="kca-card kca-item"><div><p>' . nl2br( esc_html( $r->request ) ) . '</p><small class="kcs-muted">' . esc_html( ( $r->name ? $r->name : __( 'Anonymous', 'kingdom-church-suite' ) ) . ' · ' . trim( $r->email . ' ' . $r->phone ) . ' · ' . mysql2date( get_option( 'date_format' ), $r->created_at ) ) . ( $r->is_private ? ' · ' . esc_html__( 'Private', 'kingdom-church-suite' ) : '' ) . ( $r->prayer_count ? ' · 🙏 ' . (int) $r->prayer_count : '' ) . '</small></div>' . self::status_form( 'prayer_status', 'prayers', $r->id, KCS_Prayer::statuses(), $r->status ) . '</article>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$status = isset( $_GET['status'] ) ? sanitize_key( $_GET['status'] ) : '';
+		$search = isset( $_GET['find'] ) ? sanitize_text_field( wp_unslash( $_GET['find'] ) ) : '';
+		// phpcs:enable
+		$page  = kcs_current_page();
+		$per   = kcs_per_page();
+		$t     = kcs_table( 'prayer_requests' );
+		$where = array( '1=1' );
+		if ( $status && isset( KCS_Prayer::statuses()[ $status ] ) ) {
+			$where[] = $wpdb->prepare( 'status = %s', $status );
 		}
+		if ( $search ) {
+			$like    = '%' . $wpdb->esc_like( $search ) . '%';
+			$where[] = $wpdb->prepare( "CONCAT_WS(' ', name, email, phone, request) LIKE %s", $like );
+		}
+		$where = implode( ' AND ', $where );
+		$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $t WHERE $where" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $t WHERE $where ORDER BY FIELD(status,'new','praying','approved','answered','archived'), id DESC LIMIT %d OFFSET %d", $per, ( $page - 1 ) * $per ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		echo '<p class="kcs-muted">' . esc_html__( 'Requests marked “On prayer wall” or “Answered” (and not private) appear on the public prayer wall.', 'kingdom-church-suite' ) . '</p>';
+		self::list_filters( 'prayers', $search, $status, KCS_Prayer::statuses(), __( 'Search name, email or request…', 'kingdom-church-suite' ) );
+		echo '<div class="kca-stack">';
+		$cats = KCS_Prayer::categories();
+		foreach ( $rows as $r ) {
+			$meta = array_filter(
+				array(
+					( $r->name ? $r->name : __( 'Anonymous', 'kingdom-church-suite' ) ) . ( $r->anonymous ? ' (' . __( 'shown as Anonymous', 'kingdom-church-suite' ) . ')' : '' ),
+					trim( $r->email . ' ' . $r->phone ),
+					$r->city,
+					$cats[ $r->category ] ?? '',
+					mysql2date( get_option( 'date_format' ), $r->created_at ),
+					$r->is_private ? __( 'Private', 'kingdom-church-suite' ) : __( 'Asked for the prayer wall', 'kingdom-church-suite' ),
+					$r->prayer_count ? '🙏 ' . (int) $r->prayer_count : '',
+				)
+			);
+			$encs = $r->is_private ? array() : KCS_Prayer::encouragements( (int) $r->id, true );
+			echo '<article class="kca-card kca-item"><div><p>' . nl2br( esc_html( $r->request ) ) . '</p><small class="kcs-muted">' . esc_html( implode( ' · ', $meta ) ) . '</small>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			if ( $r->praise ) {
+				echo '<p class="kca-praise"><strong>' . esc_html__( 'Praise report', 'kingdom-church-suite' ) . ':</strong> ' . nl2br( esc_html( $r->praise ) ) . '</p>';
+			}
+			if ( $encs ) {
+				echo '<details class="kca-encs"><summary>' . esc_html( sprintf( /* translators: %d: count */ _n( '%d encouragement', '%d encouragements', count( $encs ), 'kingdom-church-suite' ), count( $encs ) ) ) . '</summary><ul>';
+				foreach ( $encs as $e ) {
+					echo '<li class="is-' . esc_attr( $e->status ) . '"><span>' . nl2br( esc_html( $e->message ) ) . '<small class="kcs-muted"> — ' . esc_html( ( $e->name ? $e->name : __( 'A friend', 'kingdom-church-suite' ) ) . ' · ' . mysql2date( get_option( 'date_format' ), $e->created_at ) ) . ( 'visible' !== $e->status ? ' · ' . esc_html( 'pending' === $e->status ? __( 'Waiting for review', 'kingdom-church-suite' ) : __( 'Hidden', 'kingdom-church-suite' ) ) : '' ) . '</small></span><form method="post" class="kca-inline">' . self::fields( 'prayer_enc', 'prayers', (int) $e->id ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						. ( 'visible' !== $e->status ? '<button class="kcs-btn kcs-btn--ghost" name="decision" value="visible">' . esc_html__( 'Show', 'kingdom-church-suite' ) . '</button>' : '<button class="kcs-btn kcs-btn--ghost" name="decision" value="hidden">' . esc_html__( 'Hide', 'kingdom-church-suite' ) . '</button>' )
+						. '<button class="kcs-btn kcs-btn--ghost" name="decision" value="delete">' . esc_html__( 'Delete', 'kingdom-church-suite' ) . '</button></form></li>';
+				}
+				echo '</ul></details>';
+			}
+			echo '</div>' . self::status_form( 'prayer_status', 'prayers', $r->id, KCS_Prayer::statuses(), $r->status ) . '</article>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		}
+
 		if ( ! $rows ) {
-			echo '<p class="kcs-muted">' . esc_html__( 'No prayer requests yet.', 'kingdom-church-suite' ) . '</p>';
+			echo '<p class="kcs-muted">' . esc_html( $search || $status ? __( 'No prayer requests match.', 'kingdom-church-suite' ) : __( 'No prayer requests yet.', 'kingdom-church-suite' ) ) . '</p>';
 		}
 		echo '</div>';
+		self::pager( $total, $per, $page, array( 'view' => 'prayers', 'find' => $search, 'status' => $status ) );
 	}
 
+	/**
+	 * Search box + status filter above a list.
+	 *
+	 * @param string $view        View.
+	 * @param string $search      Search.
+	 * @param string $status      Status.
+	 * @param array  $statuses    Statuses.
+	 * @param string $placeholder Placeholder.
+	 */
+	private static function list_filters( $view, $search, $status, $statuses, $placeholder ) {
+		?>
+		<form class="kca-filters" method="get">
+			<input type="hidden" name="view" value="<?php echo esc_attr( $view ); ?>">
+			<input type="search" name="find" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php echo esc_attr( $placeholder ); ?>" aria-label="<?php esc_attr_e( 'Search', 'kingdom-church-suite' ); ?>">
+			<?php if ( $statuses ) : ?>
+				<select name="status" aria-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>"><option value=""><?php esc_html_e( 'All statuses', 'kingdom-church-suite' ); ?></option><?php foreach ( $statuses as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $status, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
+			<?php endif; ?>
+			<button class="kcs-btn"><?php esc_html_e( 'Filter', 'kingdom-church-suite' ); ?></button>
+		</form>
+		<?php
+	}
 	/**
 	 * Visit requests.
 	 */
 	private static function view_visits() {
 		global $wpdb;
-		$rows = $wpdb->get_results( 'SELECT * FROM ' . kcs_table( 'visits' ) . " ORDER BY FIELD(status,'new','confirmed','visited','no_show'), visit_date ASC, id DESC LIMIT 100" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$status = isset( $_GET['status'] ) ? sanitize_key( $_GET['status'] ) : '';
+		$search = isset( $_GET['find'] ) ? sanitize_text_field( wp_unslash( $_GET['find'] ) ) : '';
+		// phpcs:enable
+		$page  = kcs_current_page();
+		$per   = kcs_per_page();
+		$t     = kcs_table( 'visits' );
+		$where = array( '1=1' );
+		if ( $status && isset( KCS_Visits::statuses()[ $status ] ) ) {
+			$where[] = $wpdb->prepare( 'status = %s', $status );
+		}
+		if ( $search ) {
+			$where[] = $wpdb->prepare( "CONCAT_WS(' ', name, email, phone) LIKE %s", '%' . $wpdb->esc_like( $search ) . '%' );
+		}
+		$where = implode( ' AND ', $where );
+		$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $t WHERE $where" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $t WHERE $where ORDER BY FIELD(status,'new','confirmed','visited','no_show'), visit_date ASC, id DESC LIMIT %d OFFSET %d", $per, ( $page - 1 ) * $per ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		self::list_filters( 'visits', $search, $status, KCS_Visits::statuses(), __( 'Search name, email or phone…', 'kingdom-church-suite' ) );
 		echo '<div class="kca-stack">';
 		foreach ( $rows as $v ) {
 			$wa = $v->phone ? '<a class="kcs-btn kcs-btn--ghost" target="_blank" rel="noopener" href="' . esc_url( 'https://wa.me/' . preg_replace( '/\D+/', '', $v->phone ) ) . '">WhatsApp</a>' : '';
 			echo '<article class="kca-card kca-item"><div><strong>' . esc_html( $v->name ) . '</strong> <span class="kcs-muted">' . esc_html( ( $v->visit_date ? mysql2date( 'D, ' . get_option( 'date_format' ), $v->visit_date ) : __( 'Date not set', 'kingdom-church-suite' ) ) . ( $v->service ? ' · ' . $v->service : '' ) ) . '</span><p class="kcs-muted">' . esc_html( sprintf( /* translators: 1: adults, 2: kids */ __( '%1$d adult(s), %2$d child(ren)', 'kingdom-church-suite' ), $v->adults, $v->kids ) . ' · ' . trim( $v->email . ' ' . $v->phone ) ) . '</p>' . ( $v->notes ? '<p>' . nl2br( esc_html( $v->notes ), false ) . '</p>' : '' ) . '</div><div class="kca-actions">' . $wa . self::status_form( 'visit_status', 'visits', $v->id, KCS_Visits::statuses(), $v->status ) . '</div></article>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 		if ( ! $rows ) {
-			echo '<p class="kcs-muted">' . esc_html__( 'No visit requests yet. They come from the Visit Us page.', 'kingdom-church-suite' ) . '</p>';
+			echo '<p class="kcs-muted">' . esc_html( $search || $status ? __( 'No visit requests match.', 'kingdom-church-suite' ) : __( 'No visit requests yet. They come from the Visit Us page.', 'kingdom-church-suite' ) ) . '</p>';
 		}
 		echo '</div>';
+		self::pager( $total, $per, $page, array( 'view' => 'visits', 'find' => $search, 'status' => $status ) );
 	}
 
 	/**
 	 * Testimonies waiting for review.
 	 */
 	private static function view_testimonies() {
-		$pending = get_posts( array( 'post_type' => 'kcs_testimony', 'post_status' => 'pending', 'posts_per_page' => 50 ) );
+		$page    = kcs_current_page();
+		$per     = kcs_per_page();
+		$q       = new WP_Query( array( 'post_type' => 'kcs_testimony', 'post_status' => 'pending', 'posts_per_page' => $per, 'paged' => $page ) );
+		$pending = $q->posts;
 		echo '<div class="kca-stack">';
 		foreach ( $pending as $t ) {
 			echo '<article class="kca-card kca-item"><div><strong>' . esc_html( get_the_title( $t ) ) . '</strong><div>' . wp_kses_post( $t->post_content ) . '</div><small class="kcs-muted">— ' . esc_html( get_post_meta( $t->ID, '_kcs_person', true ) . ( get_post_meta( $t->ID, '_kcs_location', true ) ? ', ' . get_post_meta( $t->ID, '_kcs_location', true ) : '' ) ) . '</small></div><div class="kca-actions">';
@@ -1867,6 +2006,7 @@ class KCS_Church_Admin {
 			echo '<p class="kcs-muted">' . esc_html__( 'No testimonies are waiting for review.', 'kingdom-church-suite' ) . '</p>';
 		}
 		echo '</div>';
+		self::pager( $q->found_posts, $per, $page, array( 'view' => 'testimonies' ) );
 	}
 
 	/**
@@ -2440,6 +2580,107 @@ class KCS_Church_Admin {
 	}
 
 	/**
+	 * Today's Word: daily devotionals.
+	 */
+	private static function view_word() {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$edit_id = isset( $_GET['edit'] ) ? absint( $_GET['edit'] ) : 0;
+		$new     = isset( $_GET['new'] );
+		// phpcs:enable
+		$post  = $edit_id && KCS_Devotionals::TYPE === get_post_type( $edit_id ) ? get_post( $edit_id ) : null;
+		$page  = kcs_get_option( 'page_todays_word' ) ? (int) kcs_get_option( 'page_todays_word' ) : 0;
+		$today = current_time( 'Y-m-d' );
+		if ( $post || $new ) {
+			$date = $post ? mysql2date( 'Y-m-d', $post->post_date ) : $today;
+			if ( ! $post ) {
+				// Suggest the next free day.
+				while ( KCS_Devotionals::for_date( $date ) ) {
+					$date = gmdate( 'Y-m-d', strtotime( $date . ' +1 day' ) );
+				}
+			}
+			$img = $post ? (int) get_post_thumbnail_id( $post ) : 0;
+			?>
+			<p><a href="<?php echo esc_url( self::url( 'word' ) ); ?>">← <?php esc_html_e( 'All devotionals', 'kingdom-church-suite' ); ?></a></p>
+			<form method="post" class="kca-card kcs-form">
+				<?php echo self::fields( 'word_save', 'word', $post ? $post->ID : 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<div class="kcs-grid-2">
+					<label><?php esc_html_e( 'Day', 'kingdom-church-suite' ); ?><input type="date" name="date" value="<?php echo esc_attr( $date ); ?>" required></label>
+					<label><?php esc_html_e( 'Title', 'kingdom-church-suite' ); ?><input name="title" value="<?php echo esc_attr( $post ? $post->post_title : '' ); ?>" required placeholder="<?php esc_attr_e( 'e.g. You are not forgotten', 'kingdom-church-suite' ); ?>"></label>
+				</div>
+				<div class="kcs-grid-2">
+					<label><?php esc_html_e( 'Bible verse', 'kingdom-church-suite' ); ?><textarea name="verse" rows="3" placeholder="<?php esc_attr_e( 'The LORD is my shepherd; I shall not want.', 'kingdom-church-suite' ); ?>"><?php echo esc_textarea( $post ? (string) get_post_meta( $post->ID, '_kcs_verse', true ) : '' ); ?></textarea></label>
+					<label><?php esc_html_e( 'Reference', 'kingdom-church-suite' ); ?><input name="ref" value="<?php echo esc_attr( $post ? (string) get_post_meta( $post->ID, '_kcs_verse_ref', true ) : '' ); ?>" placeholder="<?php esc_attr_e( 'Psalm 23:1', 'kingdom-church-suite' ); ?>"></label>
+				</div>
+				<label><?php esc_html_e( 'Message', 'kingdom-church-suite' ); ?><textarea name="message" rows="10" required><?php echo esc_textarea( $post ? $post->post_content : '' ); ?></textarea><small class="kcs-muted"><?php esc_html_e( 'Leave an empty line between paragraphs.', 'kingdom-church-suite' ); ?></small></label>
+				<label><?php esc_html_e( 'Today’s prayer (optional)', 'kingdom-church-suite' ); ?><textarea name="prayer" rows="3"><?php echo esc_textarea( $post ? (string) get_post_meta( $post->ID, '_kcs_prayer', true ) : '' ); ?></textarea></label>
+				<?php if ( current_user_can( 'upload_files' ) ) : ?>
+					<div class="kca-image" data-kcs-media-field>
+						<span class="kca-image__label"><?php esc_html_e( 'Picture (optional)', 'kingdom-church-suite' ); ?></span>
+						<img class="kca-image__preview" src="<?php echo esc_url( $img ? (string) wp_get_attachment_image_url( $img, 'medium' ) : '' ); ?>" alt=""<?php echo $img ? '' : ' hidden'; ?>>
+						<input type="hidden" name="image_id" value="<?php echo (int) $img; ?>" data-kcs-media="id">
+					</div>
+				<?php endif; ?>
+				<div class="kca-actions"><button class="kcs-btn"><?php esc_html_e( 'Save devotional', 'kingdom-church-suite' ); ?></button></div>
+			</form>
+			<?php if ( $post ) : ?>
+				<form method="post" class="kca-inline" onsubmit="return confirm('<?php echo esc_js( __( 'Delete this devotional?', 'kingdom-church-suite' ) ); ?>')"><?php echo self::fields( 'word_delete', 'word', $post->ID ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Delete devotional', 'kingdom-church-suite' ); ?></button></form>
+			<?php endif; ?>
+			<?php
+			return;
+		}
+		$pg = kcs_current_page();
+		$q  = new WP_Query(
+			array(
+				'post_type'      => KCS_Devotionals::TYPE,
+				'post_status'    => array( 'publish', 'future' ),
+				'posts_per_page' => 15,
+				'paged'          => $pg,
+				'orderby'        => 'date',
+				'order'          => 'DESC',
+			)
+		);
+		$has_today = (bool) KCS_Devotionals::for_date( $today );
+		?>
+		<div class="kca-actions">
+			<a class="kcs-btn" href="<?php echo esc_url( self::url( 'word', array( 'new' => 1 ) ) ); ?>">＋ <?php esc_html_e( 'Write a devotional', 'kingdom-church-suite' ); ?></a>
+			<?php if ( $page ) : ?><a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( get_permalink( $page ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View Today’s Word page', 'kingdom-church-suite' ); ?> ↗</a><?php endif; ?>
+		</div>
+		<?php if ( ! $has_today ) : ?>
+			<div class="kcs-alert kcs-alert--info"><?php esc_html_e( 'There is no devotional for today, so the verse of the day is showing. Write one ahead for each day of the week.', 'kingdom-church-suite' ); ?></div>
+		<?php endif; ?>
+		<div class="kca-table">
+			<table>
+				<thead><tr><th><?php esc_html_e( 'Day', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Devotional', 'kingdom-church-suite' ); ?></th><th></th></tr></thead>
+				<tbody>
+				<?php foreach ( $q->posts as $p ) : ?>
+					<?php $day = mysql2date( 'Y-m-d', $p->post_date ); ?>
+					<tr>
+						<td data-label="<?php esc_attr_e( 'Day', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( mysql2date( 'D j M Y', $p->post_date ) ); ?></strong>
+							<?php if ( $day === $today ) : ?><span class="kca-pill is-on"><?php esc_html_e( 'Today', 'kingdom-church-suite' ); ?></span><?php elseif ( $day > $today ) : ?><span class="kca-pill"><?php esc_html_e( 'Scheduled', 'kingdom-church-suite' ); ?></span><?php endif; ?></td>
+						<td data-label="<?php esc_attr_e( 'Devotional', 'kingdom-church-suite' ); ?>"><a href="<?php echo esc_url( self::url( 'word', array( 'edit' => $p->ID ) ) ); ?>"><strong><?php echo esc_html( get_the_title( $p ) ); ?></strong></a><small><?php echo esc_html( (string) get_post_meta( $p->ID, '_kcs_verse_ref', true ) ); ?></small></td>
+						<td class="kca-actions"><a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( self::url( 'word', array( 'edit' => $p->ID ) ) ); ?>"><?php esc_html_e( 'Edit', 'kingdom-church-suite' ); ?></a></td>
+					</tr>
+				<?php endforeach; ?>
+				<?php if ( ! $q->posts ) : ?><tr><td colspan="3" class="kcs-muted"><?php esc_html_e( 'No devotionals yet. Write your first one — it takes two minutes.', 'kingdom-church-suite' ); ?></td></tr><?php endif; ?>
+				</tbody>
+			</table>
+		</div>
+		<?php self::pager( $q->found_posts, 15, $pg, array( 'view' => 'word' ) ); ?>
+		<form method="post" class="kca-card kcs-form">
+			<?php echo self::fields( 'word_settings', 'word', 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<h3><?php esc_html_e( 'Sharing Today’s Word', 'kingdom-church-suite' ); ?></h3>
+			<?php if ( ! $page ) : ?>
+				<label class="kcs-check"><input type="checkbox" name="create_page" value="1" checked> <?php esc_html_e( 'Create a “Today’s Word” page on my website', 'kingdom-church-suite' ); ?></label>
+			<?php endif; ?>
+			<label class="kcs-check"><input type="checkbox" name="todays_word_email" value="1" <?php checked( '1', kcs_get_option( 'todays_word_email', '0' ) ); ?>> <?php esc_html_e( 'Email the day’s devotional to newsletter subscribers every morning', 'kingdom-church-suite' ); ?></label>
+			<label><?php esc_html_e( 'Send from (hour of the day, 0–23)', 'kingdom-church-suite' ); ?><input type="number" min="0" max="23" name="todays_word_hour" value="<?php echo esc_attr( (string) kcs_get_option( 'todays_word_hour', 6 ) ); ?>" style="max-width:120px"></label>
+			<small class="kcs-muted"><?php esc_html_e( 'Only days that have a devotional are emailed. You can also add [kcs_todays_word] to any page.', 'kingdom-church-suite' ); ?></small>
+			<div><button class="kcs-btn"><?php esc_html_e( 'Save', 'kingdom-church-suite' ); ?></button></div>
+		</form>
+		<?php
+	}
+
+	/**
 	 * Newsletter: write to subscribers and partners, and manage subscribers.
 	 */
 	private static function view_newsletter() {
@@ -2459,8 +2700,11 @@ class KCS_Church_Admin {
 		}
 		$where = $search ? $wpdb->prepare( 'WHERE email LIKE %s OR name LIKE %s', '%' . $wpdb->esc_like( $search ) . '%', '%' . $wpdb->esc_like( $search ) . '%' ) : '';
 		$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $t $where" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared
-		$subs  = $wpdb->get_results( "SELECT * FROM $t $where ORDER BY id DESC LIMIT 25 OFFSET " . ( ( $page - 1 ) * 25 ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared
-		$sent  = $wpdb->get_results( 'SELECT * FROM ' . kcs_table( 'campaigns' ) . ' ORDER BY id DESC LIMIT 10' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$per   = kcs_per_page();
+		$subs  = $wpdb->get_results( "SELECT * FROM $t $where ORDER BY id DESC LIMIT $per OFFSET " . ( ( $page - 1 ) * $per ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared
+		$cpg   = kcs_current_page( 'cpg' );
+		$ctot  = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'campaigns' ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$sent  = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . kcs_table( 'campaigns' ) . ' ORDER BY id DESC LIMIT 10 OFFSET %d', ( $cpg - 1 ) * 10 ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		?>
 		<div class="kca-kpis">
 			<div class="kca-kpi"><span><?php esc_html_e( 'Subscribers', 'kingdom-church-suite' ); ?></span><strong><?php echo (int) ( $counts['subscribed'] ?? 0 ); ?></strong><small><?php echo (int) ( $counts['pending'] ?? 0 ); ?> <?php esc_html_e( 'waiting to confirm', 'kingdom-church-suite' ); ?></small></div>
@@ -2540,6 +2784,7 @@ class KCS_Church_Admin {
 					<?php endforeach; ?>
 					<?php if ( ! $sent ) : ?><li class="kcs-muted"><?php esc_html_e( 'Nothing sent yet.', 'kingdom-church-suite' ); ?></li><?php endif; ?>
 				</ul>
+				<?php self::pager( $ctot, 10, $cpg, array( 'view' => 'newsletter', 'find' => $search ), 'cpg' ); ?>
 			</section>
 		</div>
 		<section class="kca-card kca-gap">
@@ -2570,7 +2815,7 @@ class KCS_Church_Admin {
 					</tbody>
 				</table>
 			</div>
-			<?php self::pager( $total, 25, $page, array( 'view' => 'newsletter', 'find' => $search ) ); ?>
+			<?php self::pager( $total, $per, $page, array( 'view' => 'newsletter', 'find' => $search ) ); ?>
 		</section>
 		<?php
 	}
@@ -2680,6 +2925,9 @@ class KCS_Church_Admin {
 				<?php endif; ?>
 				<label class="kcs-check"><input type="checkbox" name="pwa_enabled" value="1" <?php checked( $on ); ?>> <?php esc_html_e( 'Turn the church app on', 'kingdom-church-suite' ); ?></label>
 				<label class="kcs-check"><input type="checkbox" name="pwa_banner" value="1" <?php checked( '1', (string) kcs_get_option( 'pwa_banner', '1' ) ); ?>> <?php esc_html_e( 'Invite visitors to install the app (after a couple of visits)', 'kingdom-church-suite' ); ?></label>
+				<?php $kcs_app_page = (int) kcs_get_option( 'page_app' ) && 'publish' === get_post_status( (int) kcs_get_option( 'page_app' ) ) ? (int) kcs_get_option( 'page_app' ) : 0; ?>
+				<label class="kcs-check"><input type="checkbox" name="pwa_start_app" value="1" <?php checked( '1', (string) kcs_get_option( 'pwa_start_app', '0' ) ); ?>> <?php esc_html_e( 'Open the installed app on the App home screen (greeting, live countdown, Today’s Word, prayer and sermons)', 'kingdom-church-suite' ); ?></label>
+				<small class="kcs-muted"><?php echo $kcs_app_page ? wp_kses_post( sprintf( /* translators: %s: link */ __( 'App home page: %s', 'kingdom-church-suite' ), '<a href="' . esc_url( get_permalink( $kcs_app_page ) ) . '" target="_blank" rel="noopener">' . esc_html( get_permalink( $kcs_app_page ) ) . '</a>' ) ) : esc_html__( 'Ticking this creates an “App” page for you.', 'kingdom-church-suite' ); ?></small>
 				<label class="kcs-check"><input type="checkbox" name="pwa_live_push" value="1" <?php checked( '1', (string) kcs_get_option( 'pwa_live_push', '1' ) ); ?>> <?php esc_html_e( 'Notify every phone automatically when the YouTube live stream starts', 'kingdom-church-suite' ); ?></label>
 				<label><?php esc_html_e( 'App name', 'kingdom-church-suite' ); ?><input name="pwa_name" value="<?php echo esc_attr( kcs_get_option( 'pwa_name', '' ) ); ?>" placeholder="<?php echo esc_attr( kcs_get_option( 'church_name', get_bloginfo( 'name' ) ) ); ?>"></label>
 				<label><?php esc_html_e( 'Name under the icon (max 14 letters)', 'kingdom-church-suite' ); ?><input name="pwa_short_name" maxlength="14" value="<?php echo esc_attr( kcs_get_option( 'pwa_short_name', '' ) ); ?>"></label>
@@ -2702,15 +2950,6 @@ class KCS_Church_Admin {
 	 * @param int   $page  Current.
 	 * @param array $args  Query args.
 	 */
-	private static function pager( $total, $per, $page, $args ) {
-		$pages = (int) ceil( $total / $per );
-		if ( $pages < 2 ) {
-			return;
-		}
-		echo '<nav class="kca-pager">';
-		for ( $i = 1; $i <= $pages; $i++ ) {
-			echo '<a href="' . esc_url( add_query_arg( array_merge( array_filter( $args ), array( 'pg' => $i ) ), kcs_page_url( 'church_admin' ) ) ) . '"' . ( $i === $page ? ' aria-current="page"' : '' ) . '>' . (int) $i . '</a>';
-		}
-		echo '</nav>';
-	}
-}
+	private static function pager( $total, $per, $page, $args, $param = 'pg' ) {
+		echo kcs_pager( $total, $per, $page, kcs_page_url( 'church_admin' ), $args, array( 'param' => $param, 'per_param' => 'pg' === $param ? 'per' : false ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}}

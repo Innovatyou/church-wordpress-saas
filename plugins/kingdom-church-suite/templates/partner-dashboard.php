@@ -236,6 +236,7 @@ $completed = array_filter(
 					</tbody>
 				</table>
 			</div>
+			<?php echo isset( $pager ) ? $pager : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		<?php else : ?>
 			<p class="kcs-muted"><?php esc_html_e( 'No payments yet.', 'kingdom-church-suite' ); ?></p>
 		<?php endif; ?>

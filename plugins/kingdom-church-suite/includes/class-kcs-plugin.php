@@ -50,6 +50,9 @@ final class KCS_Plugin {
 		KCS_Newsletter::init();
 		KCS_Livestream::init();
 		KCS_Prayer::init();
+		KCS_Prayer_Wall::init();
+		KCS_Devotionals::init();
+		KCS_App_Home::init();
 		KCS_Church_Admin::init();
 		KCS_Pages::init();
 		KCS_Contact::init();

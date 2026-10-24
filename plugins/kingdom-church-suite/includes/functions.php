@@ -732,3 +732,95 @@ function kcs_country_select( $name, $id, $required = false, $selected = '' ) {
 	}
 	return $h . '</select>';
 }
+
+/**
+ * Rows per page chosen by the visitor (?per=), limited to sensible sizes.
+ *
+ * @param int    $default Default.
+ * @param string $param   Query arg.
+ * @return int
+ */
+function kcs_per_page( $default = 20, $param = 'per' ) {
+	$per = isset( $_GET[ $param ] ) ? absint( $_GET[ $param ] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	return in_array( $per, array( 10, 20, 50, 100 ), true ) ? $per : $default;
+}
+
+/**
+ * Current page number from the query string.
+ *
+ * @param string $param Query arg.
+ * @return int
+ */
+function kcs_current_page( $param = 'pg' ) {
+	return max( 1, isset( $_GET[ $param ] ) ? absint( $_GET[ $param ] ) : 1 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+}
+
+/**
+ * Page links: "Showing 21–40 of 132", Previous / numbers / Next, and a rows-per-page choice.
+ *
+ * @param int    $total    Total rows.
+ * @param int    $per      Rows per page.
+ * @param int    $page     Current page.
+ * @param string $base     Page URL.
+ * @param array  $args     Query args to keep (filters).
+ * @param array  $opts     param (page arg), per_param (false to hide the choice), fragment.
+ * @return string
+ */
+function kcs_pager( $total, $per, $page, $base, $args = array(), $opts = array() ) {
+	$opts  = wp_parse_args( $opts, array( 'param' => 'pg', 'per_param' => 'per', 'fragment' => '' ) );
+	$total = (int) $total;
+	$per   = max( 1, (int) $per );
+	$pages = (int) ceil( $total / $per );
+	if ( $total <= 10 ) {
+		return '';
+	}
+	$page = min( max( 1, (int) $page ), max( 1, $pages ) );
+	$args = array_filter( (array) $args, 'strlen' );
+	if ( $opts['per_param'] && 20 !== $per ) {
+		$args[ $opts['per_param'] ] = $per;
+	}
+	$link = function ( $n ) use ( $base, $args, $opts ) {
+		return esc_url( add_query_arg( array_merge( $args, array( $opts['param'] => $n ) ), $base ) . ( $opts['fragment'] ? '#' . $opts['fragment'] : '' ) );
+	};
+	$out  = '<nav class="kcs-pager" aria-label="' . esc_attr__( 'Pages', 'kingdom-church-suite' ) . '">';
+	$out .= '<span class="kcs-pager__info">' . esc_html(
+		sprintf(
+			/* translators: 1: first row, 2: last row, 3: total */
+			__( 'Showing %1$s–%2$s of %3$s', 'kingdom-church-suite' ),
+			number_format_i18n( ( $page - 1 ) * $per + 1 ),
+			number_format_i18n( min( $total, $page * $per ) ),
+			number_format_i18n( $total )
+		)
+	) . '</span>';
+	if ( $pages > 1 ) {
+		$out .= '<span class="kcs-pager__links">';
+		$out .= $page > 1 ? '<a class="kcs-pager__step" rel="prev" href="' . $link( $page - 1 ) . '">‹ <span>' . esc_html__( 'Previous', 'kingdom-church-suite' ) . '</span></a>' : '<span class="kcs-pager__step is-off" aria-hidden="true">‹ <span>' . esc_html__( 'Previous', 'kingdom-church-suite' ) . '</span></span>';
+		$shown = array_unique( array_filter( array( 1, 2, $page - 1, $page, $page + 1, $pages - 1, $pages ), function ( $n ) use ( $pages ) { return $n >= 1 && $n <= $pages; } ) );
+		sort( $shown );
+		$prev = 0;
+		foreach ( $shown as $n ) {
+			if ( $n - $prev > 1 ) {
+				$out .= '<span class="kcs-pager__gap" aria-hidden="true">…</span>';
+			}
+			$out .= $n === $page ? '<span class="kcs-pager__num" aria-current="page">' . (int) $n . '</span>' : '<a class="kcs-pager__num" href="' . $link( $n ) . '">' . (int) $n . '</a>';
+			$prev = $n;
+		}
+		$out .= $page < $pages ? '<a class="kcs-pager__step" rel="next" href="' . $link( $page + 1 ) . '"><span>' . esc_html__( 'Next', 'kingdom-church-suite' ) . '</span> ›</a>' : '<span class="kcs-pager__step is-off" aria-hidden="true"><span>' . esc_html__( 'Next', 'kingdom-church-suite' ) . '</span> ›</span>';
+		$out .= '</span>';
+	}
+	if ( $opts['per_param'] ) {
+		$keep = $args;
+		unset( $keep[ $opts['per_param'] ], $keep[ $opts['param'] ] );
+		$out .= '<form class="kcs-pager__per" method="get" action="' . esc_url( strtok( $base, '?' ) ) . '">';
+		parse_str( (string) wp_parse_url( $base, PHP_URL_QUERY ), $base_args );
+		foreach ( array_merge( $base_args, $keep ) as $k => $v ) {
+			$out .= '<input type="hidden" name="' . esc_attr( $k ) . '" value="' . esc_attr( $v ) . '">';
+		}
+		$out .= '<label>' . esc_html__( 'Show', 'kingdom-church-suite' ) . ' <select name="' . esc_attr( $opts['per_param'] ) . '" onchange="this.form.submit()">';
+		foreach ( array( 10, 20, 50, 100 ) as $n ) {
+			$out .= '<option value="' . (int) $n . '"' . selected( $per, $n, false ) . '>' . (int) $n . '</option>';
+		}
+		$out .= '</select> ' . esc_html__( 'per page', 'kingdom-church-suite' ) . '</label><noscript><button class="kcs-btn kcs-btn--ghost">' . esc_html__( 'Go', 'kingdom-church-suite' ) . '</button></noscript></form>';
+	}
+	return $out . '</nav>';
+}

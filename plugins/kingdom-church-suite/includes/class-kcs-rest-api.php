@@ -120,6 +120,10 @@ class KCS_REST_API {
 			array( '/prayer-requests', 'POST', 'create_prayer', $public ),
 			array( '/prayer-requests/' . $id . '/pray', 'POST', 'pray', $public ),
 			array( '/prayer-wall', 'GET', 'prayer_wall', $public ),
+			array( '/prayer-wall/live', 'GET', 'prayer_live', $public ),
+			array( '/prayer-requests/' . $id . '/encouragements', 'GET', 'prayer_encouragements', $public ),
+			array( '/prayer-requests/' . $id . '/encouragements', 'POST', 'prayer_encourage', $public ),
+			array( '/prayer-requests/mine', 'POST', 'prayer_owner', $public ),
 
 			// Partner (self-service).
 			array( '/me', 'GET', 'me', $partner ),
@@ -436,7 +440,8 @@ class KCS_REST_API {
 		if ( is_wp_error( $id ) ) {
 			return $id;
 		}
-		return rest_ensure_response( array( 'id' => $id, 'message' => __( 'Thank you. Our prayer team is standing with you. 🙏', 'kingdom-church-suite' ) ) );
+		$row = KCS_Prayer::get( $id );
+		return rest_ensure_response( array( 'id' => $id, 'status' => $row && ! $row->is_private ? $row->status : 'private', 'message' => __( 'Thank you. Our prayer team is standing with you. 🙏', 'kingdom-church-suite' ) ) );
 	}
 
 	/**
@@ -458,8 +463,79 @@ class KCS_REST_API {
 	 *
 	 * @return WP_REST_Response
 	 */
-	public static function prayer_wall() {
-		return rest_ensure_response( KCS_Prayer::wall( 50 ) );
+	public static function prayer_wall( $req ) {
+		$q = KCS_Prayer::query(
+			array(
+				'filter'   => sanitize_key( (string) $req['filter'] ),
+				'category' => sanitize_title( (string) $req['category'] ),
+				'search'   => sanitize_text_field( (string) $req['search'] ),
+				'page'     => max( 1, (int) $req['page'] ),
+				'per_page' => (int) ( $req['per_page'] ? $req['per_page'] : 12 ),
+			)
+		);
+		return rest_ensure_response(
+			array(
+				'items' => array_map( array( 'KCS_Prayer', 'public_item' ), $q['rows'] ),
+				'total' => $q['total'],
+				'pages' => $q['pages'],
+				'stats' => KCS_Prayer::stats(),
+			)
+		);
+	}
+
+	/**
+	 * GET /prayer-wall/live?ids=1,2&since=9 — fresh counts for what is on screen.
+	 *
+	 * @param WP_REST_Request $req Request.
+	 * @return WP_REST_Response
+	 */
+	public static function prayer_live( $req ) {
+		return rest_ensure_response( KCS_Prayer::live( explode( ',', (string) $req['ids'] ), (int) $req['since'] ) );
+	}
+
+	/**
+	 * GET /prayer-requests/{id}/encouragements.
+	 *
+	 * @param WP_REST_Request $req Request.
+	 * @return WP_REST_Response
+	 */
+	public static function prayer_encouragements( $req ) {
+		return rest_ensure_response( KCS_Prayer::encouragements( (int) $req['id'] ) );
+	}
+
+	/**
+	 * POST /prayer-requests/{id}/encouragements.
+	 *
+	 * @param WP_REST_Request $req Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function prayer_encourage( $req ) {
+		if ( ! empty( $req['website'] ) ) {
+			return rest_ensure_response( array( 'pending' => true, 'message' => __( 'Thank you!', 'kingdom-church-suite' ) ) );
+		}
+		if ( ! kcs_rate_limit( 'encourage', 8, HOUR_IN_SECONDS ) ) {
+			return new WP_Error( 'kcs_rate', __( 'Thank you for encouraging so many people! Please try again a little later.', 'kingdom-church-suite' ), array( 'status' => 429 ) );
+		}
+		$out = KCS_Prayer::encourage( (int) $req['id'], $req->get_params() );
+		return is_wp_error( $out ) ? $out : rest_ensure_response( $out );
+	}
+
+	/**
+	 * POST /prayer-requests/mine — the person who asked marks it answered, adds a praise report or removes it.
+	 *
+	 * @param WP_REST_Request $req Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function prayer_owner( $req ) {
+		if ( ! kcs_rate_limit( 'prayer_owner', 20, HOUR_IN_SECONDS ) ) {
+			return new WP_Error( 'kcs_rate', __( 'Too many requests. Please try again later.', 'kingdom-church-suite' ), array( 'status' => 429 ) );
+		}
+		$row    = KCS_Prayer::by_token( (string) $req['token'] );
+		$action = sanitize_key( (string) $req['do'] );
+		if ( ! $row || ! in_array( $action, array( 'answered', 'praise', 'remove' ), true ) ) {
+			return new WP_Error( 'kcs_not_found', __( 'This link is no longer valid.', 'kingdom-church-suite' ), array( 'status' => 404 ) );
+		}
+		return rest_ensure_response( array( 'message' => KCS_Prayer::owner_update( $row, $action, (string) $req['praise'] ) ) );
 	}
 
 	/* ---------------------------------------------------------------------

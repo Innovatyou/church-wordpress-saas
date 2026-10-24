@@ -174,7 +174,10 @@ class KCS_Contact {
 	 * @param callable $fields Hidden fields builder ( $do, $view, $id ).
 	 */
 	public static function view( $fields ) {
-		$items = get_posts( array( 'post_type' => self::TYPE, 'post_status' => 'private', 'posts_per_page' => 100 ) );
+		$page  = kcs_current_page();
+		$per   = kcs_per_page();
+		$q     = new WP_Query( array( 'post_type' => self::TYPE, 'post_status' => 'private', 'posts_per_page' => $per, 'paged' => $page ) );
+		$items = $q->posts;
 		/* translators: %s: emails */
 		echo '<p class="kcs-muted">' . esc_html( sprintf( __( 'Messages from the contact form. New messages are also emailed to: %s.', 'kingdom-church-suite' ), implode( ', ', self::recipients() ) ) ) . '</p>';
 		echo '<div class="kca-stack">';
@@ -193,6 +196,7 @@ class KCS_Contact {
 			echo '<p class="kcs-muted">' . esc_html__( 'No messages yet. They come from the form on your Contact Us page.', 'kingdom-church-suite' ) . '</p>';
 		}
 		echo '</div>';
+		echo kcs_pager( $q->found_posts, $per, $page, kcs_page_url( 'church_admin' ), array( 'view' => 'messages' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	/**

@@ -227,9 +227,30 @@ class KCS_Installer {
 			is_private tinyint(1) NOT NULL DEFAULT 1,
 			status varchar(20) NOT NULL DEFAULT 'new',
 			prayer_count int(11) NOT NULL DEFAULT 0,
+			category varchar(40) NOT NULL DEFAULT '',
+			city varchar(100) NOT NULL DEFAULT '',
+			anonymous tinyint(1) NOT NULL DEFAULT 0,
+			notify tinyint(1) NOT NULL DEFAULT 0,
+			token varchar(40) NOT NULL DEFAULT '',
+			praise text NULL,
+			encourage_count int(11) NOT NULL DEFAULT 0,
+			answered_at datetime NULL,
+			last_prayed_at datetime NULL,
 			created_at datetime NOT NULL,
 			PRIMARY KEY  (id),
-			KEY status (status)
+			KEY status (status),
+			KEY token (token)
+		) $charset;";
+
+		$sql[] = 'CREATE TABLE ' . kcs_table( 'prayer_encouragements' ) . " (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			prayer_id bigint(20) unsigned NOT NULL,
+			name varchar(100) NOT NULL DEFAULT '',
+			message text NOT NULL,
+			status varchar(20) NOT NULL DEFAULT 'visible',
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY prayer_id (prayer_id)
 		) $charset;";
 
 		$sql[] = 'CREATE TABLE ' . kcs_table( 'visits' ) . " (
@@ -306,7 +327,8 @@ class KCS_Installer {
 			'tithe'             => array( __( 'Tithe & Offering', 'kingdom-church-suite' ), '[kcs_tithe]' ),
 			'thank_you'         => array( __( 'Thank You', 'kingdom-church-suite' ), '[kcs_payment_status]' ),
 			'watch_live'        => array( __( 'Watch Live', 'kingdom-church-suite' ), '[kcs_livestream chat="yes"]' ),
-			'prayer'            => array( __( 'Prayer Request', 'kingdom-church-suite' ), '[kcs_prayer_form][kcs_prayer_wall]' ),
+			'prayer'            => array( __( 'Prayer Request', 'kingdom-church-suite' ), '[kcs_prayer_wall]' ),
+			'todays_word'       => array( __( 'Today’s Word', 'kingdom-church-suite' ), '[kcs_todays_word]' ),
 			'visit'             => array( __( 'Visit Us', 'kingdom-church-suite' ), '[kcs_visit_form]' ),
 			'church_admin'      => array( __( 'Church Admin', 'kingdom-church-suite' ), '[kcs_church_admin]' ),
 		);

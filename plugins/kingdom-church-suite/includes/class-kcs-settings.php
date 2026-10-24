@@ -83,6 +83,12 @@ class KCS_Settings {
 					'grace_days'          => array( 'label' => __( 'Days after the due date before the partner dashboard locks', 'kingdom-church-suite' ), 'type' => 'number', 'default' => '7' ),
 					'reminder_days'       => array( 'label' => __( 'Send payment reminder N days before due date', 'kingdom-church-suite' ), 'type' => 'number', 'default' => '3' ),
 				),
+				__( 'Prayer wall', 'kingdom-church-suite' ) => array(
+					'prayer_auto_approve'   => array( 'label' => __( 'Show public prayer requests on the wall straight away', 'kingdom-church-suite' ), 'type' => 'checkbox', 'default' => '0', 'desc' => __( 'Off: new public requests wait for you to choose “On prayer wall” in Church Admin → Prayer requests.', 'kingdom-church-suite' ) ),
+					'prayer_review_encouragements' => array( 'label' => __( 'Check encouragements before they show', 'kingdom-church-suite' ), 'type' => 'checkbox', 'default' => '0', 'desc' => __( 'Encouragements with web links always wait for review.', 'kingdom-church-suite' ) ),
+					'prayer_phone'          => array( 'label' => __( 'Prayer line phone number', 'kingdom-church-suite' ), 'type' => 'text', 'desc' => __( 'Shown on the prayer wall: “Need someone to pray with you? Call…”. Leave empty to hide.', 'kingdom-church-suite' ) ),
+					'prayer_categories'     => array( 'label' => __( 'Prayer topics', 'kingdom-church-suite' ), 'type' => 'textarea', 'default' => "Healing\nFamily\nFinances\nSalvation\nGuidance\nWork & career\nRelationships\nThanksgiving\nOther", 'desc' => __( 'One per line.', 'kingdom-church-suite' ) ),
+				),
 				__( 'Pages', 'kingdom-church-suite' ) => array(
 					'page_partnership'       => array( 'label' => __( 'Partnership page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
 					'page_partner_login'     => array( 'label' => __( 'Partner login page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
@@ -92,6 +98,7 @@ class KCS_Settings {
 					'page_tithe'             => array( 'label' => __( 'Tithe & Offering page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
 					'page_thank_you'         => array( 'label' => __( 'Payment result page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
 					'page_watch_live'        => array( 'label' => __( 'Watch live page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
+					'page_todays_word'       => array( 'label' => __( 'Today’s Word page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
 					'page_prayer'            => array( 'label' => __( 'Prayer request page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
 					'page_visit'             => array( 'label' => __( 'Visit Us page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
 					'page_church_admin'      => array( 'label' => __( 'Church admin dashboard page', 'kingdom-church-suite' ), 'type' => 'select', 'options' => $pages ),
@@ -125,6 +132,8 @@ class KCS_Settings {
 				__( 'Newsletter', 'kingdom-church-suite' )    => array(
 					'double_optin'  => array( 'label' => __( 'Require email confirmation (double opt-in)', 'kingdom-church-suite' ), 'type' => 'checkbox', 'default' => '1' ),
 					'batch_size'    => array( 'label' => __( 'Emails sent per batch (every 5 min)', 'kingdom-church-suite' ), 'type' => 'number', 'default' => '50' ),
+					'todays_word_email' => array( 'label' => __( 'Email Today’s Word to subscribers every morning', 'kingdom-church-suite' ), 'type' => 'checkbox', 'default' => '0' ),
+					'todays_word_hour'  => array( 'label' => __( 'Send Today’s Word from (hour, 0–23)', 'kingdom-church-suite' ), 'type' => 'number', 'default' => '6' ),
 					'auto_new_sermon' => array( 'label' => __( 'Auto-email subscribers when a new sermon is published', 'kingdom-church-suite' ), 'type' => 'checkbox', 'default' => '0' ),
 				),
 			),

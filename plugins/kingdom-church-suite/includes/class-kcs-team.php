@@ -38,6 +38,7 @@ class KCS_Team {
 			__( 'Messages', 'kingdom-church-suite' )      => array(
 				'notify'     => __( 'Message partners', 'kingdom-church-suite' ),
 				'newsletter' => __( 'Newsletter', 'kingdom-church-suite' ),
+				'word'       => __( 'Today’s Word', 'kingdom-church-suite' ),
 				'pastors'    => __( 'Pastors & WhatsApp', 'kingdom-church-suite' ),
 			),
 			__( 'Website & app', 'kingdom-church-suite' ) => array(
@@ -126,6 +127,7 @@ class KCS_Team {
 			'website_save'       => array( 'website', 'content' ),
 			'campaign_'          => array( 'newsletter' ),
 			'design_'            => array( 'newsletter' ),
+			'word_'              => array( 'word' ),
 			'subscriber_'        => array( 'newsletter' ),
 			'app_'               => array( 'app' ),
 			'push_'              => array( 'app' ),

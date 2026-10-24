@@ -3,7 +3,7 @@
  * Plugin Name:       Ministry OS Church Suite
  * Plugin URI:        https://example.com/kingdom-church-suite
  * Description:       Church partnerships, partner portal, multi-gateway payments (Flutterwave, Paystack, PayPal, Stripe, Razorpay, bank transfer, custom API), REST API, email notifications, newsletter, YouTube live streaming, sermons, events, prayer requests and advanced SEO.
- * Version:           1.19.0
+ * Version:           1.20.0
  * Update URI:        https://github.com/Innovatyou/church-wordpress-saas
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -18,8 +18,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'KCS_VERSION', '1.19.0' );
-define( 'KCS_DB_VERSION', '1.3.0' );
+define( 'KCS_VERSION', '1.20.0' );
+define( 'KCS_DB_VERSION', '1.4.0' );
 define( 'KCS_FILE', __FILE__ );
 define( 'KCS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'KCS_URL', plugin_dir_url( __FILE__ ) );
@@ -58,6 +58,9 @@ require_once KCS_PATH . 'includes/class-kcs-popups.php';
 require_once KCS_PATH . 'includes/class-kcs-receipts.php';
 require_once KCS_PATH . 'includes/class-kcs-team.php';
 require_once KCS_PATH . 'includes/class-kcs-email-designs.php';
+require_once KCS_PATH . 'includes/class-kcs-prayer-wall.php';
+require_once KCS_PATH . 'includes/class-kcs-devotionals.php';
+require_once KCS_PATH . 'includes/class-kcs-app-home.php';
 require_once KCS_PATH . 'includes/class-kcs-seo.php';
 require_once KCS_PATH . 'includes/class-kcs-features.php';
 require_once KCS_PATH . 'includes/class-kcs-shortcodes.php';
