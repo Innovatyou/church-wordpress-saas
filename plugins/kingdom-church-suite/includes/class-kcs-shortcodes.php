@@ -36,6 +36,7 @@ class KCS_Shortcodes {
 			'kcs_events'            => 'events',
 			'kcs_verse'             => 'verse',
 			'kcs_testimony_form'    => 'testimony_form',
+			'kcs_share_story'       => 'testimony_form',
 			'kcs_social'            => 'social',
 			'kcs_visit_form'        => 'visit_form',
 			'kcs_visit_questionnaire' => 'visit_questionnaire',
@@ -398,26 +399,7 @@ class KCS_Shortcodes {
 	 * @return string
 	 */
 	public static function testimony_form() {
-		ob_start();
-		?>
-		<form class="kcs-form kcs-testimony-form" data-kcs-testimony>
-			<h3 class="kcs-form__title"><?php esc_html_e( 'Share your testimony', 'kingdom-church-suite' ); ?></h3>
-			<div class="kcs-grid-2">
-				<label for="kcs-t-name"><?php esc_html_e( 'Your name', 'kingdom-church-suite' ); ?><input id="kcs-t-name" type="text" name="name" required></label>
-				<label for="kcs-t-loc"><?php esc_html_e( 'City / country (optional)', 'kingdom-church-suite' ); ?><input id="kcs-t-loc" type="text" name="location"></label>
-			</div>
-			<div class="kcs-grid-2">
-				<label for="kcs-t-email"><?php esc_html_e( 'Email (not published)', 'kingdom-church-suite' ); ?><input id="kcs-t-email" type="email" name="email"></label>
-				<label for="kcs-t-title"><?php esc_html_e( 'Headline (optional)', 'kingdom-church-suite' ); ?><input id="kcs-t-title" type="text" name="title" placeholder="<?php esc_attr_e( 'e.g. Healed after 3 years', 'kingdom-church-suite' ); ?>"></label>
-			</div>
-			<label for="kcs-t-story"><?php esc_html_e( 'What has God done?', 'kingdom-church-suite' ); ?><textarea id="kcs-t-story" name="story" rows="5" required minlength="20"></textarea></label>
-			<label for="kcs-t-video"><?php esc_html_e( 'Video link (optional)', 'kingdom-church-suite' ); ?><input id="kcs-t-video" type="url" name="video_url" placeholder="https://youtu.be/…"></label>
-			<input type="text" name="website" class="kcs-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-			<button type="submit" class="kcs-btn"><?php esc_html_e( 'Submit testimony', 'kingdom-church-suite' ); ?></button>
-			<div class="kcs-form-msg" aria-live="polite"></div>
-		</form>
-		<?php
-		return ob_get_clean();
+		return KCS_Stories::form();
 	}
 
 	/**

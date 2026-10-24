@@ -476,10 +476,21 @@ class KCS_Church_Admin {
 						wp_update_post( array( 'ID' => $id, 'post_status' => 'publish' ) );
 						$msg = __( 'Testimony published.', 'kingdom-church-suite' );
 					} else {
-						wp_trash_post( $id );
+						// Deleted for good, with its pictures, so declined stories do not fill the hosting space.
+						wp_delete_post( $id, true );
 						$msg = __( 'Testimony removed.', 'kingdom-church-suite' );
 					}
 				}
+				break;
+
+			case 'testimony_settings':
+				kcs_update_option( 'story_photos', empty( $d['story_photos'] ) ? '0' : '1' );
+				kcs_update_option( 'story_video', empty( $d['story_video'] ) ? '0' : '1' );
+				kcs_update_option( 'story_max_photos', (string) max( 1, min( 10, absint( $d['story_max_photos'] ?? 4 ) ) ) );
+				kcs_update_option( 'story_photo_mb', (string) max( 1, min( 50, absint( $d['story_photo_mb'] ?? 5 ) ) ) );
+				kcs_update_option( 'story_video_minutes', (string) max( 1, min( 60, absint( $d['story_video_minutes'] ?? 5 ) ) ) );
+				kcs_update_option( 'story_guidelines', sanitize_textarea_field( $d['story_guidelines'] ?? '' ) );
+				$msg = __( 'Story settings saved.', 'kingdom-church-suite' );
 				break;
 
 			case 'notify':
@@ -1994,19 +2005,59 @@ class KCS_Church_Admin {
 		$per     = kcs_per_page();
 		$q       = new WP_Query( array( 'post_type' => 'kcs_testimony', 'post_status' => 'pending', 'posts_per_page' => $per, 'paged' => $page ) );
 		$pending = $q->posts;
+		$labels  = array(
+			'text'   => __( '✍️ Written', 'kingdom-church-suite' ),
+			'photos' => __( '📷 With pictures', 'kingdom-church-suite' ),
+			'video'  => __( '▶️ YouTube video', 'kingdom-church-suite' ),
+		);
 		echo '<div class="kca-stack">';
 		foreach ( $pending as $t ) {
-			echo '<article class="kca-card kca-item"><div><strong>' . esc_html( get_the_title( $t ) ) . '</strong><div>' . wp_kses_post( $t->post_content ) . '</div><small class="kcs-muted">— ' . esc_html( get_post_meta( $t->ID, '_kcs_person', true ) . ( get_post_meta( $t->ID, '_kcs_location', true ) ? ', ' . get_post_meta( $t->ID, '_kcs_location', true ) : '' ) ) . '</small></div><div class="kca-actions">';
-			foreach ( array( 'publish' => __( 'Publish', 'kingdom-church-suite' ), 'trash' => __( 'Remove', 'kingdom-church-suite' ) ) as $k => $l ) {
-				echo '<form method="post" class="kca-inline">' . self::fields( 'testimony', 'testimonies', $t->ID ) . '<input type="hidden" name="decision" value="' . esc_attr( $k ) . '"><button class="kcs-btn' . ( 'trash' === $k ? ' kcs-btn--ghost' : '' ) . '">' . esc_html( $l ) . '</button></form>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			$type  = (string) get_post_meta( $t->ID, '_kcs_story_type', true );
+			$yt    = KCS_Post_Types::youtube_id( (string) get_post_meta( $t->ID, '_kcs_video_url', true ) );
+			$secs  = (int) get_post_meta( $t->ID, '_kcs_video_seconds', true );
+			$email = (string) get_post_meta( $t->ID, '_kcs_submitter_email', true );
+			echo '<article class="kca-card kca-item kca-story"><div>';
+			echo '<strong>' . esc_html( get_the_title( $t ) ) . '</strong> ' . ( isset( $labels[ $type ] ) ? '<span class="kca-pill">' . esc_html( $labels[ $type ] ) . '</span>' : '' );
+			echo '<div>' . wp_kses_post( $t->post_content ) . '</div>';
+			if ( $yt ) {
+				echo '<a class="kca-story__video" href="' . esc_url( 'https://www.youtube.com/watch?v=' . $yt ) . '" target="_blank" rel="noopener"><img src="' . esc_url( 'https://i.ytimg.com/vi/' . $yt . '/mqdefault.jpg' ) . '" alt="" loading="lazy"><span>▶ ' . esc_html__( 'Watch on YouTube before publishing', 'kingdom-church-suite' ) . ( $secs ? ' · ' . esc_html( gmdate( $secs >= 3600 ? 'G:i:s' : 'i:s', $secs ) ) : '' ) . '</span></a>';
 			}
+			$gallery = KCS_Stories::gallery( $t->ID );
+			if ( $gallery ) {
+				echo '<div class="kca-story__pics">';
+				foreach ( $gallery as $att ) {
+					echo '<a href="' . esc_url( (string) wp_get_attachment_image_url( $att, 'large' ) ) . '" target="_blank" rel="noopener">' . wp_get_attachment_image( $att, 'thumbnail', false, array( 'loading' => 'lazy' ) ) . '</a>';
+				}
+				echo '</div>';
+			}
+			echo '<small class="kcs-muted">— ' . esc_html( implode( ' · ', array_filter( array( get_post_meta( $t->ID, '_kcs_person', true ), get_post_meta( $t->ID, '_kcs_location', true ), $email, get_the_date( '', $t ), get_post_meta( $t->ID, '_kcs_consent', true ) ? __( 'Agreed to be shared', 'kingdom-church-suite' ) : '' ) ) ) ) . '</small></div><div class="kca-actions">';
+			echo '<form method="post" class="kca-inline">' . self::fields( 'testimony', 'testimonies', $t->ID ) . '<input type="hidden" name="decision" value="publish"><button class="kcs-btn">' . esc_html__( 'Publish', 'kingdom-church-suite' ) . '</button></form>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo '<form method="post" class="kca-inline" onsubmit="return confirm(\'' . esc_js( __( 'Remove this story and its pictures?', 'kingdom-church-suite' ) ) . '\')">' . self::fields( 'testimony', 'testimonies', $t->ID ) . '<input type="hidden" name="decision" value="trash"><button class="kcs-btn kcs-btn--ghost">' . esc_html__( 'Remove', 'kingdom-church-suite' ) . '</button></form>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			echo '</div></article>';
 		}
 		if ( ! $pending ) {
-			echo '<p class="kcs-muted">' . esc_html__( 'No testimonies are waiting for review.', 'kingdom-church-suite' ) . '</p>';
+			echo '<p class="kcs-muted">' . esc_html__( 'No stories are waiting for review.', 'kingdom-church-suite' ) . '</p>';
 		}
 		echo '</div>';
 		self::pager( $q->found_posts, $per, $page, array( 'view' => 'testimonies' ) );
+		$st = KCS_Stories::settings();
+		?>
+		<form method="post" class="kca-card kcs-form kca-gap">
+			<?php echo self::fields( 'testimony_settings', 'testimonies', 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<h3><?php esc_html_e( '“Share your story” settings', 'kingdom-church-suite' ); ?></h3>
+			<p class="kcs-muted"><?php esc_html_e( 'People can always write their story. Choose whether they may add pictures or a YouTube video, and the limits. Videos are links only — nothing is uploaded to your website.', 'kingdom-church-suite' ); ?></p>
+			<label class="kcs-check"><input type="checkbox" name="story_photos" value="1" <?php checked( $st['photos'] ); ?>> <?php esc_html_e( 'Allow pictures', 'kingdom-church-suite' ); ?></label>
+			<div class="kcs-grid-2">
+				<label><?php esc_html_e( 'Most pictures per story', 'kingdom-church-suite' ); ?><input type="number" min="1" max="10" name="story_max_photos" value="<?php echo (int) $st['max_photos']; ?>"></label>
+				<label><?php esc_html_e( 'Largest picture (MB)', 'kingdom-church-suite' ); ?><input type="number" min="1" max="50" name="story_photo_mb" value="<?php echo (int) kcs_get_option( 'story_photo_mb', 5 ); ?>"><small class="kcs-muted"><?php /* translators: %d: MB */ echo esc_html( sprintf( __( 'Your hosting accepts up to %d MB per file. Pictures are made smaller on the phone before sending.', 'kingdom-church-suite' ), (int) floor( wp_max_upload_size() / MB_IN_BYTES ) ) ); ?></small></label>
+			</div>
+			<label class="kcs-check"><input type="checkbox" name="story_video" value="1" <?php checked( $st['video'] ); ?>> <?php esc_html_e( 'Allow a YouTube video link', 'kingdom-church-suite' ); ?></label>
+			<label><?php esc_html_e( 'Longest video (minutes)', 'kingdom-church-suite' ); ?><input type="number" min="1" max="60" name="story_video_minutes" value="<?php echo (int) $st['max_minutes']; ?>" style="max-width:140px">
+				<small class="kcs-muted"><?php echo esc_html( kcs_get_option( 'yt_api_key' ) ? __( 'Video length is checked automatically with your YouTube API key.', 'kingdom-church-suite' ) : __( 'Add a YouTube API key in Settings → Live stream to check video length automatically. Without it, the length is in the guidelines and you check it before publishing.', 'kingdom-church-suite' ) ); ?></small></label>
+			<label><?php esc_html_e( 'Video guidelines (one per line — leave empty for ours)', 'kingdom-church-suite' ); ?><textarea name="story_guidelines" rows="5" placeholder="<?php echo esc_attr( implode( "\n", KCS_Stories::guidelines( $st['max_minutes'] ) ) ); ?>"><?php echo esc_textarea( $st['guidelines'] ); ?></textarea></label>
+			<div><button class="kcs-btn"><?php esc_html_e( 'Save', 'kingdom-church-suite' ); ?></button></div>
+		</form>
+		<?php
 	}
 
 	/**

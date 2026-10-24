@@ -66,6 +66,11 @@ while ( have_posts() ) :
 					<?php endif; ?>
 				<?php endif; ?>
 
+				<?php
+				if ( 'kcs_testimony' === $kingdom_type && class_exists( 'KCS_Stories' ) ) {
+					echo KCS_Stories::gallery_html( get_the_ID() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				}
+				?>
 				<div class="k-entry__content">
 					<?php
 					the_content();
