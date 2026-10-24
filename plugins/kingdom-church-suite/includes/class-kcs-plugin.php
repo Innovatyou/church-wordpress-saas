@@ -55,6 +55,7 @@ final class KCS_Plugin {
 		KCS_Contact::init();
 		KCS_Slides::init();
 		KCS_Popups::init();
+		KCS_Email_Designs::init();
 		KCS_Receipts::init();
 		KCS_Push::init();
 		KCS_PWA::init();

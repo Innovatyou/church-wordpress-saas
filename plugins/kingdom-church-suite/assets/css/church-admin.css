@@ -260,3 +260,16 @@ details.kca-card > summary::-webkit-details-marker { display: none; }
 .kca-editor .wp-editor-container { border: 1px solid var(--kcs-border); }
 .kca-editor iframe { min-height: 420px; }
 .kca-save-design { margin-top: .75rem; padding-top: .75rem; border-top: 1px dashed var(--kcs-border); }
+/* Newsletter: change the pictures in the email */
+.kca-pics { margin-top: .75rem; padding: 1rem; border: 1px solid var(--kcs-border); border-radius: 14px; background: var(--kcs-surface); }
+.kca-pics.is-busy { opacity: .6; pointer-events: none; }
+.kca-pics__head { display: flex; flex-wrap: wrap; gap: .25rem .6rem; align-items: baseline; margin-bottom: .75rem; }
+.kca-pics__head small { font-size: .82rem; }
+.kca-pics > p { margin: 0; }
+.kca-pics__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .75rem; }
+.kca-pics__item { display: flex; flex-direction: column; gap: .4rem; }
+.kca-pics__thumb { display: block; padding: 0; border: 1px solid var(--kcs-border); border-radius: 10px; overflow: hidden; background: var(--kcs-surface-2); cursor: pointer; aspect-ratio: 16 / 10; }
+.kca-pics__thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.kca-pics__name { font-size: .82rem; font-weight: 600; }
+.kca-pics__btns { display: flex; gap: .35rem; flex-wrap: wrap; }
+.kca-pics__btns .kcs-btn { padding: .35rem .8rem; font-size: .82rem; min-height: 0; }

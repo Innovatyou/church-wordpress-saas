@@ -212,6 +212,22 @@ class KCS_Church_Admin {
 					'titleVideo'  => __( 'Choose a video', 'kingdom-church-suite' ),
 					'useVideo'    => __( 'Use this video', 'kingdom-church-suite' ),
 					'replaceDesign' => __( 'Replace your message with this design?', 'kingdom-church-suite' ),
+					'ajax'          => admin_url( 'admin-ajax.php' ),
+					'playNonce'     => wp_create_nonce( 'kcs_play_picture' ),
+					'pics'          => array(
+						'title'   => __( 'Pictures in this email', 'kingdom-church-suite' ),
+						'help'    => __( 'Click “Change” to put your own photo in its place. Message pictures get a play button automatically.', 'kingdom-church-suite' ),
+						'none'    => __( 'No pictures yet. Pick a design above, or use “Add Media” to add one.', 'kingdom-church-suite' ),
+						'visual'  => __( 'Switch to the “Visual” tab to change pictures.', 'kingdom-church-suite' ),
+						'change'  => __( 'Change', 'kingdom-church-suite' ),
+						'remove'  => __( 'Remove', 'kingdom-church-suite' ),
+						'show'    => __( 'Show', 'kingdom-church-suite' ),
+						'video'   => __( 'Message picture (play button)', 'kingdom-church-suite' ),
+						'logo'    => __( 'Logo', 'kingdom-church-suite' ),
+						'picture' => __( 'Picture', 'kingdom-church-suite' ),
+						'working' => __( 'Adding the play button…', 'kingdom-church-suite' ),
+						'confirm' => __( 'Remove this picture from the email?', 'kingdom-church-suite' ),
+					),
 				)
 			);
 		}
@@ -2467,12 +2483,18 @@ class KCS_Church_Admin {
 				<div class="kca-editor">
 					<span class="kca-image__label"><?php esc_html_e( 'Message', 'kingdom-church-suite' ); ?></span>
 					<?php
+					$content = $edit ? (string) $edit->content : '';
+					// Older plain messages: keep their paragraphs now the editor stores exact HTML.
+					if ( $content && ! preg_match( '/<(p|div|table|h[1-6]|ul|ol|br)\b/i', $content ) ) {
+						$content = wpautop( $content );
+					}
 					wp_editor(
-						$edit ? $edit->content : '',
+						$content,
 						'kcs_campaign_content',
 						array(
 							'textarea_name' => 'content',
 							'textarea_rows' => 20,
+							'wpautop'       => false,
 							'media_buttons' => current_user_can( 'upload_files' ),
 							'teeny'         => false,
 							'quicktags'     => true,
@@ -2489,6 +2511,9 @@ class KCS_Church_Admin {
 					);
 					?>
 					<small class="kcs-muted"><?php esc_html_e( 'Use the toolbar like a word processor, “Add Media” for pictures, and the “Text” tab to paste your own HTML. Write {first_name} to greet each person by name.', 'kingdom-church-suite' ); ?></small>
+					<?php if ( current_user_can( 'upload_files' ) ) : ?>
+						<div class="kca-pics" data-kcs-pics hidden></div>
+					<?php endif; ?>
 				</div>
 				<div class="kca-actions">
 					<button class="kcs-btn" name="do" value="send" onclick="return confirm('<?php echo esc_js( __( 'Send this email now?', 'kingdom-church-suite' ) ); ?>')"><?php esc_html_e( 'Send now', 'kingdom-church-suite' ); ?></button>

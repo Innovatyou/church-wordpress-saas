@@ -19,6 +19,29 @@ class KCS_Email_Designs {
 	const OPTION = 'kcs_email_designs';
 
 	/**
+	 * Hooks.
+	 */
+	public static function init() {
+		add_action( 'wp_ajax_kcs_play_picture', array( __CLASS__, 'ajax_play_picture' ) );
+	}
+
+	/**
+	 * Make the "play button" copy of a picture the church just chose for a message email.
+	 */
+	public static function ajax_play_picture() {
+		check_ajax_referer( 'kcs_play_picture' );
+		if ( ! KCS_Church_Admin::can() || ! KCS_Team::allowed( 'newsletter' ) || ! current_user_can( 'upload_files' ) ) {
+			wp_send_json_error( null, 403 );
+		}
+		$id  = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		$url = $id && wp_attachment_is_image( $id ) ? self::play_picture( $id ) : '';
+		if ( ! $url ) {
+			wp_send_json_error();
+		}
+		wp_send_json_success( array( 'url' => $url ) );
+	}
+
+	/**
 	 * Church details the layouts use.
 	 *
 	 * @return array
@@ -81,6 +104,10 @@ class KCS_Email_Designs {
 	 * @return array key => array( name, description, icon, subject, html ).
 	 */
 	public static function starters() {
+		static $cache = null;
+		if ( null !== $cache ) {
+			return $cache;
+		}
 		$c     = self::church();
 		$h1    = 'style="margin:0 0 12px;font-size:26px;line-height:1.25;color:#1f1b24"';
 		$p     = 'style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#3d3747"';
@@ -158,7 +185,330 @@ class KCS_Email_Designs {
 		 *
 		 * @param array $designs key => array( name, description, icon, subject, html ).
 		 */
-		return (array) apply_filters( 'kcs_email_designs', $designs );
+		$cache = (array) apply_filters( 'kcs_email_designs', self::modern( $c ) + $designs );
+		return $cache;
+	}
+
+	/**
+	 * A bundled picture the church swaps for its own.
+	 *
+	 * @param string $name File in assets/img/email.
+	 * @return string
+	 */
+	private static function placeholder( $name ) {
+		return KCS_URL . 'assets/img/email/' . $name;
+	}
+
+	/**
+	 * The church logo for the dark email header, or '' (SVG logos do not show in email apps).
+	 *
+	 * @return string
+	 */
+	private static function logo() {
+		$logo = (string) kcs_get_option( 'church_logo' );
+		if ( ! $logo && get_theme_mod( 'custom_logo' ) ) {
+			$logo = (string) wp_get_attachment_image_url( (int) get_theme_mod( 'custom_logo' ), 'medium' );
+		}
+		return $logo && ! preg_match( '/\.svg(\?|$)/i', $logo ) ? $logo : '';
+	}
+
+	/**
+	 * A copy of a picture with a round play button on it, for "watch the message" emails
+	 * (email apps cannot lay a button over a picture, so it is drawn into the picture).
+	 *
+	 * @param int|string $src Attachment ID or picture URL on this site.
+	 * @return string URL of the copy, or '' when it cannot be made.
+	 */
+	public static function play_picture( $src ) {
+		if ( ! function_exists( 'imagecreatefromstring' ) ) {
+			return '';
+		}
+		$path = '';
+		if ( is_numeric( $src ) ) {
+			$path = (string) get_attached_file( (int) $src );
+		} else {
+			$src     = strtok( (string) $src, '?' );
+			$uploads = wp_get_upload_dir();
+			foreach ( array( $uploads['baseurl'] => $uploads['basedir'], content_url() => WP_CONTENT_DIR ) as $base => $dir ) {
+				$base = set_url_scheme( $base, 'http' );
+				if ( 0 === strpos( set_url_scheme( $src, 'http' ), $base . '/' ) ) {
+					$path = $dir . substr( set_url_scheme( $src, 'http' ), strlen( $base ) );
+					break;
+				}
+			}
+		}
+		$path = $path ? wp_normalize_path( $path ) : '';
+		if ( ! $path || false !== strpos( $path, '..' ) || ! is_file( $path ) || ! preg_match( '/\.(jpe?g|png|gif|webp)$/i', $path ) ) {
+			return '';
+		}
+		$uploads = wp_get_upload_dir();
+		$name    = 'play-' . substr( md5( $path . filemtime( $path ) ), 0, 16 ) . '.jpg';
+		$dir     = trailingslashit( $uploads['basedir'] ) . 'kcs-email';
+		$url     = trailingslashit( $uploads['baseurl'] ) . 'kcs-email/' . $name;
+		if ( is_file( $dir . '/' . $name ) ) {
+			return $url;
+		}
+		$img = @imagecreatefromstring( (string) file_get_contents( $path ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged,WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( ! $img ) {
+			return '';
+		}
+		$w = imagesx( $img );
+		$h = imagesy( $img );
+		// Work at up to 1200px wide, drawn twice the size and shrunk for smooth edges.
+		$tw  = min( 1200, $w );
+		$th  = (int) round( $h * $tw / $w );
+		$out = imagecreatetruecolor( $tw, $th );
+		imagecopyresampled( $out, $img, 0, 0, 0, 0, $tw, $th, $w, $h );
+		imagedestroy( $img );
+		$r    = (int) round( min( $tw, $th ) * 0.12 );
+		$size = $r * 4 + 8;
+		$btn  = imagecreatetruecolor( $size, $size );
+		imagealphablending( $btn, false );
+		imagefill( $btn, 0, 0, imagecolorallocatealpha( $btn, 0, 0, 0, 127 ) );
+		imagealphablending( $btn, true );
+		$c = $size / 2;
+		imagefilledellipse( $btn, (int) $c, (int) $c, $r * 4 + 24, $r * 4 + 24, imagecolorallocatealpha( $btn, 0, 0, 0, 96 ) );
+		imagefilledellipse( $btn, (int) $c, (int) $c, $r * 4, $r * 4, imagecolorallocatealpha( $btn, 255, 255, 255, 12 ) );
+		$tri = array( $c - $r * 0.6, $c - $r * 0.9, $c - $r * 0.6, $c + $r * 0.9, $c + $r, $c );
+		imagefilledpolygon( $btn, array_map( 'intval', $tri ), imagecolorallocate( $btn, 34, 30, 48 ) );
+		imagecopyresampled( $out, $btn, (int) ( $tw / 2 - $r ), (int) ( $th / 2 - $r ), 0, 0, $r * 2, $r * 2, $size, $size );
+		imagedestroy( $btn );
+		wp_mkdir_p( $dir );
+		$ok = imagejpeg( $out, $dir . '/' . $name, 82 );
+		imagedestroy( $out );
+		return $ok ? $url : '';
+	}
+
+	/**
+	 * Modern designs: a dark header with the logo, a coloured strip, a cream headline section,
+	 * big rounded pictures and colour blocks, full width in the email.
+	 *
+	 * Every picture is marked so the church can swap it under the editor (“Change pictures”).
+	 *
+	 * @param array $c Church.
+	 * @return array
+	 */
+	private static function modern( $c ) {
+		$accent = $c['color'];
+		$dark   = '#1b1824';
+		$cream  = '#f7f0e6';
+		$olive  = '#4d5a33';
+		$gold   = '#d9ae4f';
+		$serif  = 'font-family:Georgia,Times,serif';
+		$sans   = 'font-family:Arial,Helvetica,sans-serif';
+		$pic    = function ( $n, $fallback ) use ( $c ) {
+			return isset( $c['pics'][ $n ] ) ? $c['pics'][ $n ] : self::placeholder( $fallback );
+		};
+		$video  = '';
+		foreach ( array( 1, 0 ) as $n ) {
+			if ( ! $video && isset( $c['pics'][ $n ] ) ) {
+				$video = self::play_picture( $c['pics'][ $n ] );
+			}
+		}
+		$video = $video ? $video : self::placeholder( 'video.jpg' );
+
+		// One full-width band.
+		$band = function ( $bg, $inner, $pad = '44px 40px', $align = 'left' ) use ( $sans ) {
+			return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="' . esc_attr( $bg ) . '" style="border-collapse:collapse;background:' . esc_attr( $bg ) . '"><tr><td class="kcs-pad" align="' . esc_attr( $align ) . '" style="padding:' . esc_attr( $pad ) . ';text-align:' . esc_attr( $align ) . ';' . $sans . '">' . $inner . '</td></tr></table>';
+		};
+		$header = $band(
+			$dark,
+			self::logo()
+				? '<a href="' . esc_url( $c['home'] ) . '"><img src="' . esc_url( self::logo() ) . '" alt="' . esc_attr( $c['name'] ) . '" height="56" style="display:inline-block;height:56px;width:auto;max-width:240px;border:0"></a>'
+				: '<a href="' . esc_url( $c['home'] ) . '" style="' . $serif . ';font-size:24px;letter-spacing:1px;color:#ffffff;text-decoration:none">' . esc_html( $c['name'] ) . '</a>',
+			'26px 24px',
+			'center'
+		);
+		$strip  = function ( $text, $link, $url ) use ( $band, $accent ) {
+			return $band( $accent, '<span style="font-size:14px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;color:#ffffff">' . esc_html( $text ) . ( $link ? ' &nbsp;·&nbsp; <a href="' . esc_url( $url ) . '" style="color:#ffffff;text-decoration:underline">' . esc_html( $link ) . '</a>' : '' ) . '</span>', '13px 24px', 'center' );
+		};
+		$eyebrow = function ( $text, $color ) {
+			return '<p style="margin:0 0 14px;font-size:13px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:' . esc_attr( $color ) . '">' . esc_html( $text ) . '</p>';
+		};
+		// A big serif headline in two colours.
+		$headline = function ( $one, $two, $color, $color2, $size = 44, $tag = 'h1' ) use ( $serif ) {
+			return '<' . $tag . ' class="kcs-h1" style="margin:0 0 18px;' . $serif . ';font-size:' . (int) $size . 'px;line-height:1.1;font-weight:normal;color:' . esc_attr( $color ) . '">' . esc_html( $one ) . '<br><em style="color:' . esc_attr( $color2 ) . '">' . esc_html( $two ) . '</em></' . $tag . '>';
+		};
+		$text = function ( $t, $color = '#3d3747', $extra = '' ) {
+			return '<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:' . esc_attr( $color ) . ';' . $extra . '">' . $t . '</p>';
+		};
+		$image = function ( $src, $url, $class = 'kcs-pic', $radius = 18 ) {
+			$img = '<img class="' . esc_attr( $class ) . '" src="' . esc_url( $src ) . '" alt="" width="520" style="display:block;width:100%;max-width:520px;height:auto;border:0;border-radius:' . (int) $radius . 'px">';
+			return '<p style="margin:0 0 26px">' . ( $url ? '<a href="' . esc_url( $url ) . '">' . $img . '</a>' : $img ) . '</p>';
+		};
+		$btn = function ( $t, $url, $bg, $color = '#ffffff', $align = 'center' ) {
+			return '<p style="margin:8px 0 6px;text-align:' . esc_attr( $align ) . '"><a href="' . esc_url( $url ) . '" style="display:inline-block;padding:16px 30px;border-radius:999px;background:' . esc_attr( $bg ) . ';color:' . esc_attr( $color ) . ';font-size:14px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none">' . esc_html( $t ) . '</a></p>';
+		};
+		// Picture and words side by side (one under the other on phones).
+		$cols = function ( $bg, $left, $right ) use ( $sans ) {
+			return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="' . esc_attr( $bg ) . '" style="border-collapse:collapse;background:' . esc_attr( $bg ) . '"><tr>'
+				. '<td class="kcs-col kcs-col--pic kcs-pad" width="44%" valign="middle" style="width:44%;padding:40px 12px 40px 40px;vertical-align:middle;' . $sans . '">' . $left . '</td>'
+				. '<td class="kcs-col kcs-col--text kcs-pad" width="56%" valign="middle" style="width:56%;padding:40px 40px 40px 16px;vertical-align:middle;' . $sans . '">' . $right . '</td>'
+				. '</tr></table>';
+		};
+		$sign  = function ( $color, $muted ) use ( $c, $serif, $text ) {
+			return $text( esc_html__( 'With love and prayers,', 'kingdom-church-suite' ), $color )
+				. '<p style="margin:0;' . $serif . ';font-size:26px;font-style:italic;color:' . esc_attr( $color ) . '">' . esc_html__( 'Pastor’s name', 'kingdom-church-suite' ) . '</p>'
+				. '<p style="margin:4px 0 0;font-size:14px;color:' . esc_attr( $muted ) . '">' . esc_html( $c['name'] ) . '</p>';
+		};
+		$where = $c['address'] ? strtok( $c['address'], "\n" ) : __( 'Church auditorium', 'kingdom-church-suite' );
+		$full  = function ( $html ) {
+			return '<div class="kcs-full">' . $html . '</div>';
+		};
+
+		$designs = array();
+
+		$designs['modern_message'] = array(
+			__( 'Modern message (video)', 'kingdom-church-suite' ),
+			__( 'Dark header, big headline, message picture with a play button, letter and an offer.', 'kingdom-church-suite' ),
+			'✨',
+			__( 'A new message for you this week', 'kingdom-church-suite' ),
+			$full(
+				$header
+				. $strip( __( 'New message available now', 'kingdom-church-suite' ), __( 'Watch online', 'kingdom-church-suite' ), $c['watch'] )
+				. $band(
+					$cream,
+					$eyebrow( __( 'This week’s message', 'kingdom-church-suite' ), $accent )
+						. $headline( __( 'Your best days', 'kingdom-church-suite' ), __( 'are still ahead', 'kingdom-church-suite' ), $dark, $accent )
+						. $image( $video, $c['watch'], 'kcs-pic kcs-video-pic' )
+						. $btn( __( 'Watch the message', 'kingdom-church-suite' ), $c['watch'], $accent ),
+					'48px 40px 44px',
+					'center'
+				)
+				. $band(
+					$dark,
+					$text( esc_html__( 'Dear {first_name},', 'kingdom-church-suite' ), '#f3eef8' )
+						. $text( esc_html__( 'Write your letter here. Share what God laid on your heart this week, the hope in this message and how it can help your family.', 'kingdom-church-suite' ), '#d9d3e2' )
+						. $text( esc_html__( 'Add as many paragraphs as you need. End with a word of blessing and an invitation to church on Sunday.', 'kingdom-church-suite' ), '#d9d3e2' )
+						. $sign( '#ffffff', '#a59fb0' ),
+					'44px 48px'
+				)
+				. $band(
+					$cream,
+					$headline( __( 'Live with intention,', 'kingdom-church-suite' ), __( 'walk in purpose', 'kingdom-church-suite' ), $dark, $accent, 34, 'h2' )
+						. $text( esc_html__( 'A short line about the next step: a Bible plan, a class, a small group or a new series starting soon.', 'kingdom-church-suite' ), '#5b5466', 'text-align:center' ),
+					'48px 40px 40px',
+					'center'
+				)
+				. $cols(
+					$olive,
+					'<img class="kcs-pic" src="' . esc_url( $pic( 2, 'offer.jpg' ) ) . '" alt="" width="220" style="display:block;width:100%;max-width:220px;height:auto;border:0;border-radius:14px">',
+					'<p style="margin:0 0 6px;font-size:12px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:' . $gold . '">' . esc_html__( 'Coming up', 'kingdom-church-suite' ) . '</p>'
+						. '<h3 style="margin:0 0 10px;' . $serif . ';font-size:26px;line-height:1.2;font-weight:normal;color:#ffffff">' . esc_html__( 'Name of the event or resource', 'kingdom-church-suite' ) . '</h3>'
+						. $text( esc_html__( 'Two lines about it: what it is, who it is for and why they should come.', 'kingdom-church-suite' ), '#e6ead9', 'font-size:15px' )
+						. $btn( __( 'Register now', 'kingdom-church-suite' ), $c['home'], $gold, $dark, 'left' )
+						. '<p style="margin:10px 0 0;font-size:13px;font-style:italic;color:#c9cfb6">' . esc_html__( 'Free for everyone · bring a friend', 'kingdom-church-suite' ) . '</p>'
+				)
+				. $cols(
+					$dark,
+					'<img class="kcs-pic" src="' . esc_url( $pic( 3, 'people.jpg' ) ) . '" alt="" width="220" style="display:block;width:100%;max-width:220px;height:auto;border:0;border-radius:14px">',
+					'<h3 style="margin:0 0 10px;' . $serif . ';font-size:26px;line-height:1.2;font-weight:normal;color:#ffffff">' . esc_html__( 'Need prayer?', 'kingdom-church-suite' ) . '</h3>'
+						. $text( esc_html__( 'Our prayer team would be honoured to stand with you in faith this week.', 'kingdom-church-suite' ), '#d9d3e2', 'font-size:15px' )
+						. $btn( __( 'Send a prayer request', 'kingdom-church-suite' ), $c['prayer'], $accent, '#ffffff', 'left' )
+				)
+			),
+		);
+
+		$expect = '';
+		foreach (
+			array(
+				array( '1', __( 'Uplifting worship', 'kingdom-church-suite' ), __( 'Songs of praise that lift your heart.', 'kingdom-church-suite' ) ),
+				array( '2', __( 'A message of hope', 'kingdom-church-suite' ), __( 'Practical teaching from the Bible for everyday life.', 'kingdom-church-suite' ) ),
+				array( '3', __( 'Children’s church', 'kingdom-church-suite' ), __( 'A safe, fun class for your little ones.', 'kingdom-church-suite' ) ),
+				array( '4', __( 'A warm welcome', 'kingdom-church-suite' ), __( 'Friendly faces and refreshments after the service.', 'kingdom-church-suite' ) ),
+			) as $row
+		) {
+			$expect .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 18px"><tr>'
+				. '<td width="56" valign="top" style="width:56px;vertical-align:top"><p style="margin:0;width:44px;height:44px;line-height:44px;border-radius:999px;background:' . esc_attr( $accent ) . ';text-align:center;font-family:Georgia,Times,serif;font-size:20px;color:#ffffff">' . esc_html( $row[0] ) . '</p></td>'
+				. '<td valign="top" style="vertical-align:top"><p style="margin:0 0 2px;font-size:17px;font-weight:bold;color:#ffffff">' . esc_html( $row[1] ) . '</p><p style="margin:0;font-size:15px;line-height:1.5;color:#c9c2d4">' . esc_html( $row[2] ) . '</p></td>'
+				. '</tr></table>';
+		}
+		$fact = function ( $label, $value ) use ( $accent, $dark ) {
+			return '<td class="kcs-col" width="33%" valign="top" style="width:33%;padding:16px 8px;vertical-align:top;text-align:center"><p style="margin:0 0 4px;font-size:12px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:' . esc_attr( $accent ) . '">' . esc_html( $label ) . '</p><p style="margin:0;font-size:16px;font-weight:bold;color:' . esc_attr( $dark ) . '">' . esc_html( $value ) . '</p></td>';
+		};
+		$invite = 'mailto:?subject=' . rawurlencode( __( 'Come to church with me this Sunday', 'kingdom-church-suite' ) ) . '&body=' . rawurlencode( sprintf( /* translators: 1: church, 2: website */ __( 'I would love you to join me at %1$s this Sunday. Details: %2$s', 'kingdom-church-suite' ), $c['name'], $c['visit'] ) );
+
+		$designs['modern_sunday'] = array(
+			__( 'Join us this Sunday', 'kingdom-church-suite' ),
+			__( 'A modern invitation: time and place, directions, what to expect and “invite a friend”.', 'kingdom-church-suite' ),
+			'⛪',
+			__( 'Join us this Sunday, {first_name}!', 'kingdom-church-suite' ),
+			$full(
+				$header
+				. $strip( __( 'This Sunday · 9:00 am · Everyone is welcome', 'kingdom-church-suite' ), '', '' )
+				. $band(
+					$cream,
+					$eyebrow( __( 'You’re invited', 'kingdom-church-suite' ), $accent )
+						. $headline( __( 'Join us', 'kingdom-church-suite' ), __( 'this Sunday', 'kingdom-church-suite' ), $dark, $accent, 52 )
+						. $text( esc_html__( 'Hi {first_name}, there is a seat saved for you. Come as you are and bring your family — we cannot wait to worship with you.', 'kingdom-church-suite' ), '#5b5466', 'text-align:center' )
+						. $image( $pic( 0, 'people.jpg' ), $c['visit'] )
+						. '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="border-collapse:separate;background:#ffffff;border-radius:16px;margin:0 0 26px"><tr>'
+						. $fact( __( 'Time', 'kingdom-church-suite' ), __( 'Sunday · 9:00 am', 'kingdom-church-suite' ) )
+						. $fact( __( 'Place', 'kingdom-church-suite' ), $where )
+						. $fact( __( 'Online', 'kingdom-church-suite' ), __( 'Watch live', 'kingdom-church-suite' ) )
+						. '</tr></table>'
+						. $btn( __( 'Get directions', 'kingdom-church-suite' ), $c['visit'], $accent )
+						. '<p style="margin:14px 0 0;text-align:center"><a href="' . esc_url( $c['watch'] ) . '" style="font-size:14px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:' . esc_attr( $dark ) . ';text-decoration:underline">' . esc_html__( 'Or watch online', 'kingdom-church-suite' ) . '</a></p>',
+					'48px 40px 44px',
+					'center'
+				)
+				. $band(
+					$dark,
+					'<h2 style="margin:0 0 24px;' . $serif . ';font-size:32px;line-height:1.15;font-weight:normal;color:#ffffff">' . esc_html__( 'What to expect', 'kingdom-church-suite' ) . '</h2>' . $expect,
+					'44px 48px 30px'
+				)
+				. $cols(
+					$olive,
+					'<img class="kcs-pic" src="' . esc_url( $pic( 1, 'photo.jpg' ) ) . '" alt="" width="220" style="display:block;width:100%;max-width:220px;height:auto;border:0;border-radius:14px">',
+					'<h3 style="margin:0 0 10px;' . $serif . ';font-size:28px;line-height:1.2;font-weight:normal;color:#ffffff">' . esc_html__( 'Bring a friend', 'kingdom-church-suite' ) . '</h3>'
+						. $text( esc_html__( 'Someone you know needs hope this week. Send them this invitation and come together.', 'kingdom-church-suite' ), '#e6ead9', 'font-size:15px' )
+						. $btn( __( 'Invite a friend', 'kingdom-church-suite' ), $invite, $gold, $dark, 'left' )
+				)
+				. $band(
+					$cream,
+					'<h2 style="margin:0 0 10px;' . $serif . ';font-size:34px;line-height:1.15;font-weight:normal;color:' . esc_attr( $dark ) . '">' . esc_html__( 'See you on Sunday!', 'kingdom-church-suite' ) . '</h2>' . $text( esc_html__( 'Questions? Just reply to this email.', 'kingdom-church-suite' ), '#5b5466', 'text-align:center' ),
+					'44px 40px',
+					'center'
+				)
+			),
+		);
+
+		$designs['modern_giving'] = array(
+			__( 'Partner with us (modern)', 'kingdom-church-suite' ),
+			__( 'A big picture of the project, a scripture block and ways to give.', 'kingdom-church-suite' ),
+			'💛',
+			__( 'Be part of what God is doing', 'kingdom-church-suite' ),
+			$full(
+				$header
+				. $strip( __( 'Every seed counts', 'kingdom-church-suite' ), __( 'Give online', 'kingdom-church-suite' ), $c['give'] )
+				. $band(
+					$cream,
+					$eyebrow( __( 'Partner with us', 'kingdom-church-suite' ), $accent )
+						. $headline( __( 'Together we', 'kingdom-church-suite' ), __( 'build His house', 'kingdom-church-suite' ), $dark, $accent )
+						. $image( $pic( 2, 'photo.jpg' ), $c['give'] )
+						. $text( esc_html__( 'Dear {first_name}, explain the project, why it matters and what every gift will make possible.', 'kingdom-church-suite' ), '#5b5466', 'text-align:center' )
+						. $btn( __( 'Give now', 'kingdom-church-suite' ), $c['give'], $accent ),
+					'48px 40px 44px',
+					'center'
+				)
+				. $band(
+					$dark,
+					'<p style="margin:0 0 14px;' . $serif . ';font-size:24px;line-height:1.45;font-style:italic;color:#ffffff">' . esc_html__( '“Each of you should give what you have decided in your heart to give, not reluctantly or under compulsion, for God loves a cheerful giver.”', 'kingdom-church-suite' ) . '</p><p style="margin:0;font-size:13px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:' . $gold . '">' . esc_html__( '2 Corinthians 9:7', 'kingdom-church-suite' ) . '</p>',
+					'48px 48px',
+					'center'
+				)
+				. $cols(
+					$olive,
+					'<img class="kcs-pic" src="' . esc_url( $pic( 3, 'offer.jpg' ) ) . '" alt="" width="220" style="display:block;width:100%;max-width:220px;height:auto;border:0;border-radius:14px">',
+					'<h3 style="margin:0 0 10px;' . $serif . ';font-size:26px;line-height:1.2;font-weight:normal;color:#ffffff">' . esc_html__( 'Other ways to give', 'kingdom-church-suite' ) . '</h3>'
+						. $text( esc_html__( 'Bank transfer: add your bank name, account name and account number here.', 'kingdom-church-suite' ), '#e6ead9', 'font-size:15px' )
+						. $btn( __( 'Give online', 'kingdom-church-suite' ), $c['give'], $gold, $dark, 'left' )
+				)
+				. $band( $cream, $sign( $dark, '#7a7385' ), '40px 48px' )
+			),
+		);
+
+		return $designs;
 	}
 
 	/**

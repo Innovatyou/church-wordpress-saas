@@ -205,6 +205,8 @@ class KCS_Email {
 		$footer = kcs_get_option( 'email_footer', $church . ' · ' . kcs_get_option( 'church_address' ) );
 		$pre    = isset( $args['preheader'] ) ? $args['preheader'] : '';
 		$unsub  = isset( $args['unsubscribe_url'] ) ? $args['unsubscribe_url'] : '';
+		// Modern newsletter designs bring their own header and coloured bands, edge to edge.
+		$full = false !== strpos( $body, 'kcs-full' );
 
 		ob_start();
 		?>
@@ -222,11 +224,15 @@ body{margin:0;background:#f4f2f7;font-family:-apple-system,Segoe UI,Roboto,Helve
 .details{width:100%;border-collapse:collapse;margin:16px 0}.details td{padding:8px;border-bottom:1px solid #eee}
 .foot{text-align:center;color:#8a8590;font-size:12px;padding:18px}
 .foot a{color:#8a8590}
+.body--full{padding:0}.body--full table{border-collapse:collapse}
+@media (max-width:520px){.wrap{padding:12px 6px}.kcs-col{display:block!important;width:100%!important;box-sizing:border-box}.kcs-pad{padding-left:22px!important;padding-right:22px!important}.kcs-h1{font-size:34px!important}.kcs-col--pic{padding-bottom:0!important}.kcs-col--pic img{width:100%!important;max-width:100%!important}.kcs-col--text{padding-top:24px!important}}
 </style></head>
 <body><span style="display:none;max-height:0;overflow:hidden"><?php echo esc_html( $pre ); ?></span>
 <div class="wrap"><div class="card">
+<?php if ( ! $full ) : ?>
 <div class="head"><?php echo $logo ? '<img src="' . esc_url( $logo ) . '" alt="' . esc_attr( $church ) . '">' : esc_html( $church ); ?></div>
-<div class="body"><?php echo wp_kses_post( $body ); ?></div>
+<?php endif; ?>
+<div class="body<?php echo $full ? ' body--full' : ''; ?>"><?php echo wp_kses_post( $body ); ?></div>
 </div>
 <div class="foot"><?php echo esc_html( $footer ); ?>
 		<?php if ( $unsub ) : ?>
