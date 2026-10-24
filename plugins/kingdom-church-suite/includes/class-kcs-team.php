@@ -125,6 +125,7 @@ class KCS_Team {
 			'plan_'              => array( 'plans' ),
 			'website_save'       => array( 'website', 'content' ),
 			'campaign_'          => array( 'newsletter' ),
+			'design_'            => array( 'newsletter' ),
 			'subscriber_'        => array( 'newsletter' ),
 			'app_'               => array( 'app' ),
 			'push_'              => array( 'app' ),

@@ -243,3 +243,20 @@ details.kca-card > summary::-webkit-details-marker { display: none; }
 .kca-team__member[open] summary { margin-bottom: 1rem; }
 .kca-team__add summary { cursor: pointer; }
 .kca-team__add[open] summary { margin-bottom: 1rem; }
+/* Newsletter designs & editor */
+.kca-designs summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: .5rem; align-items: baseline; }
+.kca-designs[open] summary { margin-bottom: 1rem; }
+.kca-designs__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: .75rem; }
+.kca-design, .kca-design__use { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; width: 100%; padding: .9rem 1rem; border: 1px solid var(--kcs-border); border-radius: 14px; background: var(--kcs-surface); color: var(--kcs-text); font: inherit; text-align: left; cursor: pointer; transition: border-color .2s, box-shadow .2s, transform .2s; }
+.kca-design:hover, .kca-design__use:hover, .kca-design.is-picked, .kca-design__use.is-picked { border-color: var(--kcs-primary); box-shadow: 0 6px 18px rgba(0,0,0,.06); transform: translateY(-1px); }
+.kca-design small { color: var(--kcs-muted); font-size: .8rem; line-height: 1.35; }
+.kca-design__icon { font-size: 1.5rem; line-height: 1; }
+.kca-design--mine { position: relative; padding: 0; border: 0; background: none; }
+.kca-design--mine form { position: absolute; top: .35rem; right: .35rem; margin: 0; }
+.kca-design__del { width: 28px; height: 28px; border: 0; border-radius: 50%; background: var(--kcs-surface-2); color: var(--kcs-muted); cursor: pointer; }
+.kca-newsletter { display: grid; gap: 1.25rem; margin-top: 1.25rem; }
+.kca-editor { display: grid; gap: .4rem; }
+.kca-editor .wp-editor-wrap { border-radius: 10px; overflow: hidden; }
+.kca-editor .wp-editor-container { border: 1px solid var(--kcs-border); }
+.kca-editor iframe { min-height: 420px; }
+.kca-save-design { margin-top: .75rem; padding-top: .75rem; border-top: 1px dashed var(--kcs-border); }

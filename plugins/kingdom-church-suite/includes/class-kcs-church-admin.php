@@ -211,6 +211,7 @@ class KCS_Church_Admin {
 					'chooseVideo' => __( 'Upload or choose video', 'kingdom-church-suite' ),
 					'titleVideo'  => __( 'Choose a video', 'kingdom-church-suite' ),
 					'useVideo'    => __( 'Use this video', 'kingdom-church-suite' ),
+					'replaceDesign' => __( 'Replace your message with this design?', 'kingdom-church-suite' ),
 				)
 			);
 		}
@@ -684,6 +685,12 @@ class KCS_Church_Admin {
 				$view = 'settings';
 				break;
 
+			case 'design_delete':
+				KCS_Email_Designs::delete( (string) ( $d['design'] ?? '' ) );
+				$msg  = __( 'Design deleted.', 'kingdom-church-suite' );
+				$view = 'newsletter';
+				break;
+
 			case 'campaign_save':
 				$c = $id ? KCS_Newsletter::get_campaign( $id ) : null;
 				if ( $c && in_array( $c->status, array( 'sending', 'sent' ), true ) ) {
@@ -696,10 +703,20 @@ class KCS_Church_Admin {
 					$type = 'error';
 					break;
 				}
-				$d['content'] = wpautop( make_clickable( esc_html( (string) $d['content'] ) ) );
+				// The editor sends HTML (filtered on save); plain text from older forms becomes paragraphs.
+				$raw          = (string) $d['content'];
+				$d['content'] = false === strpos( $raw, '<' ) ? wpautop( make_clickable( esc_html( $raw ) ) ) : $raw;
 				$id           = KCS_Newsletter::save_campaign( $d, $id );
 				$doing        = sanitize_key( $d['do'] ?? 'save' );
 				$view         = 'newsletter';
+				if ( 'design' === $doing ) {
+					$name = trim( (string) ( $d['design_name'] ?? '' ) );
+					KCS_Email_Designs::save( '' !== $name ? $name : (string) $d['subject'], (string) $d['subject'], $d['content'] );
+					/* translators: %s: name */
+					$msg         = sprintf( __( 'Saved “%s” to your designs. Pick it from “Start from a design” next time.', 'kingdom-church-suite' ), '' !== $name ? $name : (string) $d['subject'] );
+					$d['return'] = self::url( 'newsletter', array( 'edit' => $id ) );
+					break;
+				}
 				if ( 'test' === $doing ) {
 					$c    = KCS_Newsletter::get_campaign( $id );
 					$user = wp_get_current_user();
@@ -2433,18 +2450,54 @@ class KCS_Church_Admin {
 			<div class="kca-kpi"><span><?php esc_html_e( 'Subscribers', 'kingdom-church-suite' ); ?></span><strong><?php echo (int) ( $counts['subscribed'] ?? 0 ); ?></strong><small><?php echo (int) ( $counts['pending'] ?? 0 ); ?> <?php esc_html_e( 'waiting to confirm', 'kingdom-church-suite' ); ?></small></div>
 			<div class="kca-kpi"><span><?php esc_html_e( 'Unsubscribed', 'kingdom-church-suite' ); ?></span><strong><?php echo (int) ( $counts['unsubscribed'] ?? 0 ); ?></strong></div>
 		</div>
-		<div class="kca-cols">
-			<form method="post" class="kca-card kcs-form">
+		<?php
+		KCS_Email_Designs::picker(
+			function ( $do, $view, $id ) {
+				return self::fields( $do, $view, $id );
+			}
+		);
+		?>
+		<div class="kca-newsletter">
+			<form method="post" class="kca-card kcs-form" data-kcs-campaign>
 				<?php echo self::fields( 'campaign_save', 'newsletter', $edit ? $edit->id : 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				<h3><?php echo $edit ? esc_html__( 'Edit draft', 'kingdom-church-suite' ) : esc_html__( 'Write an email', 'kingdom-church-suite' ); ?></h3>
 				<label><?php esc_html_e( 'Send to', 'kingdom-church-suite' ); ?><select name="audience"><?php foreach ( KCS_Newsletter::audiences() as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $edit ? $edit->audience : 'subscribers', $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select></label>
 				<label><?php esc_html_e( 'Subject', 'kingdom-church-suite' ); ?><input name="subject" required maxlength="200" value="<?php echo esc_attr( $edit ? $edit->subject : '' ); ?>"></label>
 				<label><?php esc_html_e( 'Preview line (optional)', 'kingdom-church-suite' ); ?><input name="preheader" maxlength="200" value="<?php echo esc_attr( $edit ? $edit->preheader : '' ); ?>" placeholder="<?php esc_attr_e( 'Shown after the subject in the inbox', 'kingdom-church-suite' ); ?>"></label>
-				<label><?php esc_html_e( 'Message', 'kingdom-church-suite' ); ?><textarea name="content" rows="9" required><?php echo esc_textarea( $edit ? trim( wp_strip_all_tags( str_replace( array( '</p>', '<br>', '<br />' ), array( "\n\n", "\n", "\n" ), $edit->content ) ) ) : '' ); ?></textarea><small class="kcs-muted"><?php esc_html_e( 'Write {first_name} to greet each person by name. Links are made clickable.', 'kingdom-church-suite' ); ?></small></label>
+				<div class="kca-editor">
+					<span class="kca-image__label"><?php esc_html_e( 'Message', 'kingdom-church-suite' ); ?></span>
+					<?php
+					wp_editor(
+						$edit ? $edit->content : '',
+						'kcs_campaign_content',
+						array(
+							'textarea_name' => 'content',
+							'textarea_rows' => 20,
+							'media_buttons' => current_user_can( 'upload_files' ),
+							'teeny'         => false,
+							'quicktags'     => true,
+							'tinymce'       => array(
+								'toolbar1'           => 'formatselect,bold,italic,underline,forecolor,backcolor,alignleft,aligncenter,alignright,bullist,numlist,blockquote,link,unlink,hr,removeformat,undo,redo',
+								'toolbar2'           => '',
+								'block_formats'      => 'Paragraph=p;Heading=h2;Small heading=h3',
+								'relative_urls'      => false,
+								'remove_script_host' => false,
+								'convert_urls'       => false,
+								'content_style'      => 'body{max-width:600px;margin:12px auto;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#3d3747} img{max-width:100%;height:auto}',
+							),
+						)
+					);
+					?>
+					<small class="kcs-muted"><?php esc_html_e( 'Use the toolbar like a word processor, “Add Media” for pictures, and the “Text” tab to paste your own HTML. Write {first_name} to greet each person by name.', 'kingdom-church-suite' ); ?></small>
+				</div>
 				<div class="kca-actions">
 					<button class="kcs-btn" name="do" value="send" onclick="return confirm('<?php echo esc_js( __( 'Send this email now?', 'kingdom-church-suite' ) ); ?>')"><?php esc_html_e( 'Send now', 'kingdom-church-suite' ); ?></button>
 					<button class="kcs-btn kcs-btn--ghost" name="do" value="test"><?php esc_html_e( 'Send me a test', 'kingdom-church-suite' ); ?></button>
 					<button class="kcs-btn kcs-btn--ghost" name="do" value="save"><?php esc_html_e( 'Save draft', 'kingdom-church-suite' ); ?></button>
+				</div>
+				<div class="kca-inline-form kca-save-design">
+					<input name="design_name" placeholder="<?php esc_attr_e( 'Name this design, e.g. Monthly newsletter', 'kingdom-church-suite' ); ?>" aria-label="<?php esc_attr_e( 'Design name', 'kingdom-church-suite' ); ?>">
+					<button class="kcs-btn kcs-btn--ghost" name="do" value="design"><?php esc_html_e( 'Save as my design', 'kingdom-church-suite' ); ?></button>
 				</div>
 			</form>
 			<section class="kca-card">

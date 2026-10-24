@@ -213,6 +213,7 @@ class KCS_Email {
 <style>
 body{margin:0;background:#f4f2f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#2d2a32;line-height:1.6}
 .wrap{max-width:600px;margin:0 auto;padding:24px 12px}
+.card img{max-width:100%;height:auto}
 .card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05)}
 .head{background:<?php echo esc_attr( $color ); ?>;color:#fff;padding:24px;text-align:center;font-size:20px;font-weight:700}
 .head img{max-height:56px}

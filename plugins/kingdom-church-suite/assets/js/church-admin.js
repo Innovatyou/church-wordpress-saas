@@ -189,3 +189,34 @@ document.querySelectorAll('[data-order]').forEach(function (list) {
 		(up || down).focus();
 	});
 });
+
+// Newsletter: start from a design (fills the editor and, if empty, the subject).
+(function () {
+	var data = document.querySelector('[data-kcs-designs]');
+	var form = document.querySelector('[data-kcs-campaign]');
+	if (!data || !form) { return; }
+	var designs = {};
+	try { designs = JSON.parse(data.textContent) || {}; } catch (e) { return; }
+	function editor() { return window.tinymce && window.tinymce.get('kcs_campaign_content'); }
+	function current() {
+		var ed = editor();
+		if (ed && !ed.isHidden()) { return ed.getContent({ format: 'text' }).trim(); }
+		var ta = document.getElementById('kcs_campaign_content');
+		return ta ? ta.value.trim() : '';
+	}
+	document.querySelectorAll('[data-kcs-design]').forEach(function (btn) {
+		btn.addEventListener('click', function () {
+			var d = designs[btn.getAttribute('data-kcs-design')];
+			if (!d) { return; }
+			if (current() && !window.confirm(window.kcsChurchAdmin && kcsChurchAdmin.replaceDesign || 'Replace your message with this design?')) { return; }
+			var ed = editor();
+			var ta = document.getElementById('kcs_campaign_content');
+			if (ed) { ed.setContent(d.html); ed.save(); }
+			if (ta && (!ed || ed.isHidden())) { ta.value = d.html; }
+			var subject = form.querySelector('[name="subject"]');
+			if (subject && !subject.value.trim() && d.subject) { subject.value = d.subject; }
+			document.querySelectorAll('[data-kcs-design]').forEach(function (b) { b.classList.toggle('is-picked', b === btn); });
+			form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		});
+	});
+})();
