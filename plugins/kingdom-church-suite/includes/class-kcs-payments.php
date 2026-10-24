@@ -34,12 +34,14 @@ class KCS_Payments {
 	 * Hourly: ask the payment providers about online payments still pending, in case the giver paid
 	 * but closed the page before coming back. After two days with nothing paid, the payment is marked
 	 * failed (it can still be confirmed later with "Check gateway" or "Mark received").
+	 *
+	 * @param int $min_age Only payments started at least this many minutes ago (0 from the button).
 	 */
-	public static function recheck_pending() {
+	public static function recheck_pending( $min_age = 10 ) {
 		global $wpdb;
 		$table  = kcs_table( 'payments' );
 		$manual = "'" . implode( "','", array_map( 'esc_sql', KCS_Transfers::MANUAL ) ) . "'";
-		$rows   = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table WHERE status = 'pending' AND gateway NOT IN ($manual) AND created_at < %s ORDER BY id DESC LIMIT 40", gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - 10 * MINUTE_IN_SECONDS ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DateTime.CurrentTimeTimestamp.Requested
+		$rows   = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table WHERE status = 'pending' AND gateway NOT IN ($manual) AND created_at < %s ORDER BY id DESC LIMIT 40", gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - (int) $min_age * MINUTE_IN_SECONDS + 1 ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DateTime.CurrentTimeTimestamp.Requested
 		$cutoff = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - 2 * DAY_IN_SECONDS ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
 		foreach ( $rows as $p ) {
 			if ( 'pending' === self::verify_and_update( $p ) && $p->created_at < $cutoff ) {

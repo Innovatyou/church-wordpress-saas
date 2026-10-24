@@ -386,6 +386,15 @@ class KCS_Church_Admin {
 				$view = 'payments';
 				break;
 
+			case 'payments_recheck':
+				$before = KCS_Payments::query( array( 'status' => 'completed', 'per_page' => 1 ) )['total'];
+				KCS_Payments::recheck_pending( 0 );
+				$found = KCS_Payments::query( array( 'status' => 'completed', 'per_page' => 1 ) )['total'] - $before;
+				/* translators: %d: number */
+				$msg  = $found ? sprintf( _n( '%d payment was confirmed by the gateway.', '%d payments were confirmed by the gateway.', $found, 'kingdom-church-suite' ), $found ) : __( 'Checked: no new payments were confirmed. See what each gateway said under the status.', 'kingdom-church-suite' );
+				$view = 'payments';
+				break;
+
 			case 'payment_delete':
 			case 'payments_delete_failed':
 				$view = 'payments';
@@ -1470,6 +1479,15 @@ class KCS_Church_Admin {
 				echo esc_html( sprintf( _n( '%d payment', '%d payments', $result['total'], 'kingdom-church-suite' ), $result['total'] ) );
 				?>
 			</span>
+			<?php $pending_n = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'payments' ) . " WHERE status = 'pending' AND gateway NOT IN ('" . implode( "','", KCS_Transfers::MANUAL ) . "')" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared ?>
+			<?php if ( $pending_n ) : ?>
+				<form method="post" class="kca-inline"><?php echo self::fields( 'payments_recheck', 'payments' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost">
+					<?php
+					/* translators: %d: number */
+					echo esc_html( sprintf( __( 'Check all pending now (%d)', 'kingdom-church-suite' ), $pending_n ) );
+					?>
+				</button></form>
+			<?php endif; ?>
 			<a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( $export ); ?>"><?php esc_html_e( 'Export to Excel (CSV)', 'kingdom-church-suite' ); ?></a>
 			<?php if ( $can_conf && $failed_n ) : ?>
 				<form method="post" class="kca-inline" onsubmit="return confirm('<?php echo esc_js( __( 'Delete all failed and cancelled payments? This cannot be undone.', 'kingdom-church-suite' ) ); ?>')"><?php echo self::fields( 'payments_delete_failed', 'payments' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost">
