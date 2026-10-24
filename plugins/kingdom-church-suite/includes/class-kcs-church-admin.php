@@ -404,12 +404,13 @@ class KCS_Church_Admin {
 					break;
 				}
 				if ( 'payment_delete' === $do ) {
-					$n = (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . kcs_table( 'payments' ) . " WHERE id = %d AND status IN ('failed','cancelled')", $id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+					// Failed/cancelled, or pending for more than 30 minutes (stuck: the giver never paid).
+					$n = (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . kcs_table( 'payments' ) . " WHERE id = %d AND ( status IN ('failed','cancelled') OR ( status = 'pending' AND created_at < %s ) )", $id, gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - 30 * MINUTE_IN_SECONDS ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DateTime.CurrentTimeTimestamp.Requested
 				} else {
 					$n = (int) $wpdb->query( 'DELETE FROM ' . kcs_table( 'payments' ) . " WHERE status IN ('failed','cancelled')" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 				}
 				/* translators: %d: number */
-				$msg = $n ? sprintf( _n( '%d failed payment deleted.', '%d failed payments deleted.', $n, 'kingdom-church-suite' ), $n ) : __( 'Only failed or cancelled payments can be deleted.', 'kingdom-church-suite' );
+				$msg = $n ? sprintf( _n( '%d payment deleted.', '%d payments deleted.', $n, 'kingdom-church-suite' ), $n ) : __( 'Only failed, cancelled or stuck pending payments (older than 30 minutes) can be deleted.', 'kingdom-church-suite' );
 				break;
 
 			case 'receipt_settings':
@@ -1214,7 +1215,7 @@ class KCS_Church_Admin {
 				__( 'Giving & payments', 'kingdom-church-suite' ),
 				KCS_Team::allowed( 'payments' ) ? $wpdb->get_results( $wpdb->prepare( 'SELECT reference, name, email, amount, currency, status, created_at FROM ' . kcs_table( 'payments' ) . " WHERE CONCAT_WS(' ', reference, name, email, phone) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ) : array(),
 				function ( $r ) {
-					return array( ( $r->name ? $r->name : $r->email ) . ' — ' . kcs_format_money( $r->amount, $r->currency ), $r->reference . ' · ' . mysql2date( get_option( 'date_format' ), $r->created_at ), self::url( 'payments', array( 's' => $r->reference ) ), $r->status );
+					return array( ( $r->name ? $r->name : $r->email ) . ' — ' . kcs_format_money( $r->amount, $r->currency ), $r->reference . ' · ' . mysql2date( get_option( 'date_format' ), $r->created_at ), self::url( 'payments', array( 'find' => $r->reference ) ), $r->status );
 				},
 			),
 			array(
@@ -1331,8 +1332,9 @@ class KCS_Church_Admin {
 	 */
 	private static function view_partners() {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		// "find", not "s": WordPress treats ?s= as a site search and would not show this page.
 		$id     = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
-		$search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+		$search = isset( $_GET['find'] ) ? sanitize_text_field( wp_unslash( $_GET['find'] ) ) : '';
 		$status = isset( $_GET['status'] ) ? sanitize_key( $_GET['status'] ) : '';
 		$page   = max( 1, absint( $_GET['pg'] ?? 1 ) );
 		// phpcs:enable
@@ -1401,7 +1403,7 @@ class KCS_Church_Admin {
 		?>
 		<form class="kca-filters" method="get">
 			<input type="hidden" name="view" value="partners">
-			<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search name, email, phone, ID…', 'kingdom-church-suite' ); ?>" aria-label="<?php esc_attr_e( 'Search partners', 'kingdom-church-suite' ); ?>">
+			<input type="search" name="find" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search name, email, phone, ID…', 'kingdom-church-suite' ); ?>" aria-label="<?php esc_attr_e( 'Search partners', 'kingdom-church-suite' ); ?>">
 			<select name="status" aria-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>"><option value=""><?php esc_html_e( 'All statuses', 'kingdom-church-suite' ); ?></option><?php foreach ( KCS_Partners::statuses() as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $status, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
 			<button class="kcs-btn"><?php esc_html_e( 'Filter', 'kingdom-church-suite' ); ?></button>
 		</form>
@@ -1423,7 +1425,7 @@ class KCS_Church_Admin {
 			</table>
 		</div>
 		<?php
-		self::pager( $result['total'], 25, $page, array( 'view' => 'partners', 's' => $search, 'status' => $status ) );
+		self::pager( $result['total'], 25, $page, array( 'view' => 'partners', 'find' => $search, 'status' => $status ) );
 	}
 
 	/**
@@ -1432,7 +1434,7 @@ class KCS_Church_Admin {
 	private static function view_payments() {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
 		$status = isset( $_GET['status'] ) ? sanitize_key( $_GET['status'] ) : '';
-		$search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+		$search = isset( $_GET['find'] ) ? sanitize_text_field( wp_unslash( $_GET['find'] ) ) : '';
 		$page   = max( 1, absint( $_GET['pg'] ?? 1 ) );
 		// phpcs:enable
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
@@ -1463,7 +1465,7 @@ class KCS_Church_Admin {
 		<?php endif; ?>
 		<form class="kca-filters" method="get">
 			<input type="hidden" name="view" value="payments">
-			<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Reference, name or email…', 'kingdom-church-suite' ); ?>" aria-label="<?php esc_attr_e( 'Search payments', 'kingdom-church-suite' ); ?>">
+			<input type="search" name="find" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Reference, name or email…', 'kingdom-church-suite' ); ?>" aria-label="<?php esc_attr_e( 'Search payments', 'kingdom-church-suite' ); ?>">
 			<select name="purpose" aria-label="<?php esc_attr_e( 'Purpose', 'kingdom-church-suite' ); ?>"><option value=""><?php esc_html_e( 'All purposes', 'kingdom-church-suite' ); ?></option><?php foreach ( $purposes as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $purpose, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
 			<select name="status" aria-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>"><option value=""><?php esc_html_e( 'All statuses', 'kingdom-church-suite' ); ?></option><?php foreach ( KCS_Payments::statuses() as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $status, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
 			<select name="gateway" aria-label="<?php esc_attr_e( 'Payment method', 'kingdom-church-suite' ); ?>"><option value=""><?php esc_html_e( 'All methods', 'kingdom-church-suite' ); ?></option><?php foreach ( KCS_Payments::gateways() as $g ) : ?><option value="<?php echo esc_attr( $g->id ); ?>" <?php selected( $gateway, $g->id ); ?>><?php echo esc_html( $g->display_title() ); ?></option><?php endforeach; ?></select>
@@ -1518,8 +1520,9 @@ class KCS_Church_Admin {
 								<?php $retried = KCS_Transfers::meta( $pay )['retry_sent'] ?? ''; ?>
 								<form method="post" class="kca-inline"><?php echo self::fields( 'payment_send_retry', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost" title="<?php echo esc_attr( $retried ? sprintf( /* translators: %s: date */ __( 'Last sent %s', 'kingdom-church-suite' ), mysql2date( 'j M Y H:i', $retried ) ) : '' ); ?>"><?php echo esc_html( $retried ? __( 'Resend “try again” email', 'kingdom-church-suite' ) : __( 'Send “try again” email', 'kingdom-church-suite' ) ); ?></button></form>
 							<?php endif; ?>
-							<?php if ( $can_conf && in_array( $pay->status, array( 'failed', 'cancelled' ), true ) ) : ?>
-								<form method="post" class="kca-inline" onsubmit="return confirm('<?php echo esc_js( __( 'Delete this failed payment?', 'kingdom-church-suite' ) ); ?>')"><?php echo self::fields( 'payment_delete', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Delete', 'kingdom-church-suite' ); ?></button></form>
+							<?php $stuck = 'pending' === $pay->status && strtotime( $pay->created_at ) < current_time( 'timestamp' ) - 30 * MINUTE_IN_SECONDS; // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested ?>
+							<?php if ( $can_conf && ( $stuck || in_array( $pay->status, array( 'failed', 'cancelled' ), true ) ) ) : ?>
+								<form method="post" class="kca-inline" onsubmit="return confirm('<?php echo esc_js( $stuck ? __( 'This payment is still waiting. Delete it only if no money arrived (check your payment provider’s dashboard or bank). If the giver pays later, it will not be recorded automatically.', 'kingdom-church-suite' ) : __( 'Delete this failed payment?', 'kingdom-church-suite' ) ); ?>')"><?php echo self::fields( 'payment_delete', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Delete', 'kingdom-church-suite' ); ?></button></form>
 							<?php endif; ?>
 							<?php if ( in_array( $pay->status, array( 'pending', 'review', 'failed' ), true ) ) : ?>
 								<?php if ( KCS_Transfers::can_confirm() ) : ?><form method="post" class="kca-inline" onsubmit="return confirm('<?php echo esc_js( __( 'Mark this payment as received? The giver gets a receipt.', 'kingdom-church-suite' ) ); ?>')"><?php echo self::fields( 'payment_complete', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn"><?php esc_html_e( 'Mark received', 'kingdom-church-suite' ); ?></button></form><?php endif; ?>
@@ -1533,7 +1536,7 @@ class KCS_Church_Admin {
 			</table>
 		</div>
 		<?php
-		self::pager( $result['total'], 25, $page, array_filter( array( 'view' => 'payments', 's' => $search, 'status' => $status, 'purpose' => $purpose, 'gateway' => $gateway, 'from' => $from, 'to' => $to ) ) );
+		self::pager( $result['total'], 25, $page, array_filter( array( 'view' => 'payments', 'find' => $search, 'status' => $status, 'purpose' => $purpose, 'gateway' => $gateway, 'from' => $from, 'to' => $to ) ) );
 		$r = KCS_Receipts::settings();
 		?>
 		<details class="kca-card kcs-form kca-receipt-settings">
@@ -2410,7 +2413,7 @@ class KCS_Church_Admin {
 		global $wpdb;
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
 		$edit   = isset( $_GET['edit'] ) ? KCS_Newsletter::get_campaign( absint( $_GET['edit'] ) ) : null;
-		$search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+		$search = isset( $_GET['find'] ) ? sanitize_text_field( wp_unslash( $_GET['find'] ) ) : '';
 		$page   = max( 1, absint( $_GET['pg'] ?? 1 ) );
 		// phpcs:enable
 		if ( $edit && in_array( $edit->status, array( 'sending', 'sent' ), true ) ) {
@@ -2465,7 +2468,7 @@ class KCS_Church_Admin {
 			<h3><?php esc_html_e( 'Subscribers', 'kingdom-church-suite' ); ?></h3>
 			<form class="kca-filters" method="get">
 				<input type="hidden" name="view" value="newsletter">
-				<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search name or email…', 'kingdom-church-suite' ); ?>" aria-label="<?php esc_attr_e( 'Search subscribers', 'kingdom-church-suite' ); ?>">
+				<input type="search" name="find" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search name or email…', 'kingdom-church-suite' ); ?>" aria-label="<?php esc_attr_e( 'Search subscribers', 'kingdom-church-suite' ); ?>">
 				<button class="kcs-btn"><?php esc_html_e( 'Search', 'kingdom-church-suite' ); ?></button>
 				<a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcs_export&type=subscribers' ), 'kcs_export' ) ); ?>"><?php esc_html_e( 'Download CSV', 'kingdom-church-suite' ); ?></a>
 			</form>
@@ -2489,7 +2492,7 @@ class KCS_Church_Admin {
 					</tbody>
 				</table>
 			</div>
-			<?php self::pager( $total, 25, $page, array( 'view' => 'newsletter', 's' => $search ) ); ?>
+			<?php self::pager( $total, 25, $page, array( 'view' => 'newsletter', 'find' => $search ) ); ?>
 		</section>
 		<?php
 	}
