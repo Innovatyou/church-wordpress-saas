@@ -220,3 +220,29 @@ document.querySelectorAll('[data-order]').forEach(function (list) {
 		});
 	});
 })();
+
+// Announcement / popup templates: fill the form's fields (the church then adds its picture and edits the words).
+(function () {
+	document.querySelectorAll('[data-kcs-presets]').forEach(function (block) {
+		var form = document.getElementById(block.getAttribute('data-kcs-presets'));
+		var presets = {};
+		try { presets = JSON.parse(block.textContent) || {}; } catch (e) { return; }
+		if (!form) { return; }
+		block.parentNode.querySelectorAll('[data-kcs-preset]').forEach(function (btn) {
+			btn.addEventListener('click', function () {
+				var p = presets[btn.getAttribute('data-kcs-preset')];
+				if (!p) { return; }
+				Object.keys(p).forEach(function (name) {
+					var el = form.querySelector('[name="' + name + '"]');
+					if (!el || el.type === 'hidden') { return; }
+					if (el.type === 'checkbox') { el.checked = !!p[name]; } else { el.value = p[name]; }
+					el.dispatchEvent(new Event('change', { bubbles: true }));
+				});
+				block.parentNode.querySelectorAll('[data-kcs-preset]').forEach(function (b) { b.classList.toggle('is-picked', b === btn); });
+				form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				var first = form.querySelector('[name="title"], [name="name"]');
+				if (first) { setTimeout(function () { first.focus(); }, 400); }
+			});
+		});
+	});
+})();

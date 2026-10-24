@@ -70,6 +70,30 @@ class KCS_Popups {
 	}
 
 	/**
+	 * Ready-made popups (they fill the form; the church adds its picture and edits the words).
+	 *
+	 * @return array key => array( name, fields ).
+	 */
+	public static function templates() {
+		$page = function ( $key ) {
+			return function_exists( 'kcs_page_url' ) && kcs_get_option( 'page_' . $key ) ? kcs_page_url( $key ) : home_url( '/' );
+		};
+		return (array) apply_filters(
+			'kcs_popup_templates',
+			array(
+				'flyer'      => array( __( 'Event flyer (picture only)', 'kingdom-church-suite' ), array( 'name' => __( 'Event flyer', 'kingdom-church-suite' ), 'layout' => 'image', 'title' => __( 'Upcoming event', 'kingdom-church-suite' ), 'text' => '', 'btn_text' => __( 'Learn more', 'kingdom-church-suite' ), 'btn_url' => $page( 'visit' ), 'pages' => 'home', 'audience' => 'all', 'trigger' => 'delay', 'delay' => 3, 'frequency' => 'session' ) ),
+				'event'      => array( __( 'Event invitation', 'kingdom-church-suite' ), array( 'name' => __( 'Event invitation', 'kingdom-church-suite' ), 'layout' => 'image_text', 'title' => __( 'You are invited!', 'kingdom-church-suite' ), 'text' => __( 'Join us for three nights of worship, the Word and miracles. 12–14 December, 5:00 pm daily.', 'kingdom-church-suite' ), 'btn_text' => __( 'Get directions', 'kingdom-church-suite' ), 'btn_url' => $page( 'visit' ), 'pages' => 'all', 'audience' => 'all', 'trigger' => 'delay', 'delay' => 5, 'frequency' => 'session' ) ),
+				'live'       => array( __( 'We are live', 'kingdom-church-suite' ), array( 'name' => __( 'Live service reminder', 'kingdom-church-suite' ), 'layout' => 'text', 'title' => __( 'Join our service live', 'kingdom-church-suite' ), 'text' => __( 'Worship with us online every Sunday at 9:00 am.', 'kingdom-church-suite' ), 'btn_text' => __( 'Watch live', 'kingdom-church-suite' ), 'btn_url' => $page( 'watch_live' ), 'pages' => 'home', 'audience' => 'all', 'trigger' => 'delay', 'delay' => 4, 'frequency' => 'days', 'days' => 3 ) ),
+				'giving'     => array( __( 'Giving drive', 'kingdom-church-suite' ), array( 'name' => __( 'Building project appeal', 'kingdom-church-suite' ), 'layout' => 'image_text', 'title' => __( 'Help us build God’s house', 'kingdom-church-suite' ), 'text' => __( 'Every seed counts. Give online in naira or dollars, in less than a minute.', 'kingdom-church-suite' ), 'btn_text' => __( 'Give now', 'kingdom-church-suite' ), 'btn_url' => $page( 'give' ), 'pages' => 'all', 'audience' => 'all', 'trigger' => 'scroll', 'scroll' => 50, 'frequency' => 'days', 'days' => 7 ) ),
+				'partner'    => array( __( 'Become a partner', 'kingdom-church-suite' ), array( 'name' => __( 'Partnership invitation', 'kingdom-church-suite' ), 'layout' => 'text', 'title' => __( 'Partner with the vision', 'kingdom-church-suite' ), 'text' => __( 'Join a family of partners carrying the gospel to the nations, with monthly or yearly seeds.', 'kingdom-church-suite' ), 'btn_text' => __( 'Become a partner', 'kingdom-church-suite' ), 'btn_url' => $page( 'partnership' ), 'pages' => 'all', 'audience' => 'guests', 'trigger' => 'exit', 'frequency' => 'days', 'days' => 14 ) ),
+				'welcome'    => array( __( 'Welcome first-time visitors', 'kingdom-church-suite' ), array( 'name' => __( 'Welcome', 'kingdom-church-suite' ), 'layout' => 'text', 'title' => __( 'Welcome! Is this your first time here?', 'kingdom-church-suite' ), 'text' => __( 'We would love to meet you. Plan your visit and we will save you a seat.', 'kingdom-church-suite' ), 'btn_text' => __( 'Visit us', 'kingdom-church-suite' ), 'btn_url' => $page( 'visit' ), 'pages' => 'home', 'audience' => 'guests', 'trigger' => 'delay', 'delay' => 8, 'frequency' => 'once' ) ),
+				'prayer'     => array( __( 'Prayer request', 'kingdom-church-suite' ), array( 'name' => __( 'Prayer invitation', 'kingdom-church-suite' ), 'layout' => 'text', 'title' => __( 'How can we pray for you?', 'kingdom-church-suite' ), 'text' => __( 'Our prayer team prays over every request. Nothing is impossible with God.', 'kingdom-church-suite' ), 'btn_text' => __( 'Send a prayer request', 'kingdom-church-suite' ), 'btn_url' => $page( 'prayer' ), 'pages' => 'all', 'audience' => 'all', 'trigger' => 'scroll', 'scroll' => 60, 'frequency' => 'days', 'days' => 7 ) ),
+				'newsletter' => array( __( 'Newsletter sign-up', 'kingdom-church-suite' ), array( 'name' => __( 'Newsletter', 'kingdom-church-suite' ), 'layout' => 'text', 'title' => __( 'Get our weekly encouragement', 'kingdom-church-suite' ), 'text' => __( 'Sermons, events and a word for your week, in your inbox.', 'kingdom-church-suite' ), 'btn_text' => __( 'Sign me up', 'kingdom-church-suite' ), 'btn_url' => home_url( '/#newsletter' ), 'pages' => 'all', 'audience' => 'guests', 'trigger' => 'scroll', 'scroll' => 70, 'frequency' => 'days', 'days' => 30 ) ),
+			)
+		);
+	}
+
+	/**
 	 * Does this popup's page, audience and date rules match the current request?
 	 *
 	 * @param array $p Popup.
@@ -123,19 +147,33 @@ class KCS_Popups {
 				'frequency' => $p['frequency'],
 				'days'      => (int) $p['days'],
 			);
+			$layout = (string) ( $p['layout'] ?? 'image_text' );
+			$layout = in_array( $layout, array( 'image', 'image_text', 'text' ), true ) ? $layout : 'image_text';
+			if ( 'text' !== $layout && empty( $p['image'] ) ) {
+				$layout = 'text';
+			}
+			$title = $p['title'] ? $p['title'] : ( $p['name'] ? $p['name'] : get_bloginfo( 'name' ) );
+			$btn   = ! empty( $p['btn_text'] ) && ! empty( $p['btn_url'] ) ? '<a class="kcs-btn kcs-popup__btn" href="' . esc_url( $p['btn_url'] ) . '" data-done>' . esc_html( $p['btn_text'] ) . '</a>' : '';
 			?>
 			<div class="kcs-popup" data-kcs-popup="<?php echo esc_attr( wp_json_encode( $data ) ); ?>" hidden>
 				<div class="kcs-popup__backdrop" data-close></div>
-				<div class="kcs-popup__box<?php echo ! empty( $p['image'] ) ? ' has-image' : ''; ?>" role="dialog" aria-modal="true" aria-labelledby="kcs-popup-title-<?php echo esc_attr( $p['id'] ); ?>">
+				<div class="kcs-popup__box kcs-popup__box--<?php echo esc_attr( $layout ); ?><?php echo 'text' !== $layout ? ' has-image' : ''; ?>" role="dialog" aria-modal="true" aria-label="<?php echo esc_attr( $title ); ?>">
 					<button type="button" class="kcs-popup__close" data-close aria-label="<?php esc_attr_e( 'Close', 'kingdom-church-suite' ); ?>">×</button>
-					<?php if ( ! empty( $p['image'] ) ) : ?><img class="kcs-popup__img" src="<?php echo esc_url( $p['image'] ); ?>" alt="" loading="lazy"><?php endif; ?>
-					<div class="kcs-popup__body">
-						<h2 class="kcs-popup__title" id="kcs-popup-title-<?php echo esc_attr( $p['id'] ); ?>"><?php echo esc_html( $p['title'] ); ?></h2>
-						<?php if ( ! empty( $p['text'] ) ) : ?><p class="kcs-popup__text"><?php echo nl2br( esc_html( $p['text'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></p><?php endif; ?>
-						<?php if ( ! empty( $p['btn_text'] ) && ! empty( $p['btn_url'] ) ) : ?>
-							<a class="kcs-btn kcs-popup__btn" href="<?php echo esc_url( $p['btn_url'] ); ?>" data-done><?php echo esc_html( $p['btn_text'] ); ?></a>
-						<?php endif; ?>
-					</div>
+					<?php if ( 'image' === $layout ) : ?>
+						<?php
+						// Image only (e.g. an event flyer): the whole picture links to the button's page.
+						$img = '<img class="kcs-popup__img kcs-popup__img--full" src="' . esc_url( $p['image'] ) . '" alt="' . esc_attr( $title ) . '">';
+						echo ! empty( $p['btn_url'] ) ? '<a class="kcs-popup__imglink" href="' . esc_url( $p['btn_url'] ) . '" data-done>' . $img . '</a>' : $img; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						?>
+						<?php if ( $btn ) : ?><div class="kcs-popup__body kcs-popup__body--slim"><?php echo $btn; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div><?php endif; ?>
+					<?php else : ?>
+						<?php if ( 'image_text' === $layout ) : ?><img class="kcs-popup__img" src="<?php echo esc_url( $p['image'] ); ?>" alt="" loading="lazy"><?php endif; ?>
+						<div class="kcs-popup__body">
+							<?php if ( $p['title'] ) : ?><h2 class="kcs-popup__title"><?php echo esc_html( $p['title'] ); ?></h2><?php endif; ?>
+							<?php if ( ! empty( $p['text'] ) ) : ?><p class="kcs-popup__text"><?php echo nl2br( esc_html( $p['text'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></p><?php endif; ?>
+							<?php echo $btn; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						</div>
+					<?php endif; ?>
 				</div>
 			</div>
 			<?php
@@ -181,6 +219,7 @@ class KCS_Popups {
 			'days'      => max( 1, min( 365, absint( $d['days'] ?? 7 ) ) ),
 			'start'     => $date( $d['start'] ?? '' ),
 			'end'       => $date( $d['end'] ?? '' ),
+			'layout'    => in_array( $d['layout'] ?? '', array( 'image', 'image_text', 'text' ), true ) ? $d['layout'] : 'image_text',
 			'active'    => ! empty( $d['active'] ),
 		);
 		// A changed popup shows again to visitors who already closed the old one.
@@ -208,7 +247,10 @@ class KCS_Popups {
 		}
 		if ( 'popup_save' === $do ) {
 			$p = self::from_post( $d, null === $index ? array() : $popups[ $index ] );
-			if ( '' === $p['title'] ) {
+			if ( 'text' !== $p['layout'] && '' === $p['image'] ) {
+				return array( __( 'Please choose a picture for this popup, or switch it to “Text only”.', 'kingdom-church-suite' ), 'error' );
+			}
+			if ( 'image' !== $p['layout'] && '' === $p['title'] ) {
 				return array( __( 'Please give the popup a title.', 'kingdom-church-suite' ), 'error' );
 			}
 			if ( null === $index ) {
@@ -259,13 +301,19 @@ class KCS_Popups {
 		};
 		$upload = current_user_can( 'upload_files' );
 		?>
+		<?php KCS_Slides::template_picker( self::templates(), 'popup-form', __( 'Start from a ready-made popup', 'kingdom-church-suite' ) ); ?>
 		<form method="post" class="kca-card kcs-form kca-popup-form" id="popup-form">
 			<?php echo call_user_func( $fields, 'popup_save', 'popups', 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<input type="hidden" name="popup" value="<?php echo esc_attr( $v( 'id' ) ); ?>">
 			<h3><?php echo esc_html( $cur ? __( 'Edit popup', 'kingdom-church-suite' ) : __( 'Create a popup', 'kingdom-church-suite' ) ); ?></h3>
 			<fieldset><legend><?php esc_html_e( 'What it says', 'kingdom-church-suite' ); ?></legend>
 				<label><?php esc_html_e( 'Name (only you see it)', 'kingdom-church-suite' ); ?><input name="name" value="<?php echo esc_attr( $v( 'name' ) ); ?>" placeholder="<?php esc_attr_e( 'e.g. Crusade invitation', 'kingdom-church-suite' ); ?>"></label>
-				<label><?php esc_html_e( 'Title', 'kingdom-church-suite' ); ?><input name="title" required value="<?php echo esc_attr( $v( 'title' ) ); ?>"></label>
+				<label><?php esc_html_e( 'Layout', 'kingdom-church-suite' ); ?><select name="layout">
+					<?php foreach ( array( 'image_text' => __( 'Picture and text', 'kingdom-church-suite' ), 'image' => __( 'Picture only (e.g. an event flyer; the picture links to the button page)', 'kingdom-church-suite' ), 'text' => __( 'Text only', 'kingdom-church-suite' ) ) as $k => $l ) : ?>
+						<option value="<?php echo esc_attr( $k ); ?>" <?php selected( $v( 'layout', 'image_text' ), $k ); ?>><?php echo esc_html( $l ); ?></option>
+					<?php endforeach; ?>
+				</select></label>
+				<label><?php esc_html_e( 'Title (not shown with “Picture only”)', 'kingdom-church-suite' ); ?><input name="title" value="<?php echo esc_attr( $v( 'title' ) ); ?>"></label>
 				<label><?php esc_html_e( 'Text (optional)', 'kingdom-church-suite' ); ?><textarea name="text" rows="3"><?php echo esc_textarea( $v( 'text' ) ); ?></textarea></label>
 				<div class="kca-image" data-kcs-media-field>
 					<span class="kca-image__label"><?php esc_html_e( 'Picture (optional)', 'kingdom-church-suite' ); ?></span>
