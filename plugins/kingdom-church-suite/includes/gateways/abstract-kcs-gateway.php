@@ -133,6 +133,20 @@ abstract class KCS_Gateway {
 	}
 
 	/**
+	 * Which mode the saved keys are in: 'test', 'live', or '' when it cannot be told from the keys.
+	 * Test payments only appear in the provider's dashboard when it is switched to Test mode.
+	 *
+	 * @return string
+	 */
+	public function mode() {
+		$opts = $this->fields();
+		if ( isset( $opts['test_mode'] ) ) {
+			return $this->is_test() ? 'test' : 'live';
+		}
+		return '';
+	}
+
+	/**
 	 * Title displayed on checkout.
 	 *
 	 * @return string
@@ -292,7 +306,7 @@ abstract class KCS_Gateway {
 	 */
 	protected function said( $what, $why = '' ) {
 		$why = is_string( $why ) ? trim( wp_strip_all_tags( $why ) ) : '';
-		$this->last_said = $this->title . ': ' . $what . ( '' !== $why && strtolower( $why ) !== strtolower( $what ) ? ' — ' . mb_substr( $why, 0, 200 ) : '' );
+		$this->last_said = $this->title . ( 'test' === $this->mode() ? ' ' . __( '(TEST mode)', 'kingdom-church-suite' ) : '' ) . ': ' . $what . ( '' !== $why && strtolower( $why ) !== strtolower( $what ) ? ' — ' . mb_substr( $why, 0, 200 ) : '' );
 	}
 
 	/**

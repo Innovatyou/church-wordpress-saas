@@ -150,4 +150,17 @@ class KCS_Gateway_Flutterwave extends KCS_Gateway {
 		}
 		return array( 'reference' => (string) $ref, 'params' => array() );
 	}
+
+	/**
+	 * Test or live, from the secret key.
+	 *
+	 * @return string
+	 */
+	public function mode() {
+		$key = (string) $this->opt( 'secret_key' );
+		if ( '' === $key ) {
+			return '';
+		}
+		return false !== stripos( $key, '_TEST' ) ? 'test' : 'live';
+	}
 }

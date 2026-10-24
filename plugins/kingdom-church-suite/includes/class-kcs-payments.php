@@ -24,31 +24,123 @@ class KCS_Payments {
 	 */
 	public static function init() {
 		add_action( 'kcs_payment_completed', array( __CLASS__, 'notify_completed' ), 10, 1 );
-		add_action( 'kcs_recheck_payments', array( __CLASS__, 'recheck_pending' ) );
-		if ( ! wp_next_scheduled( 'kcs_recheck_payments' ) ) {
-			wp_schedule_event( time() + 300, 'hourly', 'kcs_recheck_payments' );
+		add_action( 'kcs_recheck_payments', array( __CLASS__, 'auto_check' ) );
+		add_action( 'rest_api_init', array( __CLASS__, 'admin_routes' ) );
+		// Every five minutes (older sites were hourly: move them over).
+		if ( 'kcs_five_minutes' !== wp_get_schedule( 'kcs_recheck_payments' ) ) {
+			wp_clear_scheduled_hook( 'kcs_recheck_payments' );
+			wp_schedule_event( time() + 60, 'kcs_five_minutes', 'kcs_recheck_payments' );
 		}
 	}
 
 	/**
-	 * Hourly: ask the payment providers about online payments still pending, in case the giver paid
-	 * but closed the page before coming back. After two days with nothing paid, the payment is marked
-	 * failed (it can still be confirmed later with "Check gateway" or "Mark received").
+	 * Ask the payment providers about every pending online payment now ("Check all pending now").
+	 * After two days with nothing paid, a payment is marked failed (it can still be confirmed later
+	 * with "Check gateway" or "Mark received").
 	 *
 	 * @param int $min_age Only payments started at least this many minutes ago (0 from the button).
 	 */
 	public static function recheck_pending( $min_age = 10 ) {
+		self::check_rows( self::open_rows( (int) $min_age ), false );
+	}
+
+	/**
+	 * Every five minutes: check pending online payments with the gateway automatically, often at
+	 * first and then less often — every run for the first 30 minutes, every 15 minutes up to 6 hours,
+	 * then hourly for two days. Webhooks and the giver's return confirm most payments instantly;
+	 * this catches the rest. "Check gateway" in Church Admin stays as a backup.
+	 */
+	public static function auto_check() {
+		self::check_rows( self::open_rows( 1 ), true );
+	}
+
+	/**
+	 * Pending online payments started at least $min_age minutes ago (newest first).
+	 *
+	 * @param int $min_age Minutes.
+	 * @return array
+	 */
+	private static function open_rows( $min_age ) {
 		global $wpdb;
 		$table  = kcs_table( 'payments' );
 		$manual = "'" . implode( "','", array_map( 'esc_sql', KCS_Transfers::MANUAL ) ) . "'";
-		$rows   = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table WHERE status = 'pending' AND gateway NOT IN ($manual) AND created_at < %s ORDER BY id DESC LIMIT 40", gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - (int) $min_age * MINUTE_IN_SECONDS + 1 ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DateTime.CurrentTimeTimestamp.Requested
+		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table WHERE status = 'pending' AND gateway NOT IN ($manual) AND created_at < %s ORDER BY id DESC LIMIT 40", gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - $min_age * MINUTE_IN_SECONDS + 1 ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DateTime.CurrentTimeTimestamp.Requested
+	}
+
+	/**
+	 * Is this payment due for an automatic check?
+	 *
+	 * @param object $p Payment.
+	 * @return bool
+	 */
+	public static function due( $p ) {
+		$age  = current_time( 'timestamp' ) - strtotime( $p->created_at ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
+		$gap  = $age < 30 * MINUTE_IN_SECONDS ? 2 * MINUTE_IN_SECONDS : ( $age < 6 * HOUR_IN_SECONDS ? 15 * MINUTE_IN_SECONDS : HOUR_IN_SECONDS );
+		$last = (int) get_transient( 'kcs_pchk_' . $p->id );
+		return ! $last || time() - $last >= $gap - 30;
+	}
+
+	/**
+	 * Check payments with their gateways.
+	 *
+	 * @param array $rows    Payments.
+	 * @param bool  $backoff Skip payments checked recently.
+	 * @return int Number newly completed.
+	 */
+	public static function check_rows( $rows, $backoff ) {
+		global $wpdb;
+		$table  = kcs_table( 'payments' );
 		$cutoff = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - 2 * DAY_IN_SECONDS ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
+		$done   = 0;
 		foreach ( $rows as $p ) {
-			if ( 'pending' === self::verify_and_update( $p ) && $p->created_at < $cutoff ) {
+			if ( $backoff && ! self::due( $p ) ) {
+				continue;
+			}
+			set_transient( 'kcs_pchk_' . $p->id, time(), 2 * HOUR_IN_SECONDS );
+			$now = self::verify_and_update( $p );
+			if ( 'completed' === $now ) {
+				++$done;
+			}
+			if ( 'pending' === $now && $p->created_at < $cutoff ) {
 				$wpdb->query( $wpdb->prepare( "UPDATE $table SET status = 'failed', note = CONCAT(%s, IFNULL(note, '')) WHERE id = %d AND status = 'pending'", __( 'Not paid within 2 days. ', 'kingdom-church-suite' ), $p->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				KCS_Receipts::maybe_auto_retry( self::get( $p->id ) );
 			}
 		}
+		return $done;
+	}
+	/**
+	 * POST /kcs/v1/admin/payments/check {ids:[…]} — Church Admin checks the pending payments on screen.
+	 */
+	public static function admin_routes() {
+		register_rest_route(
+			'kcs/v1',
+			'/admin/payments/check',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => function () {
+					return current_user_can( 'manage_kcs' ) && KCS_Team::allowed( 'payments' );
+				},
+				'callback'            => function ( $req ) {
+					$out  = array();
+					$done = 0;
+					foreach ( array_slice( array_map( 'absint', (array) $req['ids'] ), 0, 15 ) as $id ) {
+						$p = self::get( $id );
+						if ( ! $p ) {
+							continue;
+						}
+						if ( 'pending' === $p->status && ! KCS_Transfers::is_manual( $p ) && self::due( $p ) ) {
+							$done += self::check_rows( array( $p ), false );
+							$p     = self::get( $id );
+						}
+						$out[ $id ] = array(
+							'status' => $p->status,
+							'html'   => kcs_status_badge( $p->status ) . ( $p->note && 'completed' !== $p->status ? '<small>' . esc_html( $p->note ) . '</small>' : '' ),
+						);
+					}
+					return rest_ensure_response( array( 'rows' => (object) $out, 'completed' => $done, 'time' => current_time( get_option( 'time_format' ) ) ) );
+				},
+			)
+		);
 	}
 
 	/**
@@ -257,6 +349,7 @@ class KCS_Payments {
 				'status'     => 'pending',
 				'note'       => sanitize_textarea_field( $args['note'] ?? '' ),
 				'ip_hash'    => KCS_Security::ip_hash(),
+				'meta'       => wp_json_encode( array( 'mode' => $gateway->mode() ) ),
 				'created_at' => current_time( 'mysql' ),
 			)
 		);

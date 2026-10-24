@@ -285,3 +285,14 @@ details.kca-card > summary::-webkit-details-marker { display: none; }
 .kca-story__pics { display: flex; flex-wrap: wrap; gap: .4rem; margin: .6rem 0; }
 .kca-story__pics img { width: 84px; height: 84px; object-fit: cover; border-radius: 10px; display: block; }
 .kca-warn { display: block; margin-top: .3rem; color: #b45309; font-weight: 600; }
+/* Giving received: automatic checks and gateway modes */
+.kca-autocheck { margin: 0 0 .75rem; padding: .5rem .85rem; border-radius: 10px; background: var(--kcs-surface-2); color: var(--kcs-muted); font-size: .88rem; }
+.kca-autocheck.is-busy::before { content: ""; display: inline-block; width: .8em; height: .8em; margin-right: .5em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; vertical-align: -.1em; animation: kca-spin .8s linear infinite; }
+.kca-autocheck.is-good { background: color-mix(in srgb, var(--kcs-success) 12%, var(--kcs-surface)); color: var(--kcs-success); font-weight: 600; }
+@keyframes kca-spin { to { transform: rotate(360deg); } }
+tr.is-updated td { animation: kca-flash 1.6s ease-out; }
+@keyframes kca-flash { from { background: color-mix(in srgb, var(--kcs-primary) 14%, transparent); } }
+.kca-pill--test { background: #fde68a; color: #7c2d12; font-weight: 800; }
+.kca-modes summary { cursor: pointer; }
+.kca-modes[open] summary { margin-bottom: .75rem; }
+.kca-modes__list { margin: .5rem 0; padding-left: 1.1rem; display: grid; gap: .35rem; }

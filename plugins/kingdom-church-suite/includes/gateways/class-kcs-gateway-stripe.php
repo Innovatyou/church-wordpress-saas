@@ -167,4 +167,14 @@ class KCS_Gateway_Stripe extends KCS_Gateway {
 			'params'    => array( 'session_id' => (string) ( $obj['id'] ?? '' ) ),
 		);
 	}
+
+	/**
+	 * Test or live, from the secret key.
+	 *
+	 * @return string
+	 */
+	public function mode() {
+		$key = (string) $this->opt( 'secret_key' );
+		return preg_match( '/^(sk|rk)_test_/', $key ) ? 'test' : ( preg_match( '/^(sk|rk)_live_/', $key ) ? 'live' : '' );
+	}
 }

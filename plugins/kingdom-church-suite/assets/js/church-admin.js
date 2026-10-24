@@ -364,3 +364,51 @@ document.querySelectorAll('[data-order]').forEach(function (list) {
 		if (e.target.closest && e.target.closest('#kcs_campaign_content-tmce, #kcs_campaign_content-html')) { setTimeout(render, 50); }
 	});
 })();
+
+// Giving received: check pending online payments with the gateways automatically while the page
+// is open (the "Check gateway" buttons stay as a backup).
+(function () {
+	var rows = document.querySelectorAll('tr[data-auto-check]');
+	var box = document.querySelector('[data-auto-status]');
+	var C = window.kcsChurchAdmin || {};
+	if (!rows.length || !box || !C.rest) { return; }
+	var running = false;
+	function ids() {
+		return Array.prototype.map.call(document.querySelectorAll('tr[data-auto-check]'), function (r) { return +r.getAttribute('data-pay'); });
+	}
+	function check() {
+		var list = ids();
+		if (running || !list.length || document.hidden) { return; }
+		running = true;
+		box.hidden = false;
+		box.classList.add('is-busy');
+		box.textContent = C.checking;
+		fetch(C.rest + 'admin/payments/check', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': C.restNonce }, body: JSON.stringify({ ids: list }) })
+			.then(function (r) { return r.json(); })
+			.then(function (res) {
+				Object.keys(res.rows || {}).forEach(function (id) {
+					var tr = document.querySelector('tr[data-pay="' + id + '"]');
+					if (!tr) { return; }
+					var cell = tr.querySelector('[data-pay-status]');
+					var row = res.rows[id];
+					if (cell && row.html) {
+						var warn = cell.querySelector('.kca-warn');
+						cell.innerHTML = row.html;
+						if (warn) { cell.insertBefore(warn, cell.children[1] || null); }
+					}
+					if (row.status !== 'pending') {
+						tr.removeAttribute('data-auto-check');
+						tr.classList.add('is-updated');
+					}
+				});
+				box.classList.remove('is-busy');
+				box.textContent = (res.completed ? C.confirmed.replace('%d', res.completed) + ' ' : '') + C.checked.replace('%s', res.time || '');
+				if (res.completed) { box.classList.add('is-good'); }
+			})
+			.catch(function () { box.hidden = true; })
+			.then(function () { running = false; });
+	}
+	setTimeout(check, 800);
+	setInterval(check, 60000);
+	document.addEventListener('visibilitychange', function () { if (!document.hidden) { check(); } });
+})();

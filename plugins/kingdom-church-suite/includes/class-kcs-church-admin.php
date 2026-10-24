@@ -215,6 +215,13 @@ class KCS_Church_Admin {
 					'titleVideo'  => __( 'Choose a video', 'kingdom-church-suite' ),
 					'useVideo'    => __( 'Use this video', 'kingdom-church-suite' ),
 					'replaceDesign' => __( 'Replace your message with this design?', 'kingdom-church-suite' ),
+					'rest'          => esc_url_raw( rest_url( 'kcs/v1/' ) ),
+					'restNonce'     => wp_create_nonce( 'wp_rest' ),
+					'checking'      => __( 'Checking pending payments with the gateways…', 'kingdom-church-suite' ),
+					/* translators: %s: time */
+					'checked'       => __( 'Pending payments are checked automatically · last checked %s', 'kingdom-church-suite' ),
+					/* translators: %d: count */
+					'confirmed'     => __( '%d payment(s) confirmed by the gateway just now.', 'kingdom-church-suite' ),
 					'ajax'          => admin_url( 'admin-ajax.php' ),
 					'playNonce'     => wp_create_nonce( 'kcs_play_picture' ),
 					'pics'          => array(
@@ -1580,6 +1587,8 @@ class KCS_Church_Admin {
 				<?php endforeach; ?>
 			</div>
 		<?php endif; ?>
+		<?php self::gateway_modes(); ?>
+		<p class="kca-autocheck" data-auto-status hidden></p>
 		<form class="kca-filters" method="get">
 			<input type="hidden" name="view" value="payments">
 			<input type="search" name="find" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Reference, name or email…', 'kingdom-church-suite' ); ?>" aria-label="<?php esc_attr_e( 'Search payments', 'kingdom-church-suite' ); ?>">
@@ -1623,11 +1632,12 @@ class KCS_Church_Admin {
 				<tbody>
 				<?php $kcs_tries = KCS_Security::attempts( wp_list_pluck( $result['items'], 'ip_hash' ) ); ?>
 				<?php foreach ( $result['items'] as $pay ) : ?>
-					<tr>
+					<?php $kcs_mode = KCS_Transfers::meta( $pay )['mode'] ?? ''; ?>
+					<tr data-pay="<?php echo (int) $pay->id; ?>"<?php echo 'pending' === $pay->status && ! KCS_Transfers::is_manual( $pay ) ? ' data-auto-check' : ''; ?>>
 						<td data-label="<?php esc_attr_e( 'Giver', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( $pay->name ? $pay->name : $pay->email ); ?></strong><small><?php echo esc_html( $pay->reference . ' · ' . kcs_datetime( $pay->created_at ) ); ?></small></td>
 						<td data-label="<?php esc_attr_e( 'Amount', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( kcs_format_money( $pay->amount, $pay->currency ) ); ?></strong><small><?php echo esc_html( $purposes[ $pay->purpose ] ?? ucwords( str_replace( array( '-', '_' ), ' ', $pay->purpose ) ) ); ?></small></td>
-						<td data-label="<?php esc_attr_e( 'Method', 'kingdom-church-suite' ); ?>"><?php echo esc_html( $pay->gateway ); ?></td>
-						<td data-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>"><?php echo kcs_status_badge( $pay->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php if ( 'completed' !== $pay->status && ! empty( $pay->ip_hash ) && ( $kcs_tries[ $pay->ip_hash ] ?? 0 ) >= 3 ) : ?><small class="kca-warn">⚠ <?php /* translators: %d: count */ echo esc_html( sprintf( __( '%d unfinished payments from this device in 24 hours — possible card testing', 'kingdom-church-suite' ), $kcs_tries[ $pay->ip_hash ] ) ); ?><?php echo isset( KCS_Security::blocked()[ $pay->ip_hash ] ) ? ' · ' . esc_html__( 'device paused', 'kingdom-church-suite' ) : ''; ?></small><?php endif; ?><?php if ( $pay->note && 'completed' !== $pay->status ) : ?><small><?php echo esc_html( $pay->note ); ?></small><?php endif; ?></td>
+						<td data-label="<?php esc_attr_e( 'Method', 'kingdom-church-suite' ); ?>"><?php echo esc_html( $pay->gateway ); ?><?php echo 'test' === $kcs_mode ? ' <span class="kca-pill kca-pill--test">' . esc_html__( 'TEST', 'kingdom-church-suite' ) . '</span>' : ''; ?></td>
+						<td data-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>" data-pay-status><?php echo kcs_status_badge( $pay->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php if ( 'completed' !== $pay->status && ! empty( $pay->ip_hash ) && ( $kcs_tries[ $pay->ip_hash ] ?? 0 ) >= 3 ) : ?><small class="kca-warn">⚠ <?php /* translators: %d: count */ echo esc_html( sprintf( __( '%d unfinished payments from this device in 24 hours — possible card testing', 'kingdom-church-suite' ), $kcs_tries[ $pay->ip_hash ] ) ); ?><?php echo isset( KCS_Security::blocked()[ $pay->ip_hash ] ) ? ' · ' . esc_html__( 'device paused', 'kingdom-church-suite' ) : ''; ?></small><?php endif; ?><?php if ( $pay->note && 'completed' !== $pay->status ) : ?><small><?php echo esc_html( $pay->note ); ?></small><?php endif; ?></td>
 						<td class="kca-actions">
 							<?php if ( 'completed' === $pay->status ) : ?>
 								<?php $sent = KCS_Transfers::meta( $pay )['receipt_sent'] ?? ''; ?>
@@ -2760,6 +2770,42 @@ class KCS_Church_Admin {
 				<p class="kcs-muted"><?php esc_html_e( 'Nothing blocked yet.', 'kingdom-church-suite' ); ?></p>
 			<?php endif; ?>
 		</section>
+		<?php
+	}
+
+	/**
+	 * Which mode each card gateway's saved keys are in, with the last characters of the key, so the
+	 * church can match them with the provider's dashboard (test payments only show in Test mode).
+	 */
+	private static function gateway_modes() {
+		$items = array();
+		$test  = false;
+		foreach ( KCS_Payments::gateways() as $g ) {
+			if ( ! $g->is_enabled() || KCS_Transfers::is_manual( $g->id ) ) {
+				continue;
+			}
+			$mode  = $g->mode();
+			$key   = '';
+			foreach ( array( 'secret_key', 'api_key', 'client_secret', 'key_secret' ) as $k ) {
+				$v = (string) $g->opt( $k );
+				if ( '' !== $v ) {
+					$key = substr( $v, -4 );
+					break;
+				}
+			}
+			$test   = $test || 'test' === $mode;
+			$items[] = '<li><strong>' . esc_html( $g->title ) . '</strong> · ' . ( 'test' === $mode ? '<span class="kca-pill kca-pill--test">' . esc_html__( 'TEST keys', 'kingdom-church-suite' ) . '</span>' : ( 'live' === $mode ? '<span class="kca-pill is-on">' . esc_html__( 'LIVE keys', 'kingdom-church-suite' ) . '</span>' : esc_html__( 'mode set by your keys', 'kingdom-church-suite' ) ) ) . ( $key ? ' · ' . esc_html( sprintf( /* translators: %s: last characters */ __( 'key ending …%s', 'kingdom-church-suite' ), $key ) ) : '' ) . '</li>';
+		}
+		if ( ! $items ) {
+			return;
+		}
+		?>
+		<details class="kca-card kca-modes"<?php echo $test ? ' open' : ''; ?>>
+			<summary><strong><?php esc_html_e( 'Can’t find a payment in your Flutterwave or GlobalPay dashboard?', 'kingdom-church-suite' ); ?></strong></summary>
+			<?php if ( $test ) : ?><div class="kcs-alert kcs-alert--error"><?php esc_html_e( 'A gateway is using TEST keys. Real cards are declined in test mode, and these payments only appear in the provider’s dashboard when it is switched to Test mode. Put your LIVE keys in Settings → Payments to receive real gifts.', 'kingdom-church-suite' ); ?></div><?php endif; ?>
+			<ul class="kca-modes__list"><?php echo wp_kses_post( implode( '', $items ) ); ?></ul>
+			<p class="kcs-muted"><?php esc_html_e( 'Payments are created in the provider account that owns the saved key. In the provider’s dashboard, open Settings → API keys and check the key there ends with the same characters, and that the dashboard is in the same mode (Test or Live). Search the dashboard by our reference (GIV-… or PTN-…). Checkouts the giver closed without entering a card never appear there.', 'kingdom-church-suite' ); ?></p>
+		</details>
 		<?php
 	}
 

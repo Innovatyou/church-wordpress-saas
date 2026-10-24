@@ -126,4 +126,14 @@ class KCS_Gateway_Paystack extends KCS_Gateway {
 		$body = $request->get_json_params();
 		return array( 'reference' => (string) kcs_array_get( $body, 'data.reference' ), 'params' => array() );
 	}
+
+	/**
+	 * Test or live, from the secret key.
+	 *
+	 * @return string
+	 */
+	public function mode() {
+		$key = (string) $this->opt( 'secret_key' );
+		return 0 === strpos( $key, 'sk_test_' ) ? 'test' : ( 0 === strpos( $key, 'sk_live_' ) ? 'live' : '' );
+	}
 }
