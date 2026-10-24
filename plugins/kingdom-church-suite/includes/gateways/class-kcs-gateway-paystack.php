@@ -102,7 +102,13 @@ class KCS_Gateway_Paystack extends KCS_Gateway {
 				'currency' => $currency,
 			);
 		}
-		return array( 'status' => in_array( $status, array( 'failed', 'abandoned', 'reversed' ), true ) ? 'failed' : 'pending' );
+		$why = (string) kcs_array_get( $res, 'data.gateway_response' );
+		if ( 'abandoned' === $status ) {
+			$this->said( __( 'cancelled', 'kingdom-church-suite' ), __( 'the giver left the Paystack checkout without paying', 'kingdom-church-suite' ) );
+			return array( 'status' => 'cancelled' );
+		}
+		$this->said( $status ? (string) $status : __( 'not paid yet', 'kingdom-church-suite' ), $why ? $why : (string) kcs_array_get( $res, 'message' ) );
+		return array( 'status' => in_array( $status, array( 'failed', 'reversed' ), true ) ? 'failed' : 'pending' );
 	}
 
 	/**

@@ -103,7 +103,9 @@ class KCS_Gateway_Flutterwave extends KCS_Gateway {
 		if ( is_wp_error( $res ) ) {
 			return $res;
 		}
-		$status = kcs_array_get( $res, 'data.status' );
+		$status    = kcs_array_get( $res, 'data.status' );
+		$cancelled = isset( $params['status'] ) && 'cancelled' === $params['status'];
+		$code      = (int) ( $res['_code'] ?? 200 );
 		if ( 'successful' === $status ) {
 			return array(
 				'status'   => 'completed',
@@ -112,8 +114,21 @@ class KCS_Gateway_Flutterwave extends KCS_Gateway {
 				'currency' => (string) kcs_array_get( $res, 'data.currency' ),
 			);
 		}
-		$cancelled = isset( $params['status'] ) && 'cancelled' === $params['status'];
-		return array( 'status' => ( 'failed' === $status || $cancelled ) ? 'failed' : 'pending' );
+		if ( 'failed' === $status ) {
+			// processor_response holds the bank's reason, e.g. "Insufficient Funds", "Declined".
+			$this->said( __( 'payment failed', 'kingdom-church-suite' ), (string) ( kcs_array_get( $res, 'data.processor_response' ) ? kcs_array_get( $res, 'data.processor_response' ) : kcs_array_get( $res, 'data.narration' ) ) );
+			return array( 'status' => 'failed' );
+		}
+		if ( 401 === $code || 403 === $code ) {
+			$this->said( __( 'your secret key was refused', 'kingdom-church-suite' ), __( 'save your current Flutterwave secret key in Settings → Payments', 'kingdom-church-suite' ) );
+			return array( 'status' => 'pending' );
+		}
+		if ( $cancelled ) {
+			$this->said( __( 'cancelled', 'kingdom-church-suite' ), __( 'the giver closed or cancelled the Flutterwave checkout without paying', 'kingdom-church-suite' ) );
+			return array( 'status' => 'cancelled' );
+		}
+		$this->said( $status ? (string) $status : __( 'not paid yet', 'kingdom-church-suite' ), $status ? '' : (string) kcs_array_get( $res, 'message' ) );
+		return array( 'status' => 'pending' );
 	}
 
 	/**

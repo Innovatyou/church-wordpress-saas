@@ -284,6 +284,22 @@ abstract class KCS_Gateway {
 	 *
 	 * @param string $message Message.
 	 */
+	/**
+	 * Remember what the provider said about a payment (shown in Church Admin → Giving received).
+	 *
+	 * @param string $what Short status.
+	 * @param string $why  Provider's reason (decline message etc.).
+	 */
+	protected function said( $what, $why = '' ) {
+		$why = is_string( $why ) ? trim( wp_strip_all_tags( $why ) ) : '';
+		$this->last_said = $this->title . ': ' . $what . ( '' !== $why && strtolower( $why ) !== strtolower( $what ) ? ' — ' . mb_substr( $why, 0, 200 ) : '' );
+	}
+
+	/**
+	 * Log to debug.log when debugging is on.
+	 *
+	 * @param string $message Message.
+	 */
 	protected function log( $message ) {
 		if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
 			error_log( '[KCS ' . $this->id . '] ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log

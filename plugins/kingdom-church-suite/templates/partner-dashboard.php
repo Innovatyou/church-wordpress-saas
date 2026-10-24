@@ -226,7 +226,7 @@ $completed = array_filter(
 					<tbody>
 					<?php foreach ( $payments as $p ) : ?>
 						<tr>
-							<td><?php echo esc_html( date_i18n( get_option( 'date_format' ), strtotime( $p->paid_at ? $p->paid_at : $p->created_at ) ) ); ?></td>
+							<td><?php echo esc_html( kcs_datetime( $p->paid_at ? $p->paid_at : $p->created_at ) ); ?></td>
 							<td><code><?php echo esc_html( $p->reference ); ?></code></td>
 							<td><?php echo esc_html( $purposes[ $p->purpose ] ?? ucwords( str_replace( array( '-', '_' ), ' ', $p->purpose ) ) ); ?></td>
 							<td><?php echo esc_html( kcs_format_money( $p->amount, $p->currency ) ); ?></td>

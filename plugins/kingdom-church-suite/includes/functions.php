@@ -824,3 +824,13 @@ function kcs_pager( $total, $per, $page, $base, $args = array(), $opts = array()
 	}
 	return $out . '</nav>';
 }
+
+/**
+ * A stored date and time in the site's formats, e.g. "October 24, 2026 · 2:41 pm".
+ *
+ * @param string $mysql Local MySQL datetime.
+ * @return string
+ */
+function kcs_datetime( $mysql ) {
+	return $mysql ? mysql2date( get_option( 'date_format' ), $mysql ) . ' · ' . mysql2date( get_option( 'time_format' ), $mysql ) : '';
+}

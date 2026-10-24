@@ -137,8 +137,12 @@ $back    = $payment->partner_id ? kcs_page_url( 'partner_dashboard' ) : home_url
 	<?php else : ?>
 		<div class="kcs-result__icon">!</div>
 		<h2><?php esc_html_e( 'Payment not completed', 'kingdom-church-suite' ); ?></h2>
-		<p><?php esc_html_e( 'Your payment was cancelled or could not be completed. No money was taken. Please try again.', 'kingdom-church-suite' ); ?></p>
+		<?php if ( 'cancelled' === $payment->status ) : ?>
+			<p><?php esc_html_e( 'The payment was cancelled before it was finished, so no money was taken. You can try again whenever you are ready.', 'kingdom-church-suite' ); ?></p>
+		<?php else : ?>
+			<p><?php esc_html_e( 'Your bank or card provider did not approve this payment, so no money was taken. Please try again, or use another card or payment method.', 'kingdom-church-suite' ); ?></p>
+		<?php endif; ?>
 	<?php endif; ?>
-	<p class="kcs-result__ref"><?php esc_html_e( 'Reference', 'kingdom-church-suite' ); ?>: <code><?php echo esc_html( $payment->reference ); ?></code></p>
+	<p class="kcs-result__ref"><?php esc_html_e( 'Reference', 'kingdom-church-suite' ); ?>: <code><?php echo esc_html( $payment->reference ); ?></code> · <?php echo esc_html( kcs_datetime( $payment->paid_at ? $payment->paid_at : $payment->created_at ) ); ?></p>
 	<p><a class="kcs-btn" href="<?php echo esc_url( $back ); ?>"><?php echo $payment->partner_id ? esc_html__( 'Back to my dashboard', 'kingdom-church-suite' ) : esc_html__( 'Back to homepage', 'kingdom-church-suite' ); ?></a></p>
 </div>

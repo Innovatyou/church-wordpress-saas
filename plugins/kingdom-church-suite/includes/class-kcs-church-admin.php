@@ -1300,7 +1300,7 @@ class KCS_Church_Admin {
 				__( 'Giving & payments', 'kingdom-church-suite' ),
 				KCS_Team::allowed( 'payments' ) ? $wpdb->get_results( $wpdb->prepare( 'SELECT reference, name, email, amount, currency, status, created_at FROM ' . kcs_table( 'payments' ) . " WHERE CONCAT_WS(' ', reference, name, email, phone) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ) : array(),
 				function ( $r ) {
-					return array( ( $r->name ? $r->name : $r->email ) . ' — ' . kcs_format_money( $r->amount, $r->currency ), $r->reference . ' · ' . mysql2date( get_option( 'date_format' ), $r->created_at ), self::url( 'payments', array( 'find' => $r->reference ) ), $r->status );
+					return array( ( $r->name ? $r->name : $r->email ) . ' — ' . kcs_format_money( $r->amount, $r->currency ), $r->reference . ' · ' . kcs_datetime( $r->created_at ), self::url( 'payments', array( 'find' => $r->reference ) ), $r->status );
 				},
 			),
 			array(
@@ -1457,7 +1457,7 @@ class KCS_Church_Admin {
 					<p><?php esc_html_e( 'Total given', 'kingdom-church-suite' ); ?>: <strong><?php echo esc_html( KCS_Partners::total_given_label( $p ) ); ?></strong></p>
 					<ul class="kca-list">
 						<?php foreach ( $pays as $pay ) : ?>
-							<li><span><strong><?php echo esc_html( kcs_format_money( $pay->amount, $pay->currency ) ); ?></strong><small><?php echo esc_html( mysql2date( get_option( 'date_format' ), $pay->created_at ) . ' · ' . $pay->gateway ); ?></small></span><?php echo kcs_status_badge( $pay->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></li>
+							<li><span><strong><?php echo esc_html( kcs_format_money( $pay->amount, $pay->currency ) ); ?></strong><small><?php echo esc_html( kcs_datetime( $pay->created_at ) . ' · ' . $pay->gateway ); ?></small></span><?php echo kcs_status_badge( $pay->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></li>
 						<?php endforeach; ?>
 						<?php if ( ! $pays ) : ?><li class="kcs-muted"><?php esc_html_e( 'No payments yet.', 'kingdom-church-suite' ); ?></li><?php endif; ?>
 					</ul>
@@ -1596,7 +1596,7 @@ class KCS_Church_Admin {
 				<tbody>
 				<?php foreach ( $result['items'] as $pay ) : ?>
 					<tr>
-						<td data-label="<?php esc_attr_e( 'Giver', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( $pay->name ? $pay->name : $pay->email ); ?></strong><small><?php echo esc_html( $pay->reference . ' · ' . mysql2date( get_option( 'date_format' ), $pay->created_at ) ); ?></small></td>
+						<td data-label="<?php esc_attr_e( 'Giver', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( $pay->name ? $pay->name : $pay->email ); ?></strong><small><?php echo esc_html( $pay->reference . ' · ' . kcs_datetime( $pay->created_at ) ); ?></small></td>
 						<td data-label="<?php esc_attr_e( 'Amount', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( kcs_format_money( $pay->amount, $pay->currency ) ); ?></strong><small><?php echo esc_html( $purposes[ $pay->purpose ] ?? ucwords( str_replace( array( '-', '_' ), ' ', $pay->purpose ) ) ); ?></small></td>
 						<td data-label="<?php esc_attr_e( 'Method', 'kingdom-church-suite' ); ?>"><?php echo esc_html( $pay->gateway ); ?></td>
 						<td data-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>"><?php echo kcs_status_badge( $pay->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php if ( $pay->note && 'completed' !== $pay->status ) : ?><small><?php echo esc_html( $pay->note ); ?></small><?php endif; ?></td>
@@ -1614,7 +1614,7 @@ class KCS_Church_Admin {
 							<?php if ( $can_conf && ( $stuck || in_array( $pay->status, array( 'failed', 'cancelled' ), true ) ) ) : ?>
 								<form method="post" class="kca-inline" onsubmit="return confirm('<?php echo esc_js( $stuck ? __( 'This payment is still waiting. Delete it only if no money arrived (check your payment provider’s dashboard or bank). If the giver pays later, it will not be recorded automatically.', 'kingdom-church-suite' ) : __( 'Delete this failed payment?', 'kingdom-church-suite' ) ); ?>')"><?php echo self::fields( 'payment_delete', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Delete', 'kingdom-church-suite' ); ?></button></form>
 							<?php endif; ?>
-							<?php if ( in_array( $pay->status, array( 'pending', 'review', 'failed' ), true ) ) : ?>
+							<?php if ( in_array( $pay->status, array( 'pending', 'review', 'failed', 'cancelled' ), true ) ) : ?>
 								<?php if ( KCS_Transfers::can_confirm() ) : ?><form method="post" class="kca-inline" onsubmit="return confirm('<?php echo esc_js( __( 'Mark this payment as received? The giver gets a receipt.', 'kingdom-church-suite' ) ); ?>')"><?php echo self::fields( 'payment_complete', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn"><?php esc_html_e( 'Mark received', 'kingdom-church-suite' ); ?></button></form><?php endif; ?>
 								<?php if ( ! KCS_Transfers::is_manual( $pay ) ) : ?><form method="post" class="kca-inline"><?php echo self::fields( 'payment_verify', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Check gateway', 'kingdom-church-suite' ); ?></button></form><?php endif; ?>
 							<?php endif; ?>
@@ -1733,7 +1733,7 @@ class KCS_Church_Admin {
 						<tbody>
 						<?php foreach ( $started as $pay ) : ?>
 							<tr>
-								<td data-label="<?php esc_attr_e( 'Giver', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( $pay->name ? $pay->name : $pay->email ); ?></strong><small><?php echo esc_html( $pay->reference . ' · ' . mysql2date( get_option( 'date_format' ), $pay->created_at ) ); ?></small></td>
+								<td data-label="<?php esc_attr_e( 'Giver', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( $pay->name ? $pay->name : $pay->email ); ?></strong><small><?php echo esc_html( $pay->reference . ' · ' . kcs_datetime( $pay->created_at ) ); ?></small></td>
 								<td data-label="<?php esc_attr_e( 'Amount', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( kcs_format_money( $pay->amount, $pay->currency ) ); ?></strong><small><?php echo esc_html( $label( $pay ) ); ?></small></td>
 								<td class="kca-actions"><?php echo $can_confirm ? $confirm_btn( $pay ) . $reject_btn( $pay ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
 							</tr>

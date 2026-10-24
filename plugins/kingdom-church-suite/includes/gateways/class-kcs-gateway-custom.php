@@ -206,6 +206,7 @@ class KCS_Gateway_Custom extends KCS_Gateway {
 				'currency' => $currency,
 			);
 		}
+		$this->said( '' !== $status ? $status : __( 'not paid yet', 'kingdom-church-suite' ), (string) kcs_array_get( $res, 'message' ) );
 		return array( 'status' => in_array( $status, $failed, true ) ? 'failed' : 'pending' );
 	}
 

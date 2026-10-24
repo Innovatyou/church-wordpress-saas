@@ -263,7 +263,7 @@ class KCS_Admin {
 				<?php endif; ?>
 				<?php foreach ( $recent['items'] as $p ) : ?>
 					<tr>
-						<td><?php echo esc_html( mysql2date( get_option( 'date_format' ), $p->created_at ) ); ?></td>
+						<td><?php echo esc_html( kcs_datetime( $p->created_at ) ); ?></td>
 						<td><?php echo esc_html( $p->name ? $p->name : $p->email ); ?></td>
 						<td><?php echo esc_html( $p->purpose ); ?></td>
 						<td><?php echo esc_html( $p->gateway ); ?></td>
@@ -446,7 +446,7 @@ class KCS_Admin {
 				<h3><?php esc_html_e( 'Recent payments', 'kingdom-church-suite' ); ?></h3>
 				<ul>
 					<?php foreach ( KCS_Payments::query( array( 'partner_id' => $p->id, 'per_page' => 10 ) )['items'] as $pay ) : ?>
-						<li><?php echo esc_html( mysql2date( get_option( 'date_format' ), $pay->created_at ) . ' — ' . kcs_format_money( $pay->amount, $pay->currency ) ); ?> <?php echo kcs_status_badge( $pay->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></li>
+						<li><?php echo esc_html( kcs_datetime( $pay->created_at ) . ' — ' . kcs_format_money( $pay->amount, $pay->currency ) ); ?> <?php echo kcs_status_badge( $pay->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></li>
 					<?php endforeach; ?>
 				</ul>
 				<p><a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=kcs-email&partner_ids=' . $p->id ) ); ?>"><?php esc_html_e( 'Email this partner', 'kingdom-church-suite' ); ?></a></p>

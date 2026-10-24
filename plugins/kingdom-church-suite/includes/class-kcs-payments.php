@@ -266,7 +266,15 @@ class KCS_Payments {
 
 		$result = $gateway->initialize( $payment );
 		if ( is_wp_error( $result ) ) {
-			$wpdb->update( kcs_table( 'payments' ), array( 'status' => 'failed', 'note' => $result->get_error_message() ), array( 'id' => $payment->id ) );
+			$wpdb->update(
+				kcs_table( 'payments' ),
+				array(
+					'status' => 'failed',
+					/* translators: 1: gateway, 2: provider message, 3: time */
+					'note'   => sprintf( __( '%1$s: checkout could not start — %2$s · %3$s', 'kingdom-church-suite' ), $gateway->title, $result->get_error_message(), current_time( 'j M H:i' ) ),
+				),
+				array( 'id' => $payment->id )
+			);
 			return $result;
 		}
 		if ( ! empty( $result['txn_id'] ) ) {
@@ -289,7 +297,7 @@ class KCS_Payments {
 	public static function verify_and_update( $payment, $params = array() ) {
 		global $wpdb;
 		// Only open payments are checked: never charge or change cancelled, refunded or completed ones.
-		if ( ! in_array( $payment->status, array( 'pending', 'failed', 'review' ), true ) ) {
+		if ( ! in_array( $payment->status, array( 'pending', 'failed', 'cancelled', 'review' ), true ) ) {
 			return $payment->status;
 		}
 		$gateway = self::gateway( $payment->gateway );
@@ -299,7 +307,7 @@ class KCS_Payments {
 		$result = $gateway->verify( $payment, $params );
 		if ( '' !== $gateway->last_said ) {
 			// Keep what the provider said, for Church Admin (a mismatch note from complete() wins).
-			$wpdb->query( $wpdb->prepare( 'UPDATE ' . kcs_table( 'payments' ) . " SET note = %s WHERE id = %d AND status IN ('pending','failed')", $gateway->last_said . ' · ' . current_time( 'j M H:i' ), $payment->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( $wpdb->prepare( 'UPDATE ' . kcs_table( 'payments' ) . " SET note = %s WHERE id = %d AND status IN ('pending','failed','cancelled')", $gateway->last_said . ' · ' . current_time( 'j M H:i' ), $payment->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		}
 		if ( is_wp_error( $result ) ) {
 			return $payment->status;
@@ -307,10 +315,10 @@ class KCS_Payments {
 		if ( 'completed' === $result['status'] ) {
 			return self::complete( $payment, $result['txn_id'] ?? '', (float) ( $result['amount'] ?? 0 ), (string) ( $result['currency'] ?? '' ) );
 		}
-		if ( 'failed' === $result['status'] && 'pending' === $payment->status ) {
-			$wpdb->update( kcs_table( 'payments' ), array( 'status' => 'failed' ), array( 'id' => $payment->id ) );
+		if ( in_array( $result['status'], array( 'failed', 'cancelled' ), true ) && 'pending' === $payment->status ) {
+			$wpdb->update( kcs_table( 'payments' ), array( 'status' => $result['status'] ), array( 'id' => $payment->id ) );
 			KCS_Receipts::maybe_auto_retry( self::get( $payment->id ) );
-			return 'failed';
+			return $result['status'];
 		}
 		return $payment->status;
 	}
@@ -333,7 +341,7 @@ class KCS_Payments {
 			// Keep gateway_txn_id as is (re-verifying needs the original checkout ID); note the provider's ID.
 			$wpdb->query(
 				$wpdb->prepare(
-					"UPDATE $table SET status = 'review', note = %s WHERE id = %d AND status IN ('pending','failed','review')", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					"UPDATE $table SET status = 'review', note = %s WHERE id = %d AND status IN ('pending','failed','cancelled','review')", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 					/* translators: 1: paid amount, 2: expected amount, 3: provider transaction ID */
 					sprintf( __( 'Amount mismatch: received %1$s, expected %2$s. Provider reference: %3$s', 'kingdom-church-suite' ), $amount . ' ' . $currency, $payment->amount . ' ' . $payment->currency, $txn_id ),
 					$payment->id
@@ -345,7 +353,7 @@ class KCS_Payments {
 		// Atomic transition so callbacks and webhooks racing each other only complete once.
 		$updated = $wpdb->query(
 			$wpdb->prepare(
-				"UPDATE $table SET status = 'completed', gateway_txn_id = %s, paid_at = %s WHERE id = %d AND status IN ('pending','failed','review')", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"UPDATE $table SET status = 'completed', gateway_txn_id = %s, paid_at = %s WHERE id = %d AND status IN ('pending','failed','cancelled','review')", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$txn_id ? $txn_id : $payment->gateway_txn_id,
 				current_time( 'mysql' ),
 				$payment->id

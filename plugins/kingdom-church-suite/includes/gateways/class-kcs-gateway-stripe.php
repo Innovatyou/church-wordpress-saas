@@ -102,7 +102,8 @@ class KCS_Gateway_Stripe extends KCS_Gateway {
 	 */
 	public function verify( $payment, $params ) {
 		if ( ! empty( $params['cancelled'] ) ) {
-			return array( 'status' => 'failed' );
+			$this->said( __( 'cancelled', 'kingdom-church-suite' ), __( 'the giver went back from the Stripe checkout without paying', 'kingdom-church-suite' ) );
+			return array( 'status' => 'cancelled' );
 		}
 		$session_id = $payment->gateway_txn_id ? $payment->gateway_txn_id : ( $params['session_id'] ?? '' );
 		if ( ! $session_id || 0 !== strpos( $session_id, 'cs_' ) ) {
@@ -124,7 +125,9 @@ class KCS_Gateway_Stripe extends KCS_Gateway {
 				'currency' => $currency,
 			);
 		}
-		return array( 'status' => 'expired' === ( $res['status'] ?? '' ) ? 'failed' : 'pending' );
+		$expired = 'expired' === ( $res['status'] ?? '' );
+		$this->said( $expired ? __( 'checkout expired', 'kingdom-church-suite' ) : (string) ( $res['payment_status'] ?? __( 'not paid yet', 'kingdom-church-suite' ) ), $expired ? __( 'the giver did not finish paying within the time Stripe allows', 'kingdom-church-suite' ) : '' );
+		return array( 'status' => $expired ? 'failed' : 'pending' );
 	}
 
 	/**

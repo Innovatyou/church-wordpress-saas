@@ -155,7 +155,8 @@ class KCS_Gateway_PayPal extends KCS_Gateway {
 	 */
 	public function verify( $payment, $params ) {
 		if ( ! empty( $params['cancelled'] ) ) {
-			return array( 'status' => 'failed' );
+			$this->said( __( 'cancelled', 'kingdom-church-suite' ), __( 'the giver cancelled on PayPal without paying', 'kingdom-church-suite' ) );
+			return array( 'status' => 'cancelled' );
 		}
 		$order_id = $payment->gateway_txn_id ? $payment->gateway_txn_id : ( $params['token'] ?? '' );
 		if ( ! $order_id ) {
@@ -183,7 +184,9 @@ class KCS_Gateway_PayPal extends KCS_Gateway {
 				'currency' => (string) kcs_array_get( $capture, 'amount.currency_code' ),
 			);
 		}
-		return array( 'status' => in_array( $order['status'] ?? '', array( 'VOIDED' ), true ) ? 'failed' : 'pending' );
+		$capture_status = is_array( $capture ) ? (string) ( $capture['status'] ?? '' ) : '';
+		$this->said( strtolower( (string) ( $capture_status ? $capture_status : ( $order['status'] ?? __( 'not paid yet', 'kingdom-church-suite' ) ) ) ), is_array( $capture ) ? (string) kcs_array_get( $capture, 'status_details.reason' ) : '' );
+		return array( 'status' => in_array( $order['status'] ?? '', array( 'VOIDED' ), true ) || in_array( $capture_status, array( 'DECLINED', 'FAILED' ), true ) ? 'failed' : 'pending' );
 	}
 
 	/**

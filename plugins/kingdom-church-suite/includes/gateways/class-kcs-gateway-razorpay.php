@@ -110,6 +110,7 @@ class KCS_Gateway_Razorpay extends KCS_Gateway {
 				'currency' => $currency,
 			);
 		}
+		$this->said( (string) ( $res['status'] ?? __( 'not paid yet', 'kingdom-church-suite' ) ), 'expired' === ( $res['status'] ?? '' ) ? __( 'the payment link expired before the giver paid', 'kingdom-church-suite' ) : '' );
 		return array( 'status' => in_array( $res['status'] ?? '', array( 'cancelled', 'expired' ), true ) ? 'failed' : 'pending' );
 	}
 
