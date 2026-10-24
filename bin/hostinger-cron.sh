@@ -2,10 +2,16 @@
 #
 # Ministry OS: run WordPress scheduled jobs for every church site (payment checks, emails, reminders).
 #
-# Hostinger: upload this file to your home folder (not public_html), then in
-# hPanel → Advanced → Cron Jobs add a Custom job that runs every 5 minutes (*/5 * * * *):
+# Hostinger: in File Manager go to your home folder — the top level, where you see the folders
+# "domains" and "public_html" (NOT inside wp-admin, wp-content or wp-includes) — and upload this
+# file there. Then in hPanel → Advanced → Cron Jobs add a Custom job that runs every 5 minutes
+# (*/5 * * * *):
 #
-#     /bin/bash $HOME/hostinger-cron.sh
+#     /bin/bash /home/YOUR-USER/hostinger-cron.sh
+#
+# (YOUR-USER is the u123456789-style name shown in File Manager's path.)
+# The script finds WordPress by itself: the folder with wp-config.php, usually
+# ~/domains/ministryos.com.ng/public_html.
 #
 # What it does:
 # - Skips a run if the previous one is still going (no overlapping runs).
@@ -15,16 +21,34 @@
 # - Uses WP-CLI when Hostinger provides it, otherwise downloads wp-cli.phar once.
 #
 # Settings you can change with environment variables:
-#   WP_PATH  WordPress folder         (default: ~/public_html)
+#   WP_PATH  WordPress folder         (default: found automatically)
 #   WP_CLI   WP-CLI command           (default: wp, or php ~/wp-cli.phar)
 #   LOG      Log file                 (default: ~/logs/ministryos-cron.log)
 
-WP_PATH="${WP_PATH:-$HOME/public_html}"
 LOG="${LOG:-$HOME/logs/ministryos-cron.log}"
 LOCK="${LOCK:-$HOME/.ministryos-cron.lock}"
 
 mkdir -p "$(dirname "$LOG")"
 stamp() { date '+%Y-%m-%d %H:%M:%S'; }
+
+# The WordPress folder is the one holding wp-config.php. Hostinger keeps each website in
+# ~/domains/<domain>/public_html; prefer the multisite install, then ministryos.com.ng.
+if [ -z "$WP_PATH" ]; then
+	for dir in "$HOME/domains/ministryos.com.ng/public_html" "$HOME/public_html" "$HOME"/domains/*/public_html; do
+		if [ -f "$dir/wp-config.php" ] && grep -qE "MULTISITE['\"]?[[:space:]]*,[[:space:]]*true" "$dir/wp-config.php"; then
+			WP_PATH="$dir"
+			break
+		fi
+	done
+	if [ -z "$WP_PATH" ]; then
+		for dir in "$HOME/domains/ministryos.com.ng/public_html" "$HOME/public_html" "$HOME"/domains/*/public_html; do
+			if [ -f "$dir/wp-config.php" ]; then
+				WP_PATH="$dir"
+				break
+			fi
+		done
+	fi
+fi
 
 # One run at a time.
 exec 9>"$LOCK"
