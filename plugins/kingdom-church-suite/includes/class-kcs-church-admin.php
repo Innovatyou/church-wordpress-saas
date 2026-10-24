@@ -46,7 +46,7 @@ class KCS_Church_Admin {
 		 *
 		 * @param array $views slug => array( label, icon ).
 		 */
-		return apply_filters( 'kcs_church_admin_views', array(
+		$views = apply_filters( 'kcs_church_admin_views', array(
 			'overview'    => array( __( 'Home', 'kingdom-church-suite' ), '⌂' ),
 			'partners'    => array( __( 'Partners', 'kingdom-church-suite' ), '♥' ),
 			'plans'       => array( __( 'Partnership plans', 'kingdom-church-suite' ), '◈' ),
@@ -64,7 +64,9 @@ class KCS_Church_Admin {
 			'app'         => array( __( 'Church app', 'kingdom-church-suite' ), '▤' ),
 			'slides'      => array( __( 'Announcement slider', 'kingdom-church-suite' ), '⇆' ),
 			'popups'      => array( __( 'Popups', 'kingdom-church-suite' ), '◰' ),
-		) + ( current_user_can( 'edit_pages' ) ? array( 'pages' => array( __( 'Pages', 'kingdom-church-suite' ), '❐' ) ) : array() ) + ( current_user_can( 'manage_options' ) ? array( 'settings' => array( __( 'Settings', 'kingdom-church-suite' ), '⚙' ) ) : array() ) );
+		) + ( current_user_can( 'edit_pages' ) ? array( 'pages' => array( __( 'Pages', 'kingdom-church-suite' ), '❐' ) ) : array() ) + ( current_user_can( 'manage_options' ) ? array( 'settings' => array( __( 'Settings', 'kingdom-church-suite' ), '⚙' ), 'team' => array( __( 'Team & permissions', 'kingdom-church-suite' ), '☷' ) ) : array() ) );
+		// Staff only see the sections the church owner gave them (Church Admin → Team & permissions).
+		return array_filter( $views, array( 'KCS_Team', 'allowed' ), ARRAY_FILTER_USE_KEY );
 	}
 
 	/**
@@ -81,7 +83,7 @@ class KCS_Church_Admin {
 				__( 'Giving', 'kingdom-church-suite' )      => array( 'transfers', 'payments', 'plans' ),
 				__( 'Messages', 'kingdom-church-suite' )    => array( 'notify', 'newsletter', 'pastors' ),
 				__( 'Website & app', 'kingdom-church-suite' ) => array( 'content', 'website', 'pages', 'slides', 'popups', 'app' ),
-				__( 'Account', 'kingdom-church-suite' )     => array( 'settings', 'subscription', 'domain' ),
+				__( 'Account', 'kingdom-church-suite' )     => array( 'settings', 'team', 'subscription', 'domain' ),
 			)
 		);
 	}
@@ -112,6 +114,7 @@ class KCS_Church_Admin {
 			'popups'       => __( 'A popup for an event, crusade or giving drive, with rules for the pages, people and devices that see it and how often.', 'kingdom-church-suite' ),
 			'pages'        => __( 'Hide or show any page, add new pages with the page builder or your own HTML & CSS, and choose what is in the menu.', 'kingdom-church-suite' ),
 			'settings'     => __( 'Church details, service times, payment methods, emails and more.', 'kingdom-church-suite' ),
+			'team'         => __( 'Add pastors and staff to Church Admin and choose which sections each one may open.', 'kingdom-church-suite' ),
 			'subscription' => __( 'Your plan for this website and its payments.', 'kingdom-church-suite' ),
 			'domain'       => __( 'Use your own web address, such as yourchurch.org.', 'kingdom-church-suite' ),
 		);
@@ -248,6 +251,11 @@ class KCS_Church_Admin {
 		$id   = absint( $d['id'] ?? 0 );
 		$msg  = __( 'Saved.', 'kingdom-church-suite' );
 		$type = 'success';
+		if ( ! KCS_Team::may( $do ) ) {
+			set_transient( 'kcs_admin_flash_' . get_current_user_id(), array( __( 'You do not have permission for that section. Ask a church administrator.', 'kingdom-church-suite' ), 'error' ), 60 );
+			wp_safe_redirect( self::url() );
+			exit;
+		}
 
 		switch ( $do ) {
 			case 'partner_save':
@@ -751,6 +759,13 @@ class KCS_Church_Admin {
 				$type = $n ? 'success' : 'error';
 				break;
 
+			case 'team_add':
+			case 'team_save':
+			case 'team_remove':
+				list( $msg, $type ) = KCS_Team::handle( $do, $d, $id );
+				$view               = 'team';
+				break;
+
 			case 'slide_save':
 			case 'slide_delete':
 			case 'slide_move':
@@ -995,6 +1010,7 @@ class KCS_Church_Admin {
 			),
 			function ( $a ) { return $a[0] > 0; }
 		);
+		$attn  = array_filter( $attn, array( 'KCS_Team', 'allowed' ), ARRAY_FILTER_USE_KEY );
 		$steps = current_user_can( 'manage_options' ) ? self::setup_steps() : array();
 		$done  = count( array_filter( wp_list_pluck( $steps, 'done' ) ) );
 		?>
@@ -1180,28 +1196,28 @@ class KCS_Church_Admin {
 		$sets = array(
 			array(
 				__( 'Partners', 'kingdom-church-suite' ),
-				$wpdb->get_results( $wpdb->prepare( 'SELECT id, first_name, last_name, email, phone, status FROM ' . kcs_table( 'partners' ) . " WHERE CONCAT_WS(' ', first_name, last_name, email, phone) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ),
+				KCS_Team::allowed( 'partners' ) ? $wpdb->get_results( $wpdb->prepare( 'SELECT id, first_name, last_name, email, phone, status FROM ' . kcs_table( 'partners' ) . " WHERE CONCAT_WS(' ', first_name, last_name, email, phone) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ) : array(),
 				function ( $r ) {
 					return array( trim( $r->first_name . ' ' . $r->last_name ), trim( $r->email . ' · ' . $r->phone, ' ·' ), self::url( 'partners', array( 'id' => $r->id ) ), $r->status );
 				},
 			),
 			array(
 				__( 'Giving & payments', 'kingdom-church-suite' ),
-				$wpdb->get_results( $wpdb->prepare( 'SELECT reference, name, email, amount, currency, status, created_at FROM ' . kcs_table( 'payments' ) . " WHERE CONCAT_WS(' ', reference, name, email, phone) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ),
+				KCS_Team::allowed( 'payments' ) ? $wpdb->get_results( $wpdb->prepare( 'SELECT reference, name, email, amount, currency, status, created_at FROM ' . kcs_table( 'payments' ) . " WHERE CONCAT_WS(' ', reference, name, email, phone) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ) : array(),
 				function ( $r ) {
 					return array( ( $r->name ? $r->name : $r->email ) . ' — ' . kcs_format_money( $r->amount, $r->currency ), $r->reference . ' · ' . mysql2date( get_option( 'date_format' ), $r->created_at ), self::url( 'payments', array( 's' => $r->reference ) ), $r->status );
 				},
 			),
 			array(
 				__( 'Prayer requests', 'kingdom-church-suite' ),
-				$wpdb->get_results( $wpdb->prepare( 'SELECT name, email, request, status FROM ' . kcs_table( 'prayer_requests' ) . " WHERE CONCAT_WS(' ', name, email, phone, request) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ),
+				KCS_Team::allowed( 'prayers' ) ? $wpdb->get_results( $wpdb->prepare( 'SELECT name, email, request, status FROM ' . kcs_table( 'prayer_requests' ) . " WHERE CONCAT_WS(' ', name, email, phone, request) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ) : array(),
 				function ( $r ) {
 					return array( $r->name ? $r->name : __( 'Anonymous', 'kingdom-church-suite' ), wp_trim_words( $r->request, 14 ), self::url( 'prayers' ), $r->status );
 				},
 			),
 			array(
 				__( 'First-time visitors', 'kingdom-church-suite' ),
-				$wpdb->get_results( $wpdb->prepare( 'SELECT name, email, phone, status FROM ' . kcs_table( 'visits' ) . " WHERE CONCAT_WS(' ', name, email, phone) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ),
+				KCS_Team::allowed( 'visits' ) ? $wpdb->get_results( $wpdb->prepare( 'SELECT name, email, phone, status FROM ' . kcs_table( 'visits' ) . " WHERE CONCAT_WS(' ', name, email, phone) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ) : array(),
 				function ( $r ) {
 					return array( $r->name, trim( $r->email . ' · ' . $r->phone, ' ·' ), self::url( 'visits' ), $r->status );
 				},
@@ -1797,6 +1813,17 @@ class KCS_Church_Admin {
 			echo '<p class="kcs-muted">' . esc_html__( 'No testimonies are waiting for review.', 'kingdom-church-suite' ) . '</p>';
 		}
 		echo '</div>';
+	}
+
+	/**
+	 * Team & permissions.
+	 */
+	private static function view_team() {
+		KCS_Team::view(
+			function ( $do, $view, $id ) {
+				return self::fields( $do, $view, $id );
+			}
+		);
 	}
 
 	/**

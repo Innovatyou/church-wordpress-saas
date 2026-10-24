@@ -236,3 +236,10 @@ details.kca-card > summary::-webkit-details-marker { display: none; }
 .kca-receipt-settings summary { cursor: pointer; }
 .kca-receipt-settings[open] summary { margin-bottom: 1rem; }
 .kca-table td small { display: block; color: var(--kcs-muted); font-size: .8rem; margin-top: .25rem; }
+/* Team & permissions */
+.kca-team__group { border: 0; padding: 0; margin: 0 0 .9rem; }
+.kca-team__group legend { font-weight: 700; font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; color: var(--kcs-muted); margin-bottom: .4rem; }
+.kca-team__member summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.kca-team__member[open] summary { margin-bottom: 1rem; }
+.kca-team__add summary { cursor: pointer; }
+.kca-team__add[open] summary { margin-bottom: 1rem; }

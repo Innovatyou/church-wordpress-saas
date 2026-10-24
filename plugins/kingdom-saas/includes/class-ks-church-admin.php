@@ -34,7 +34,8 @@ class KS_Church_Admin {
 	 * @return array
 	 */
 	public static function views( $views ) {
-		if ( ! KS_Tenants::current() ) {
+		// Billing and the web address are for church administrators (not staff).
+		if ( ! KS_Tenants::current() || ! current_user_can( 'manage_options' ) ) {
 			return $views;
 		}
 		$views['subscription'] = array( __( 'Subscription', 'kingdom-saas' ), '★' );
@@ -59,7 +60,7 @@ class KS_Church_Admin {
 	 */
 	public static function banner( $view ) {
 		$sub = KS_Tenants::current();
-		if ( ! $sub || 'subscription' === $view ) {
+		if ( ! $sub || 'subscription' === $view || ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 		$left = KS_Tenants::days_until( KS_Tenants::due_at( $sub ) );
@@ -83,7 +84,7 @@ class KS_Church_Admin {
 			return;
 		}
 		$sub = KS_Tenants::current();
-		if ( ! $sub || ! current_user_can( 'manage_kcs' ) || ! isset( $_POST['_ks'] ) || ! wp_verify_nonce( sanitize_key( $_POST['_ks'] ), 'ks_church' ) ) {
+		if ( ! $sub || ! current_user_can( 'manage_options' ) || ! isset( $_POST['_ks'] ) || ! wp_verify_nonce( sanitize_key( $_POST['_ks'] ), 'ks_church' ) ) {
 			wp_die( esc_html__( 'Your session expired. Please go back and try again.', 'kingdom-saas' ), 403 );
 		}
 		$d    = wp_unslash( $_POST );
