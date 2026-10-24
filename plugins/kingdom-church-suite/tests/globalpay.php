@@ -37,3 +37,21 @@ $ok( array( 'Seyi', 'Seyi' ) === KCS_Gateway_GlobalPay::names( 'Seyi' ), 'one na
 $ok( array( 'Seyi', 'Ade' ) === KCS_Gateway_GlobalPay::names( 'Pastor Seyi Ade' ), 'titles dropped' );
 $ok( array( 'Chukwuemeka', 'ONeil Obi' ) === KCS_Gateway_GlobalPay::names( 'Dr. Chukwuemeka O’Neil-Obi' ), 'letters only' );
 $ok( array( 'John', 'Doe' ) === KCS_Gateway_GlobalPay::names( '123', 'john.doe@example.com' ), 'no usable name → from email' );
+// Second documented reply shape: { responseCode: "0000", data: [ { merchantTransactionReference, amount, … } ] }, no isSuccessful.
+$p = $mk( 7000 ); $GLOBALS['gp_reply'] = array( 200, array( 'responseCode' => '0000', 'responseDescription' => 'Success', 'data' => array( array( 'transactionStatus' => 'Successful', 'retrievalReferenceNumber' => 'RRN123', 'amount' => 7000.00, 'merchantTransactionReference' => $p->reference, 'transactionReference' => 'TXN_1', 'currency' => 'NGN' ) ) ) ); KCS_Payments::verify_and_update( $p ); $q = KCS_Payments::get( $p->id );
+$ok( 'completed' === $q->status, 'responseCode 0000 + merchantTransactionReference + amount → completed (' . $q->status . ')' );
+// First shape with data as a single object and no currency field (as in GlobalPay's sample).
+$p = $mk( 100 ); $GLOBALS['gp_reply'] = array( 200, array( 'isSuccessful' => true, 'error' => null, 'data' => array( 'amountFromMerchant' => 100.00, 'amountPaid' => 100.00, 'merchantTxnref' => $p->reference, 'transactionStatus' => 'Successful', 'retrievalReferenceNumber' => '5295178011124' ) ) ); KCS_Payments::verify_and_update( $p ); $q = KCS_Payments::get( $p->id );
+$ok( 'completed' === $q->status, 'data as one object, no currency → completed (' . $q->status . ')' );
+// Not found: the note tells the church what GlobalPay said.
+$p = $mk( 5000 ); $GLOBALS['gp_reply'] = array( 400, array( 'data' => null, 'isSuccessful' => false, 'error' => array( 'responseCode' => 'ZEN0049', 'responseDescription' => 'Invalid merchant' ) ) ); KCS_Payments::verify_and_update( $p ); $q = KCS_Payments::get( $p->id );
+$ok( false !== strpos( (string) $q->note, 'not completed the checkout' ), 'not found → note: ' . $q->note );
+$p = $mk( 5000 ); $GLOBALS['gp_reply'] = array( 400, array( 'data' => null, 'isSuccessful' => false, 'error' => array( 'responseCode' => 'ZEN0112', 'responseDescription' => 'Invalid Key' ) ) ); KCS_Payments::verify_and_update( $p ); $q = KCS_Payments::get( $p->id );
+$ok( false !== strpos( (string) $q->note, 'API key' ), 'wrong key → note: ' . $q->note );
+// Hourly re-check: an old unpaid payment becomes failed; a paid one completes.
+global $wpdb;
+$old = $mk( 5000 ); $wpdb->update( kcs_table( 'payments' ), array( 'created_at' => gmdate( 'Y-m-d H:i:s', time() - 3 * DAY_IN_SECONDS ) ), array( 'id' => $old->id ) );
+$GLOBALS['gp_reply'] = array( 400, array( 'data' => null, 'isSuccessful' => false, 'error' => array( 'responseCode' => 'ZEN0049', 'responseDescription' => 'Invalid merchant' ) ) );
+KCS_Payments::recheck_pending(); $q = KCS_Payments::get( $old->id );
+$ok( 'failed' === $q->status, 'hourly re-check: unpaid after 2 days → failed (' . $q->note . ')' );
+$GLOBALS['gp_reply'] = null;

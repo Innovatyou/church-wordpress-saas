@@ -24,6 +24,28 @@ class KCS_Payments {
 	 */
 	public static function init() {
 		add_action( 'kcs_payment_completed', array( __CLASS__, 'notify_completed' ), 10, 1 );
+		add_action( 'kcs_recheck_payments', array( __CLASS__, 'recheck_pending' ) );
+		if ( ! wp_next_scheduled( 'kcs_recheck_payments' ) ) {
+			wp_schedule_event( time() + 300, 'hourly', 'kcs_recheck_payments' );
+		}
+	}
+
+	/**
+	 * Hourly: ask the payment providers about online payments still pending, in case the giver paid
+	 * but closed the page before coming back. After two days with nothing paid, the payment is marked
+	 * failed (it can still be confirmed later with "Check gateway" or "Mark received").
+	 */
+	public static function recheck_pending() {
+		global $wpdb;
+		$table  = kcs_table( 'payments' );
+		$manual = "'" . implode( "','", array_map( 'esc_sql', KCS_Transfers::MANUAL ) ) . "'";
+		$rows   = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table WHERE status = 'pending' AND gateway NOT IN ($manual) AND created_at < %s ORDER BY id DESC LIMIT 40", gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - 10 * MINUTE_IN_SECONDS ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DateTime.CurrentTimeTimestamp.Requested
+		$cutoff = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - 2 * DAY_IN_SECONDS ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
+		foreach ( $rows as $p ) {
+			if ( 'pending' === self::verify_and_update( $p ) && $p->created_at < $cutoff ) {
+				$wpdb->query( $wpdb->prepare( "UPDATE $table SET status = 'failed', note = CONCAT(%s, IFNULL(note, '')) WHERE id = %d AND status = 'pending'", __( 'Not paid within 2 days. ', 'kingdom-church-suite' ), $p->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			}
+		}
 	}
 
 	/**
@@ -272,6 +294,10 @@ class KCS_Payments {
 			return $payment->status;
 		}
 		$result = $gateway->verify( $payment, $params );
+		if ( '' !== $gateway->last_said ) {
+			// Keep what the provider said, for Church Admin (a mismatch note from complete() wins).
+			$wpdb->query( $wpdb->prepare( 'UPDATE ' . kcs_table( 'payments' ) . " SET note = %s WHERE id = %d AND status IN ('pending','failed')", $gateway->last_said . ' · ' . current_time( 'j M H:i' ), $payment->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
 		if ( is_wp_error( $result ) ) {
 			return $payment->status;
 		}

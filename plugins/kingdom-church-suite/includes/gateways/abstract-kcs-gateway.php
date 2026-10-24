@@ -273,6 +273,13 @@ abstract class KCS_Gateway {
 	}
 
 	/**
+	 * What the provider said at the last verify() (shown to the church), when the gateway sets it.
+	 *
+	 * @var string
+	 */
+	public $last_said = '';
+
+	/**
 	 * Debug log (only when WP_DEBUG_LOG is enabled).
 	 *
 	 * @param string $message Message.

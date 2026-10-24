@@ -46,6 +46,7 @@ class KCS_Installer {
 	public static function deactivate() {
 		wp_clear_scheduled_hook( 'kcs_process_email_queue' );
 		wp_clear_scheduled_hook( 'kcs_daily_tasks' );
+		wp_clear_scheduled_hook( 'kcs_recheck_payments' );
 		flush_rewrite_rules();
 	}
 

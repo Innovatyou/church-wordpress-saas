@@ -189,32 +189,55 @@ class KCS_Gateway_GlobalPay extends KCS_Gateway {
 	public function verify( $payment, $params ) {
 		$res = $this->http( 'GET', self::API . '/query-single-transaction-by-merchant-reference/' . rawurlencode( $payment->reference ), array( 'headers' => $this->headers(), 'allow_errors' => true ) );
 		if ( is_wp_error( $res ) ) {
+			$this->last_said = __( 'GlobalPay could not be reached', 'kingdom-church-suite' ) . ': ' . $res->get_error_message();
 			return $res;
 		}
-		if ( true !== kcs_array_get( $res, 'isSuccessful' ) ) {
-			return array( 'status' => 'pending' ); // Not found yet (e.g. the giver has not paid).
+		// GlobalPay documents two reply shapes: { isSuccessful, data: {…} } and
+		// { responseCode: "0000", data: [ {…} ] }; reference, amount and currency field names differ too.
+		$code = (string) kcs_array_get( $res, 'responseCode' );
+		$ok   = true === kcs_array_get( $res, 'isSuccessful' ) || in_array( $code, array( '0000', '00' ), true );
+		if ( ! $ok ) {
+			$why  = (string) ( kcs_array_get( $res, 'error.responseDescription' ) ? kcs_array_get( $res, 'error.responseDescription' ) : kcs_array_get( $res, 'responseDescription' ) );
+			$err  = (string) ( kcs_array_get( $res, 'error.responseCode' ) ? kcs_array_get( $res, 'error.responseCode' ) : $code );
+			$this->last_said = 'ZEN0112' === $err
+				? __( 'GlobalPay rejected the API key: paste the current live API key in Settings → Payments → Zenith GlobalPay', 'kingdom-church-suite' )
+				: __( 'No payment found at GlobalPay yet: the giver has not completed the checkout', 'kingdom-church-suite' ) . ( $why ? ' (' . $why . ')' : '' );
+			$this->log( 'query ' . $payment->reference . ': ' . wp_json_encode( $res ) );
+			return array( 'status' => 'pending' );
 		}
 		$rows = kcs_array_get( $res, 'data' );
-		$rows = isset( $rows['merchantTxnref'] ) ? array( $rows ) : (array) $rows;
+		$rows = is_array( $rows ) && isset( $rows['transactionStatus'] ) ? array( $rows ) : (array) $rows;
+		$rows = array_values( array_filter( $rows, 'is_array' ) );
 		$seen = 'pending';
+		$said = array();
 		foreach ( $rows as $row ) {
-			if ( ! is_array( $row ) || (string) ( $row['merchantTxnref'] ?? '' ) !== (string) $payment->reference ) {
+			$ref = (string) ( $row['merchantTxnref'] ?? $row['merchantTransactionReference'] ?? $row['merchantTransRef'] ?? '' );
+			// We asked by our own reference, so a row without one (only one row) is ours.
+			if ( '' !== $ref ? $ref !== (string) $payment->reference : count( $rows ) > 1 ) {
 				continue;
 			}
-			$status = strtolower( (string) ( $row['transactionStatus'] ?? '' ) );
-			if ( 'successful' === $status ) {
+			$status = strtolower( trim( (string) ( $row['transactionStatus'] ?? $row['status'] ?? '' ) ) );
+			$said[] = (string) ( $row['transactionStatus'] ?? $row['status'] ?? '?' );
+			if ( in_array( $status, array( 'successful', 'success', 'approved', 'completed' ), true ) ) {
+				$this->last_said = __( 'GlobalPay: Successful', 'kingdom-church-suite' );
 				// amountFromMerchant is what we asked for; with "ChargeCustomer" the giver also paid the fee.
+				$currency = strtoupper( (string) ( $row['currency'] ?? $row['transactionCurrency'] ?? '' ) );
 				return array(
 					'status'   => 'completed',
-					'txn_id'   => (string) ( $row['retrievalReferenceNumber'] ?? '' ),
-					'amount'   => (float) ( $row['amountFromMerchant'] ?? 0 ),
-					'currency' => strtoupper( (string) ( $row['currency'] ?? '' ) ),
+					'txn_id'   => (string) ( $row['retrievalReferenceNumber'] ?? $row['transactionReference'] ?? '' ),
+					'amount'   => (float) ( $row['amountFromMerchant'] ?? $row['amount'] ?? $row['amountPaid'] ?? 0 ),
+					// The reply may leave the currency out: the reference is ours, so it is the one we sent.
+					'currency' => '' !== $currency ? $currency : strtoupper( $payment->currency ),
 				);
 			}
-			if ( in_array( $status, array( 'failed', 'declined', 'cancelled', 'reversed' ), true ) ) {
+			if ( in_array( $status, array( 'failed', 'declined', 'cancelled', 'canceled', 'reversed', 'expired' ), true ) ) {
 				$seen = 'failed';
 			}
 		}
+		$this->last_said = $said
+			/* translators: %s: status from GlobalPay */
+			? sprintf( __( 'GlobalPay: %s', 'kingdom-church-suite' ), implode( ', ', array_unique( $said ) ) )
+			: __( 'No payment found at GlobalPay yet: the giver has not completed the checkout', 'kingdom-church-suite' );
 		return array( 'status' => $seen );
 	}
 }

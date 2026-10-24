@@ -130,6 +130,10 @@ $back    = $payment->partner_id ? kcs_page_url( 'partner_dashboard' ) : home_url
 		<div class="kcs-result__icon kcs-spin">⏳</div>
 		<h2><?php esc_html_e( 'Confirming your payment…', 'kingdom-church-suite' ); ?></h2>
 		<p><?php esc_html_e( 'This usually takes a few seconds. This page will update automatically.', 'kingdom-church-suite' ); ?></p>
+		<?php if ( 'pending' === $payment->status && ! KCS_Transfers::is_manual( $payment ) ) : ?>
+			<p class="kcs-muted"><?php esc_html_e( 'Did not finish paying, or saw an error on the payment page? Nothing was taken: you can try again or choose another payment method.', 'kingdom-church-suite' ); ?></p>
+			<p><a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( $payment->partner_id ? add_query_arg( 'kcs_action', 'pay', kcs_page_url( 'partner_dashboard' ) ) : kcs_page_url( 'give' ) ); ?>"><?php esc_html_e( 'Try again', 'kingdom-church-suite' ); ?></a></p>
+		<?php endif; ?>
 	<?php else : ?>
 		<div class="kcs-result__icon">!</div>
 		<h2><?php esc_html_e( 'Payment not completed', 'kingdom-church-suite' ); ?></h2>
