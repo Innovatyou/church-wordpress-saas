@@ -362,6 +362,45 @@ class KCS_Church_Admin {
 				$view = 'transfers';
 				break;
 
+			case 'payment_send_receipt':
+				$p    = KCS_Payments::get( $id );
+				$ok   = $p && KCS_Receipts::send( $p );
+				$msg  = $ok ? sprintf( /* translators: %s: email */ __( 'Receipt sent to %s.', 'kingdom-church-suite' ), $p->email ) : __( 'The receipt could not be sent. Check the giver’s email address and your email settings.', 'kingdom-church-suite' );
+				$type = $ok ? 'success' : 'error';
+				$view = 'payments';
+				break;
+
+			case 'payment_send_retry':
+				$p    = KCS_Payments::get( $id );
+				$ok   = $p && KCS_Receipts::send_retry( $p );
+				$msg  = $ok ? sprintf( /* translators: %s: email */ __( '“Try again” email sent to %s.', 'kingdom-church-suite' ), $p->email ) : __( 'The email could not be sent.', 'kingdom-church-suite' );
+				$type = $ok ? 'success' : 'error';
+				$view = 'payments';
+				break;
+
+			case 'payment_delete':
+			case 'payments_delete_failed':
+				$view = 'payments';
+				if ( ! KCS_Transfers::can_confirm() ) {
+					$msg  = __( 'You are not allowed to delete payments.', 'kingdom-church-suite' );
+					$type = 'error';
+					break;
+				}
+				if ( 'payment_delete' === $do ) {
+					$n = (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . kcs_table( 'payments' ) . " WHERE id = %d AND status IN ('failed','cancelled')", $id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				} else {
+					$n = (int) $wpdb->query( 'DELETE FROM ' . kcs_table( 'payments' ) . " WHERE status IN ('failed','cancelled')" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				}
+				/* translators: %d: number */
+				$msg = $n ? sprintf( _n( '%d failed payment deleted.', '%d failed payments deleted.', $n, 'kingdom-church-suite' ), $n ) : __( 'Only failed or cancelled payments can be deleted.', 'kingdom-church-suite' );
+				break;
+
+			case 'receipt_settings':
+				KCS_Receipts::save_settings( $d );
+				$msg  = __( 'Receipt settings saved.', 'kingdom-church-suite' );
+				$view = 'payments';
+				break;
+
 			case 'payment_verify':
 				$p = KCS_Payments::get( $id );
 				if ( $p ) {
@@ -1371,10 +1410,19 @@ class KCS_Church_Admin {
 		$search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
 		$page   = max( 1, absint( $_GET['pg'] ?? 1 ) );
 		// phpcs:enable
-		$purpose  = isset( $_GET['purpose'] ) ? sanitize_key( $_GET['purpose'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$purpose  = isset( $_GET['purpose'] ) ? sanitize_key( $_GET['purpose'] ) : '';
+		$gateway  = isset( $_GET['gateway'] ) ? sanitize_key( $_GET['gateway'] ) : '';
+		$from     = isset( $_GET['from'] ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) $_GET['from'] ) ? (string) $_GET['from'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		$to       = isset( $_GET['to'] ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) $_GET['to'] ) ? (string) $_GET['to'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		// phpcs:enable
 		$purposes = kcs_all_purposes();
-		$result   = KCS_Payments::query( array( 'status' => $status, 'search' => $search, 'purpose' => $purpose, 'per_page' => 25, 'page' => $page ) );
+		$filters  = array( 'status' => $status, 'search' => $search, 'purpose' => $purpose, 'gateway' => $gateway, 'date_from' => $from, 'date_to' => $to );
 		global $wpdb;
+		$result   = KCS_Payments::query( array_merge( $filters, array( 'per_page' => 25, 'page' => $page ) ) );
+		$export   = wp_nonce_url( add_query_arg( array_filter( array( 'action' => 'kcs_export', 'type' => 'payments', 'status' => $status, 's' => $search, 'purpose' => $purpose, 'gateway' => $gateway, 'date_from' => $from, 'date_to' => $to ) ), admin_url( 'admin-post.php' ) ), 'kcs_export' );
+		$can_conf = KCS_Transfers::can_confirm();
+		$failed_n = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . kcs_table( 'payments' ) . " WHERE status IN ('failed','cancelled')" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$month = $wpdb->get_results( $wpdb->prepare( 'SELECT purpose, currency, SUM(amount) total FROM ' . kcs_table( 'payments' ) . " WHERE status = 'completed' AND paid_at >= %s GROUP BY purpose, currency ORDER BY total DESC", current_time( 'Y-m-01 00:00:00' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$by    = array();
 		foreach ( $month as $m ) {
@@ -1393,8 +1441,29 @@ class KCS_Church_Admin {
 			<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Reference, name or email…', 'kingdom-church-suite' ); ?>" aria-label="<?php esc_attr_e( 'Search payments', 'kingdom-church-suite' ); ?>">
 			<select name="purpose" aria-label="<?php esc_attr_e( 'Purpose', 'kingdom-church-suite' ); ?>"><option value=""><?php esc_html_e( 'All purposes', 'kingdom-church-suite' ); ?></option><?php foreach ( $purposes as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $purpose, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
 			<select name="status" aria-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>"><option value=""><?php esc_html_e( 'All statuses', 'kingdom-church-suite' ); ?></option><?php foreach ( KCS_Payments::statuses() as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $status, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
+			<select name="gateway" aria-label="<?php esc_attr_e( 'Payment method', 'kingdom-church-suite' ); ?>"><option value=""><?php esc_html_e( 'All methods', 'kingdom-church-suite' ); ?></option><?php foreach ( KCS_Payments::gateways() as $g ) : ?><option value="<?php echo esc_attr( $g->id ); ?>" <?php selected( $gateway, $g->id ); ?>><?php echo esc_html( $g->display_title() ); ?></option><?php endforeach; ?></select>
+			<label class="kca-date"><?php esc_html_e( 'From', 'kingdom-church-suite' ); ?> <input type="date" name="from" value="<?php echo esc_attr( $from ); ?>"></label>
+			<label class="kca-date"><?php esc_html_e( 'To', 'kingdom-church-suite' ); ?> <input type="date" name="to" value="<?php echo esc_attr( $to ); ?>"></label>
 			<button class="kcs-btn"><?php esc_html_e( 'Filter', 'kingdom-church-suite' ); ?></button>
+			<?php if ( array_filter( $filters ) ) : ?><a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( self::url( 'payments' ) ); ?>"><?php esc_html_e( 'Clear', 'kingdom-church-suite' ); ?></a><?php endif; ?>
 		</form>
+		<div class="kca-actions kca-payments-tools">
+			<span class="kcs-muted">
+				<?php
+				/* translators: %d: number of payments */
+				echo esc_html( sprintf( _n( '%d payment', '%d payments', $result['total'], 'kingdom-church-suite' ), $result['total'] ) );
+				?>
+			</span>
+			<a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( $export ); ?>"><?php esc_html_e( 'Export to Excel (CSV)', 'kingdom-church-suite' ); ?></a>
+			<?php if ( $can_conf && $failed_n ) : ?>
+				<form method="post" class="kca-inline" onsubmit="return confirm('<?php echo esc_js( __( 'Delete all failed and cancelled payments? This cannot be undone.', 'kingdom-church-suite' ) ); ?>')"><?php echo self::fields( 'payments_delete_failed', 'payments' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost">
+					<?php
+					/* translators: %d: number */
+					echo esc_html( sprintf( __( 'Delete all failed (%d)', 'kingdom-church-suite' ), $failed_n ) );
+					?>
+				</button></form>
+			<?php endif; ?>
+		</div>
 		<div class="kca-table">
 			<table>
 				<thead><tr><th><?php esc_html_e( 'Giver', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Amount', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Method', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Status', 'kingdom-church-suite' ); ?></th><th></th></tr></thead>
@@ -1406,6 +1475,18 @@ class KCS_Church_Admin {
 						<td data-label="<?php esc_attr_e( 'Method', 'kingdom-church-suite' ); ?>"><?php echo esc_html( $pay->gateway ); ?></td>
 						<td data-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>"><?php echo kcs_status_badge( $pay->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php if ( $pay->note && 'completed' !== $pay->status ) : ?><small><?php echo esc_html( $pay->note ); ?></small><?php endif; ?></td>
 						<td class="kca-actions">
+							<?php if ( 'completed' === $pay->status ) : ?>
+								<?php $sent = KCS_Transfers::meta( $pay )['receipt_sent'] ?? ''; ?>
+								<a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( KCS_Receipts::url( $pay ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Receipt', 'kingdom-church-suite' ); ?></a>
+								<?php if ( $pay->email ) : ?><form method="post" class="kca-inline"><?php echo self::fields( 'payment_send_receipt', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost" title="<?php echo esc_attr( $sent ? sprintf( /* translators: %s: date */ __( 'Last sent %s', 'kingdom-church-suite' ), mysql2date( 'j M Y H:i', $sent ) ) : '' ); ?>"><?php echo esc_html( $sent ? __( 'Resend receipt', 'kingdom-church-suite' ) : __( 'Send receipt', 'kingdom-church-suite' ) ); ?></button></form><?php endif; ?>
+							<?php endif; ?>
+							<?php if ( in_array( $pay->status, array( 'failed', 'pending', 'cancelled' ), true ) && $pay->email && ! KCS_Transfers::is_manual( $pay ) ) : ?>
+								<?php $retried = KCS_Transfers::meta( $pay )['retry_sent'] ?? ''; ?>
+								<form method="post" class="kca-inline"><?php echo self::fields( 'payment_send_retry', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost" title="<?php echo esc_attr( $retried ? sprintf( /* translators: %s: date */ __( 'Last sent %s', 'kingdom-church-suite' ), mysql2date( 'j M Y H:i', $retried ) ) : '' ); ?>"><?php echo esc_html( $retried ? __( 'Resend “try again” email', 'kingdom-church-suite' ) : __( 'Send “try again” email', 'kingdom-church-suite' ) ); ?></button></form>
+							<?php endif; ?>
+							<?php if ( $can_conf && in_array( $pay->status, array( 'failed', 'cancelled' ), true ) ) : ?>
+								<form method="post" class="kca-inline" onsubmit="return confirm('<?php echo esc_js( __( 'Delete this failed payment?', 'kingdom-church-suite' ) ); ?>')"><?php echo self::fields( 'payment_delete', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Delete', 'kingdom-church-suite' ); ?></button></form>
+							<?php endif; ?>
 							<?php if ( in_array( $pay->status, array( 'pending', 'review', 'failed' ), true ) ) : ?>
 								<?php if ( KCS_Transfers::can_confirm() ) : ?><form method="post" class="kca-inline" onsubmit="return confirm('<?php echo esc_js( __( 'Mark this payment as received? The giver gets a receipt.', 'kingdom-church-suite' ) ); ?>')"><?php echo self::fields( 'payment_complete', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn"><?php esc_html_e( 'Mark received', 'kingdom-church-suite' ); ?></button></form><?php endif; ?>
 								<?php if ( ! KCS_Transfers::is_manual( $pay ) ) : ?><form method="post" class="kca-inline"><?php echo self::fields( 'payment_verify', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Check gateway', 'kingdom-church-suite' ); ?></button></form><?php endif; ?>
@@ -1418,7 +1499,30 @@ class KCS_Church_Admin {
 			</table>
 		</div>
 		<?php
-		self::pager( $result['total'], 25, $page, array( 'view' => 'payments', 's' => $search, 'status' => $status, 'purpose' => $purpose ) );
+		self::pager( $result['total'], 25, $page, array_filter( array( 'view' => 'payments', 's' => $search, 'status' => $status, 'purpose' => $purpose, 'gateway' => $gateway, 'from' => $from, 'to' => $to ) ) );
+		$r = KCS_Receipts::settings();
+		?>
+		<details class="kca-card kcs-form kca-receipt-settings">
+			<summary><strong><?php esc_html_e( 'Receipt design & emails', 'kingdom-church-suite' ); ?></strong></summary>
+			<form method="post" class="kcs-form">
+				<?php echo self::fields( 'receipt_settings', 'payments' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<p class="kcs-muted"><?php esc_html_e( 'The printable receipt givers open from their receipt email (and you open with “Receipt”). It shows your church name, address and logo, the amount, date, purpose, method and reference.', 'kingdom-church-suite' ); ?></p>
+				<div class="kcs-grid-2">
+					<label><?php esc_html_e( 'Receipt title', 'kingdom-church-suite' ); ?><input name="receipt_title" value="<?php echo esc_attr( $r['title'] ); ?>"></label>
+					<label class="kcs-check"><input type="checkbox" name="receipt_logo" value="1" <?php checked( $r['logo'] ); ?>> <?php esc_html_e( 'Show the church logo', 'kingdom-church-suite' ); ?></label>
+					<label><?php esc_html_e( 'Signed by (optional)', 'kingdom-church-suite' ); ?><input name="receipt_signatory" value="<?php echo esc_attr( $r['signatory'] ); ?>" placeholder="<?php esc_attr_e( 'e.g. Rev. John Doe', 'kingdom-church-suite' ); ?>"></label>
+					<label><?php esc_html_e( 'Their title (optional)', 'kingdom-church-suite' ); ?><input name="receipt_signatory_role" value="<?php echo esc_attr( $r['role'] ); ?>" placeholder="<?php esc_attr_e( 'e.g. Church Treasurer', 'kingdom-church-suite' ); ?>"></label>
+				</div>
+				<label><?php esc_html_e( 'Thank-you message', 'kingdom-church-suite' ); ?><textarea name="receipt_message" rows="2"><?php echo esc_textarea( $r['message'] ); ?></textarea></label>
+				<label><?php esc_html_e( 'Footer note (optional: registration number, bank details, tax note…)', 'kingdom-church-suite' ); ?><textarea name="receipt_footer" rows="2"><?php echo esc_textarea( $r['footer'] ); ?></textarea></label>
+				<label class="kcs-check"><input type="checkbox" name="auto_retry_email" value="1" <?php checked( '1', (string) kcs_get_option( 'auto_retry_email', '0' ) ); ?>> <?php esc_html_e( 'Automatically send the “try again” email when an online payment fails or is not completed within 2 days', 'kingdom-church-suite' ); ?></label>
+				<div class="kca-actions">
+					<button class="kcs-btn"><?php esc_html_e( 'Save receipt settings', 'kingdom-church-suite' ); ?></button>
+					<?php if ( current_user_can( 'manage_options' ) ) : ?><a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( self::url( 'settings', array( 'tab' => 'templates' ) ) ); ?>"><?php esc_html_e( 'Edit the receipt and “try again” email wording', 'kingdom-church-suite' ); ?></a><?php endif; ?>
+				</div>
+			</form>
+		</details>
+		<?php
 	}
 
 	/**

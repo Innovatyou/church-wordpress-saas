@@ -37,8 +37,14 @@ class KCS_Email {
 				'payment_receipt'   => array(
 					'label'   => __( 'Payment receipt', 'kingdom-church-suite' ),
 					'subject' => 'Receipt {reference} — thank you for giving',
-					'body'    => "<p>Dear {name},</p><p>We have received your {purpose} of <strong>{amount}</strong>. Thank you for your generosity!</p><table class=\"details\"><tr><td>Reference</td><td>{reference}</td></tr><tr><td>Date</td><td>{date}</td></tr><tr><td>Method</td><td>{gateway}</td></tr></table><p>\"Each of you should give what you have decided in your heart to give… for God loves a cheerful giver.\" — 2 Corinthians 9:7</p>",
-					'vars'    => array( '{name}', '{amount}', '{purpose}', '{reference}', '{date}', '{gateway}', '{church_name}' ),
+					'body'    => "<p>Dear {name},</p><p>We have received your {purpose} of <strong>{amount}</strong>. Thank you for your generosity!</p><table class=\"details\"><tr><td>Reference</td><td>{reference}</td></tr><tr><td>Date</td><td>{date}</td></tr><tr><td>Method</td><td>{gateway}</td></tr></table><p><a class=\"btn\" href=\"{receipt_url}\">View / print your receipt</a></p><p>\"Each of you should give what you have decided in your heart to give… for God loves a cheerful giver.\" — 2 Corinthians 9:7</p>",
+					'vars'    => array( '{name}', '{amount}', '{purpose}', '{reference}', '{date}', '{gateway}', '{receipt_url}', '{church_name}' ),
+				),
+				'payment_failed'    => array(
+					'label'   => __( 'Payment not completed (please try again)', 'kingdom-church-suite' ),
+					'subject' => 'Your {purpose} of {amount} did not go through',
+					'body'    => "<p>Dear {name},</p><p>Thank you for choosing to give to {church_name}. Your {purpose} of <strong>{amount}</strong> was not completed, and no money was taken.</p><p>This sometimes happens when the payment page is closed early or the bank declines the card. Please try again, or choose another payment method such as bank transfer.</p><p><a class=\"btn\" href=\"{retry_url}\">Try again</a></p><table class=\"details\"><tr><td>Reference</td><td>{reference}</td></tr><tr><td>Date</td><td>{date}</td></tr></table><p>If money was taken from your account, simply reply to this email and we will sort it out.</p>",
+					'vars'    => array( '{name}', '{amount}', '{purpose}', '{reference}', '{date}', '{retry_url}', '{church_name}' ),
 				),
 				'payment_reminder'  => array(
 					'label'   => __( 'Partnership reminder', 'kingdom-church-suite' ),

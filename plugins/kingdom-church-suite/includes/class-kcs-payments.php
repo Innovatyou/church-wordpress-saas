@@ -44,6 +44,7 @@ class KCS_Payments {
 		foreach ( $rows as $p ) {
 			if ( 'pending' === self::verify_and_update( $p ) && $p->created_at < $cutoff ) {
 				$wpdb->query( $wpdb->prepare( "UPDATE $table SET status = 'failed', note = CONCAT(%s, IFNULL(note, '')) WHERE id = %d AND status = 'pending'", __( 'Not paid within 2 days. ', 'kingdom-church-suite' ), $p->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				KCS_Receipts::maybe_auto_retry( self::get( $p->id ) );
 			}
 		}
 	}
@@ -306,6 +307,7 @@ class KCS_Payments {
 		}
 		if ( 'failed' === $result['status'] && 'pending' === $payment->status ) {
 			$wpdb->update( kcs_table( 'payments' ), array( 'status' => 'failed' ), array( 'id' => $payment->id ) );
+			KCS_Receipts::maybe_auto_retry( self::get( $payment->id ) );
 			return 'failed';
 		}
 		return $payment->status;
@@ -371,7 +373,7 @@ class KCS_Payments {
 	public static function notify_completed( $payment ) {
 		$vars = self::email_vars( $payment );
 		if ( '1' === kcs_get_option( 'send_receipts', '1' ) && $payment->email ) {
-			KCS_Email::send_template( $payment->email, 'payment_receipt', $vars );
+			KCS_Receipts::send( $payment );
 		}
 		if ( '1' === kcs_get_option( 'notify_admin_payment', '1' ) ) {
 			KCS_Email::send_template( KCS_Email::admin_recipients(), 'admin_new_payment', $vars );
@@ -396,6 +398,8 @@ class KCS_Payments {
 			'date'      => date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $payment->paid_at ? $payment->paid_at : $payment->created_at ) ),
 			'gateway'   => $gateway ? $gateway->display_title() : $payment->gateway,
 			'admin_url' => admin_url( 'admin.php?page=kcs-payments&s=' . rawurlencode( $payment->reference ) ),
+			'receipt_url' => KCS_Receipts::url( $payment ),
+			'retry_url' => $payment->partner_id ? add_query_arg( 'kcs_action', 'pay', kcs_page_url( 'partner_dashboard' ) ) : kcs_page_url( 'give' ),
 		);
 	}
 

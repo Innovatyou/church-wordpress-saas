@@ -227,3 +227,12 @@ details.kca-card > summary::-webkit-details-marker { display: none; }
 .kca-newpage summary { cursor: pointer; }
 .kca-newpage[open] summary { margin-bottom: 1rem; }
 .kca-code { width: 100%; tab-size: 4; white-space: pre; overflow-wrap: normal; overflow-x: auto; }
+/* Giving received: dates, tools, receipt settings */
+.kca-filters .kca-date { display: inline-flex; align-items: center; gap: .35rem; font-size: .88rem; color: var(--kcs-muted); }
+.kca-filters .kca-date input { flex: 0 0 auto; }
+.kca-payments-tools { justify-content: flex-end; margin: .75rem 0; }
+.kca-payments-tools > .kcs-muted { margin-right: auto; }
+.kca-receipt-settings { margin-top: 1.25rem; }
+.kca-receipt-settings summary { cursor: pointer; }
+.kca-receipt-settings[open] summary { margin-bottom: 1rem; }
+.kca-table td small { display: block; color: var(--kcs-muted); font-size: .8rem; margin-top: .25rem; }

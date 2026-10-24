@@ -1307,6 +1307,7 @@ curl -X POST -H "X-KCS-API-Key: YOUR_KEY" -H "Content-Type: application/json" \
 			// phpcs:disable WordPress.Security.NonceVerification.Recommended
 			$args = array(
 				'status'     => sanitize_key( $_GET['status'] ?? '' ),
+				'search'     => sanitize_text_field( wp_unslash( $_GET['s'] ?? '' ) ),
 				'gateway'    => sanitize_key( $_GET['gateway'] ?? '' ),
 				'purpose'    => sanitize_key( $_GET['purpose'] ?? '' ),
 				'partner_id' => absint( $_GET['partner_id'] ?? 0 ),
@@ -1315,8 +1316,11 @@ curl -X POST -H "X-KCS-API-Key: YOUR_KEY" -H "Content-Type: application/json" \
 				'per_page'   => 100000,
 			);
 			// phpcs:enable
+			$purposes = kcs_all_purposes();
 			foreach ( KCS_Payments::query( $args )['items'] as $p ) {
-				$rows[] = array_intersect_key( (array) $p, array_flip( array( 'reference', 'name', 'email', 'phone', 'amount', 'currency', 'gateway', 'gateway_txn_id', 'purpose', 'status', 'created_at', 'paid_at' ) ) );
+				$row            = array_intersect_key( (array) $p, array_flip( array( 'reference', 'name', 'email', 'phone', 'amount', 'currency', 'gateway', 'gateway_txn_id', 'purpose', 'status', 'created_at', 'paid_at', 'note' ) ) );
+				$row['purpose'] = $purposes[ $p->purpose ] ?? $p->purpose;
+				$rows[]         = $row;
 			}
 		} elseif ( 'subscribers' === $type ) {
 			$rows = $wpdb->get_results( 'SELECT email, name, status, source, created_at, confirmed_at FROM ' . kcs_table( 'subscribers' ) . ' ORDER BY id DESC', ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
