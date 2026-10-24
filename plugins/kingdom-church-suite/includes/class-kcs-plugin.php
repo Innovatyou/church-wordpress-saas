@@ -54,6 +54,7 @@ final class KCS_Plugin {
 		KCS_Devotionals::init();
 		KCS_App_Home::init();
 		KCS_Stories::init();
+		KCS_Security::init();
 		KCS_Church_Admin::init();
 		KCS_Pages::init();
 		KCS_Contact::init();

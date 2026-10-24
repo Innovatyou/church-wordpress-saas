@@ -149,10 +149,12 @@ class KCS_Installer {
 			status varchar(20) NOT NULL DEFAULT 'pending',
 			note text NULL,
 			meta longtext NULL,
+			ip_hash varchar(32) NOT NULL DEFAULT '',
 			created_at datetime NOT NULL,
 			paid_at datetime NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY reference (reference),
+			KEY ip_hash (ip_hash),
 			KEY partner_id (partner_id),
 			KEY status (status),
 			KEY gateway (gateway)

@@ -345,6 +345,11 @@ class KCS_Portal {
 	 * @param array $data Data.
 	 */
 	private static function register( $data ) {
+		if ( ! KCS_Security::token_ok( (string) ( $data['kcs_guard'] ?? '' ) ) ) {
+			KCS_Security::log( 'bot', __( 'Partner sign-up without the bot check', 'kingdom-church-suite' ) );
+			self::add_message( __( 'Please wait a moment and try again. If this keeps happening, refresh the page.', 'kingdom-church-suite' ) );
+			return;
+		}
 		if ( ! kcs_rate_limit( 'register', 20, 3600 ) ) {
 			self::add_message( __( 'Too many attempts. Please try again later.', 'kingdom-church-suite' ) );
 			return;

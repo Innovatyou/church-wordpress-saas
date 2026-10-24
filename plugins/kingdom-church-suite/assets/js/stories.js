@@ -171,8 +171,11 @@
 			bar.hidden = t !== 'photos';
 			bar.firstElementChild.style.width = '0%';
 			var xhr = new XMLHttpRequest();
+			var guard = window.KCSGuard ? window.KCSGuard.headers(form) : Promise.resolve({});
+			guard.then(function (extra) {
 			xhr.open('POST', base.restUrl + 'stories');
 			if (base.loggedIn && base.nonce) { xhr.setRequestHeader('X-WP-Nonce', base.nonce); }
+			Object.keys(extra).forEach(function (k) { xhr.setRequestHeader(k, extra[k]); });
 			xhr.upload.onprogress = function (ev) { if (ev.lengthComputable) { bar.firstElementChild.style.width = Math.round(ev.loaded / ev.total * 100) + '%'; } };
 			xhr.onload = function () {
 				btn.disabled = false;
@@ -189,7 +192,9 @@
 				}
 			};
 			xhr.onerror = function () { btn.disabled = false; bar.hidden = true; say(L.error); };
+			xhr.onloadend = function () { if (window.KCSGuard) { window.KCSGuard.reset(form); } };
 			xhr.send(data);
+			});
 		});
 		var again = form.querySelector('[data-story-again]');
 		if (again) {

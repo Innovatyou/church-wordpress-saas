@@ -20,10 +20,15 @@
 	var state = { filter: cfg.filter || 'all', category: cfg.category || '', search: cfg.search || '', page: cfg.page || 1, pages: cfg.pages || 1, loading: false };
 	var items = {};
 
-	function api(path, method, body) {
+	function api(path, method, body, form) {
 		var headers = { 'Content-Type': 'application/json' };
 		if (base.loggedIn && base.nonce) { headers['X-WP-Nonce'] = base.nonce; }
-		return fetch(base.restUrl + path, { method: method || 'GET', headers: headers, credentials: 'same-origin', body: body ? JSON.stringify(body) : undefined })
+		// Request and encouragement forms carry the site's bot check.
+		var ready = form && window.KCSGuard ? window.KCSGuard.headers(form) : Promise.resolve({});
+		return ready.then(function (extra) {
+			Object.keys(extra).forEach(function (k) { headers[k] = extra[k]; });
+			return fetch(base.restUrl + path, { method: method || 'GET', headers: headers, credentials: 'same-origin', body: body ? JSON.stringify(body) : undefined });
+		})
 			.then(function (res) {
 				return res.json().catch(function () { return null; }).then(function (data) {
 					if (!res.ok || data === null) {
@@ -418,7 +423,7 @@
 			btn.disabled = true;
 			msg.className = 'kcs-form-msg';
 			msg.textContent = '';
-			api('prayer-requests', 'POST', data).then(function (res) {
+			api('prayer-requests', 'POST', data, form).then(function (res) {
 				form.querySelector('[data-kpw-form-fields]').hidden = true;
 				form.querySelector('[data-kpw-form-done]').hidden = false;
 				form.querySelector('[data-kpw-done-text]').textContent = data.is_private ? L.privateDone : (res.status === 'approved' ? L.liveDone : L.pending);
@@ -428,7 +433,7 @@
 			}).catch(function (err) {
 				msg.className = 'kcs-form-msg kcs-alert kcs-alert--error';
 				msg.textContent = err.message;
-			}).then(function () { btn.disabled = false; });
+			}).then(function () { btn.disabled = false; if (window.KCSGuard) { window.KCSGuard.reset(form); window.KCSGuard.reset(encForm); } });
 		});
 	}
 
@@ -468,7 +473,7 @@
 			var data = {};
 			new FormData(encForm).forEach(function (v, k) { data[k] = v; });
 			btn.disabled = true;
-			api('prayer-requests/' + encFor.id + '/encouragements', 'POST', data).then(function (res) {
+			api('prayer-requests/' + encFor.id + '/encouragements', 'POST', data, encForm).then(function (res) {
 				encForm.querySelector('textarea').value = '';
 				if (res.pending) {
 					msg.className = 'kcs-form-msg kcs-alert kcs-alert--success';
@@ -483,7 +488,7 @@
 			}).catch(function (err) {
 				msg.className = 'kcs-form-msg kcs-alert kcs-alert--error';
 				msg.textContent = err.message;
-			}).then(function () { btn.disabled = false; });
+			}).then(function () { btn.disabled = false; if (window.KCSGuard) { window.KCSGuard.reset(form); window.KCSGuard.reset(encForm); } });
 		});
 	}
 

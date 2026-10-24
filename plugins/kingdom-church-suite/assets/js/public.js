@@ -7,14 +7,83 @@
 	var cfg = window.KCS || { restUrl: '/wp-json/kcs/v1/', nonce: '', i18n: {} };
 	var t = function (k, d) { return (cfg.i18n && cfg.i18n[k]) || d; };
 
-	function api(path, method, body) {
+	/* Bot check: a signed token fetched once per page (and Cloudflare Turnstile when switched on) */
+	var G = window.KCS_GUARD || {};
+	var guard = { token: '', at: 0, p: null };
+	var PROTECT = '[data-kcs-payment-form],[data-kcs-newsletter],[data-kcs-prayer],[data-kcs-visit],[data-kcs-questionnaire],[data-kcs-contact],[data-kcs-testimony],[data-kcs-story],[data-kpw-form],[data-kpw-enc-form],[data-kcs-register]';
+	function fetchGuard() {
+		if (!G.url) { return Promise.resolve(''); }
+		if (guard.p && Date.now() - guard.at < 3 * 3600 * 1000) { return guard.p; }
+		guard.at = Date.now();
+		guard.p = fetch(G.url, { credentials: 'same-origin', cache: 'no-store' })
+			.then(function (r) { return r.json(); })
+			.then(function (d) { guard.token = (d && d.token) || ''; return guard.token; })
+			.catch(function () { guard.p = null; return ''; });
+		return guard.p;
+	}
+	function guardToken() {
+		// The server wants the token to be a couple of seconds old (a person filling a form).
+		return fetchGuard().then(function (tok) {
+			var wait = guard.at + 2500 - Date.now();
+			return wait > 0 ? new Promise(function (r) { setTimeout(function () { r(tok); }, wait); }) : tok;
+		});
+	}
+	var widgets = [];
+	function turnstileFor(form) {
+		for (var i = 0; i < widgets.length; i++) { if (widgets[i].form === form) { return widgets[i]; } }
+		return null;
+	}
+	function needsTurnstile(form) {
+		if (!G.site || G.mode === 'off') { return false; }
+		return G.mode === 'all' || form.matches('[data-kcs-payment-form]');
+	}
+	function mountTurnstile() {
+		if (!G.site || !window.turnstile) { return false; }
+		document.querySelectorAll(PROTECT).forEach(function (form) {
+			if (!needsTurnstile(form) || turnstileFor(form)) { return; }
+			var box = document.createElement('div');
+			box.className = 'kcs-turnstile';
+			var btn = form.querySelector('button[type="submit"], button:not([type])');
+			if (btn && btn.parentNode) { btn.parentNode.insertBefore(box, btn); } else { form.appendChild(box); }
+			var w = { form: form, token: '', id: null };
+			w.id = window.turnstile.render(box, { sitekey: G.site, size: 'flexible', callback: function (t) { w.token = t; }, 'expired-callback': function () { w.token = ''; } });
+			widgets.push(w);
+		});
+		return true;
+	}
+	if (G.site) {
+		var tries = 0;
+		(function waitTs() { if (!mountTurnstile() && tries++ < 40) { setTimeout(waitTs, 250); } })();
+	}
+	if (document.querySelector(PROTECT)) { fetchGuard(); }
+	window.KCSGuard = {
+		headers: function (form) {
+			return guardToken().then(function (tok) {
+				var h = { 'X-KCS-Guard': tok };
+				var w = form && turnstileFor(form);
+				if (w) { h['X-KCS-Turnstile'] = w.token; }
+				return h;
+			});
+		},
+		reset: function (form) {
+			var w = form && turnstileFor(form);
+			if (w && window.turnstile) { w.token = ''; try { window.turnstile.reset(w.id); } catch (e) {} }
+		},
+		mount: mountTurnstile
+	};
+
+	function api(path, method, body, form) {
 		var headers = { 'Content-Type': 'application/json' };
 		if (cfg.loggedIn && cfg.nonce) { headers['X-WP-Nonce'] = cfg.nonce; }
-		return fetch(cfg.restUrl + path, {
-			method: method || 'GET',
-			headers: headers,
-			credentials: 'same-origin',
-			body: body ? JSON.stringify(body) : undefined
+		var ready = method === 'POST' && form ? window.KCSGuard.headers(form) : Promise.resolve({});
+		return ready.then(function (extra) {
+			Object.keys(extra).forEach(function (k) { headers[k] = extra[k]; });
+			return fetch(cfg.restUrl + path, {
+				method: method || 'GET',
+				headers: headers,
+				credentials: 'same-origin',
+				body: body ? JSON.stringify(body) : undefined
+			});
 		}).then(function (res) {
 			// A proxy or server error page is HTML, not JSON: show a friendly message instead.
 			return res.json().catch(function () { return null; }).then(function (data) {
@@ -107,9 +176,28 @@
 			e.preventDefault();
 			busy(form, true);
 			msg(form, t('processing', 'Processing…'), 'info');
-			api('payments/initialize', 'POST', formData(form))
+			api('payments/initialize', 'POST', formData(form), form)
 				.then(function (res) { window.location.href = res.redirect_url; })
-				.catch(function (err) { busy(form, false); msg(form, err.message, 'error'); });
+				.catch(function (err) { busy(form, false); msg(form, err.message, 'error'); window.KCSGuard.reset(form); });
+		});
+	});
+
+	/* Partner sign-up (a normal form post): add the bot-check token before sending */
+	document.querySelectorAll('[data-kcs-register]').forEach(function (form) {
+		form.addEventListener('submit', function (e) {
+			var field = form.querySelector('[name="kcs_guard"]');
+			if (field && field.value) { return; }
+			e.preventDefault();
+			if (!field) {
+				field = document.createElement('input');
+				field.type = 'hidden';
+				field.name = 'kcs_guard';
+				form.appendChild(field);
+			}
+			window.KCSGuard.headers(form).then(function (h) {
+				field.value = h['X-KCS-Guard'] || '';
+				if (form.requestSubmit) { form.requestSubmit(); } else { form.submit(); }
+			});
 		});
 	});
 
@@ -137,10 +225,10 @@
 			busy(form, true);
 			var data = formData(form);
 			data.source = data.source || 'website';
-			api('subscribe', 'POST', data)
+			api('subscribe', 'POST', data, form)
 				.then(function (res) { msg(form, res.message, 'success'); form.reset(); })
 				.catch(function (err) { msg(form, err.message, 'error'); })
-				.then(function () { busy(form, false); });
+				.then(function () { busy(form, false); window.KCSGuard.reset(form); });
 		});
 	});
 
@@ -151,50 +239,50 @@
 			busy(form, true);
 			var data = formData(form);
 			data.is_private = form.querySelector('[name="is_private"]').checked ? 1 : 0;
-			api('prayer-requests', 'POST', data)
+			api('prayer-requests', 'POST', data, form)
 				.then(function (res) { msg(form, res.message, 'success'); form.reset(); })
 				.catch(function (err) { msg(form, err.message, 'error'); })
-				.then(function () { busy(form, false); });
+				.then(function () { busy(form, false); window.KCSGuard.reset(form); });
 		});
 	});
 	document.querySelectorAll('[data-kcs-visit]').forEach(function (form) {
 		form.addEventListener('submit', function (e) {
 			e.preventDefault();
 			busy(form, true);
-			api('visits', 'POST', formData(form))
+			api('visits', 'POST', formData(form), form)
 				.then(function (res) { msg(form, res.message, 'success'); form.reset(); })
 				.catch(function (err) { msg(form, err.message, 'error'); })
-				.then(function () { busy(form, false); });
+				.then(function () { busy(form, false); window.KCSGuard.reset(form); });
 		});
 	});
 	document.querySelectorAll('[data-kcs-questionnaire]').forEach(function (form) {
 		form.addEventListener('submit', function (e) {
 			e.preventDefault();
 			busy(form, true);
-			api('visit-questionnaire', 'POST', formData(form))
+			api('visit-questionnaire', 'POST', formData(form), form)
 				.then(function (res) { msg(form, res.message, 'success'); form.reset(); })
 				.catch(function (err) { msg(form, err.message, 'error'); })
-				.then(function () { busy(form, false); });
+				.then(function () { busy(form, false); window.KCSGuard.reset(form); });
 		});
 	});
 	document.querySelectorAll('[data-kcs-contact]').forEach(function (form) {
 		form.addEventListener('submit', function (e) {
 			e.preventDefault();
 			busy(form, true);
-			api('contact', 'POST', formData(form))
+			api('contact', 'POST', formData(form), form)
 				.then(function (res) { msg(form, res.message, 'success'); form.reset(); })
 				.catch(function (err) { msg(form, err.message, 'error'); })
-				.then(function () { busy(form, false); });
+				.then(function () { busy(form, false); window.KCSGuard.reset(form); });
 		});
 	});
 	document.querySelectorAll('[data-kcs-testimony]').forEach(function (form) {
 		form.addEventListener('submit', function (e) {
 			e.preventDefault();
 			busy(form, true);
-			api('testimonies', 'POST', formData(form))
+			api('testimonies', 'POST', formData(form), form)
 				.then(function (res) { msg(form, res.message, 'success'); form.reset(); })
 				.catch(function (err) { msg(form, err.message, 'error'); })
-				.then(function () { busy(form, false); });
+				.then(function () { busy(form, false); window.KCSGuard.reset(form); });
 		});
 	});
 	var focusPlan = document.querySelector('.kcs-plan.is-focus');

@@ -284,3 +284,4 @@ details.kca-card > summary::-webkit-details-marker { display: none; }
 .kca-story__video img { width: 140px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; }
 .kca-story__pics { display: flex; flex-wrap: wrap; gap: .4rem; margin: .6rem 0; }
 .kca-story__pics img { width: 84px; height: 84px; object-fit: cover; border-radius: 10px; display: block; }
+.kca-warn { display: block; margin-top: .3rem; color: #b45309; font-weight: 600; }

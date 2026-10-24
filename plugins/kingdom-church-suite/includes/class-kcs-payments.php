@@ -256,6 +256,7 @@ class KCS_Payments {
 				'purpose'    => sanitize_key( $args['purpose'] ?? 'donation' ),
 				'status'     => 'pending',
 				'note'       => sanitize_textarea_field( $args['note'] ?? '' ),
+				'ip_hash'    => KCS_Security::ip_hash(),
 				'created_at' => current_time( 'mysql' ),
 			)
 		);
