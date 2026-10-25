@@ -109,6 +109,21 @@ class KCS_Payments {
 		return $done;
 	}
 	/**
+	 * Merge values into a payment's meta.
+	 *
+	 * @param int   $id     Payment.
+	 * @param array $values Values.
+	 */
+	public static function set_meta( $id, $values ) {
+		global $wpdb;
+		$p = self::get( $id );
+		if ( ! $p ) {
+			return;
+		}
+		$wpdb->update( kcs_table( 'payments' ), array( 'meta' => wp_json_encode( array_merge( KCS_Transfers::meta( $p ), (array) $values ) ) ), array( 'id' => (int) $id ) );
+	}
+
+	/**
 	 * POST /kcs/v1/admin/payments/check {ids:[…]} — Church Admin checks the pending payments on screen.
 	 */
 	public static function admin_routes() {
@@ -132,7 +147,13 @@ class KCS_Payments {
 							$done += self::check_rows( array( $p ), false );
 							$p     = self::get( $id );
 						}
+						static $looked = 0;
+						$place      = KCS_Security::payment_place( $p, $looked < 8 );
+						if ( $place['ip'] && ! $place['known'] ) {
+							++$looked;
+						}
 						$out[ $id ] = array(
+							'place'  => $place['where'],
 							'status' => $p->status,
 							'html'   => kcs_status_badge( $p->status ) . ( $p->note && 'completed' !== $p->status ? '<small>' . esc_html( $p->note ) . '</small>' : '' ),
 						);
@@ -349,11 +370,15 @@ class KCS_Payments {
 				'status'     => 'pending',
 				'note'       => sanitize_textarea_field( $args['note'] ?? '' ),
 				'ip_hash'    => KCS_Security::ip_hash(),
-				'meta'       => wp_json_encode( array( 'mode' => $gateway->mode() ) ),
+				'meta'       => wp_json_encode( array_filter( array( 'mode' => $gateway->mode(), 'ip' => kcs_client_ip(), 'cc' => KCS_Security::cloudflare_country() ) ) ),
 				'created_at' => current_time( 'mysql' ),
 			)
 		);
 		$payment = self::get_by_reference( $reference );
+		if ( $payment ) {
+			// Look up where the giver is just after this request (Church Admin → Giving received).
+			wp_schedule_single_event( time() + 5, 'kcs_payment_geo', array( (int) $payment->id ) );
+		}
 		if ( ! $payment ) {
 			return new WP_Error( 'kcs_db', __( 'Could not create payment.', 'kingdom-church-suite' ), array( 'status' => 500 ) );
 		}

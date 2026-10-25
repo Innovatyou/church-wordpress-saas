@@ -50,6 +50,12 @@ class KCS_Security {
 	 */
 	public static function init() {
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
+		add_filter( 'kcs_client_ip', array( __CLASS__, 'cloudflare_ip' ) );
+		add_action( 'kcs_payment_geo', array( __CLASS__, 'locate_payment' ) );
+		add_action( 'kcs_ip_cleanup', array( __CLASS__, 'forget_old_ips' ) );
+		if ( ! wp_next_scheduled( 'kcs_ip_cleanup' ) ) {
+			wp_schedule_event( time() + 3600, 'daily', 'kcs_ip_cleanup' );
+		}
 		add_filter( 'rest_pre_dispatch', array( __CLASS__, 'check_rest' ), 5, 3 );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), 11 );
 		// Logins.
@@ -148,7 +154,7 @@ class KCS_Security {
 				'detail' => mb_substr( wp_strip_all_tags( $detail ), 0, 200 ),
 			)
 		);
-		update_option( self::LOG, array_slice( $log, 0, 100 ), false );
+		update_option( self::LOG, array_slice( $log, 0, 200 ), false );
 	}
 
 	/**
@@ -177,10 +183,218 @@ class KCS_Security {
 	 * @param string $device Device hash.
 	 * @param string $reason Reason.
 	 */
-	public static function block( $device, $reason ) {
+	public static function block( $device, $reason, $hours = null, $details = array() ) {
+		if ( '' === (string) $device ) {
+			return;
+		}
+		$hours          = null === $hours ? self::settings()['block_hours'] : (int) $hours;
 		$all            = self::blocked();
-		$all[ $device ] = array( 'until' => time() + self::settings()['block_hours'] * HOUR_IN_SECONDS, 'reason' => $reason, 'since' => current_time( 'mysql' ) );
+		$all[ $device ] = array_merge(
+			array( 'until' => $hours > 0 ? time() + $hours * HOUR_IN_SECONDS : time() + 20 * YEAR_IN_SECONDS, 'reason' => $reason, 'since' => current_time( 'mysql' ), 'forever' => $hours <= 0 ),
+			array_intersect_key( (array) $details, array_flip( array( 'ip', 'where', 'email' ) ) )
+		);
 		update_option( 'kcs_blocked_devices', $all, false );
+	}
+
+	/**
+	 * Emails stopped from giving online.
+	 *
+	 * @return array email => array( until, reason, since, forever ).
+	 */
+	public static function blocked_emails() {
+		$all = (array) get_option( 'kcs_blocked_emails', array() );
+		$now = time();
+		$out = array_filter(
+			$all,
+			function ( $b ) use ( $now ) {
+				return is_array( $b ) && (int) $b['until'] > $now;
+			}
+		);
+		if ( count( $out ) !== count( $all ) ) {
+			update_option( 'kcs_blocked_emails', $out, false );
+		}
+		return $out;
+	}
+
+	/**
+	 * Stop an email from giving online.
+	 *
+	 * @param string $email  Email.
+	 * @param string $reason Reason.
+	 * @param int    $hours  Hours (0 = until removed).
+	 */
+	public static function block_email( $email, $reason, $hours = 168 ) {
+		$email = strtolower( sanitize_email( $email ) );
+		if ( ! $email ) {
+			return;
+		}
+		$all           = self::blocked_emails();
+		$all[ $email ] = array( 'until' => $hours > 0 ? time() + $hours * HOUR_IN_SECONDS : time() + 20 * YEAR_IN_SECONDS, 'reason' => $reason, 'since' => current_time( 'mysql' ), 'forever' => $hours <= 0 );
+		update_option( 'kcs_blocked_emails', $all, false );
+	}
+
+	/**
+	 * Let an email give again.
+	 *
+	 * @param string $email Email.
+	 */
+	public static function unblock_email( $email ) {
+		$all = self::blocked_emails();
+		unset( $all[ strtolower( sanitize_email( $email ) ) ] );
+		update_option( 'kcs_blocked_emails', $all, false );
+	}
+
+	/* ------------------------------------------------------------------
+	 * Where a visitor is
+	 * ---------------------------------------------------------------- */
+
+	/**
+	 * Behind Cloudflare every visit arrives from Cloudflare's address: use the visitor's real one,
+	 * but only when the request really comes from Cloudflare.
+	 *
+	 * @param string $ip IP.
+	 * @return string
+	 */
+	public static function cloudflare_ip( $ip ) {
+		$cf = isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) : '';
+		if ( '' === $cf || defined( 'KCS_TRUSTED_PROXY_HEADER' ) || ! filter_var( $cf, FILTER_VALIDATE_IP ) ) {
+			return $ip;
+		}
+		return self::via_cloudflare() ? $cf : $ip;
+	}
+
+	/**
+	 * Did this request really come through Cloudflare? (Only then are its headers trusted.)
+	 *
+	 * @return bool
+	 */
+	public static function via_cloudflare() {
+		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$ranges = array( '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22' );
+		$long   = ip2long( $ip );
+		if ( false === $long ) {
+			return false;
+		}
+		foreach ( $ranges as $r ) {
+			list( $net, $bits ) = explode( '/', $r );
+			$mask               = -1 << ( 32 - (int) $bits );
+			if ( ( $long & $mask ) === ( ip2long( $net ) & $mask ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Cloudflare's country code for this visit, when the visit came through Cloudflare.
+	 *
+	 * @return string
+	 */
+	public static function cloudflare_country() {
+		$cc = isset( $_SERVER['HTTP_CF_IPCOUNTRY'] ) ? strtoupper( sanitize_key( wp_unslash( $_SERVER['HTTP_CF_IPCOUNTRY'] ) ) ) : '';
+		return preg_match( '/^[A-Z]{2}$/', $cc ) && 'XX' !== $cc && self::via_cloudflare() ? $cc : '';
+	}
+
+	/**
+	 * Country, region, city and network of an IP (looked up once a week per IP).
+	 *
+	 * @param string $ip IP.
+	 * @return array country, cc, region, city, isp (empty when unknown).
+	 */
+	public static function geo( $ip ) {
+		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+			return array();
+		}
+		if ( ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
+			return array( 'country' => __( 'Local network', 'kingdom-church-suite' ), 'cc' => '', 'region' => '', 'city' => '', 'isp' => '' );
+		}
+		$key = 'kcs_geo_' . md5( $ip );
+		$hit = get_site_transient( $key );
+		if ( is_array( $hit ) ) {
+			return $hit;
+		}
+		$out = array();
+		$res = wp_remote_get( 'https://ipwho.is/' . rawurlencode( $ip ) . '?fields=success,country,country_code,region,city,connection', array( 'timeout' => 4 ) );
+		$d   = is_wp_error( $res ) ? null : json_decode( (string) wp_remote_retrieve_body( $res ), true );
+		if ( is_array( $d ) && ! empty( $d['success'] ) ) {
+			$out = array( 'country' => (string) ( $d['country'] ?? '' ), 'cc' => (string) ( $d['country_code'] ?? '' ), 'region' => (string) ( $d['region'] ?? '' ), 'city' => (string) ( $d['city'] ?? '' ), 'isp' => (string) ( $d['connection']['isp'] ?? ( $d['connection']['org'] ?? '' ) ) );
+		} else {
+			$res = wp_remote_get( 'https://ipapi.co/' . rawurlencode( $ip ) . '/json/', array( 'timeout' => 4, 'user-agent' => 'MinistryOS' ) );
+			$d   = is_wp_error( $res ) ? null : json_decode( (string) wp_remote_retrieve_body( $res ), true );
+			if ( is_array( $d ) && empty( $d['error'] ) && ! empty( $d['country_name'] ) ) {
+				$out = array( 'country' => (string) $d['country_name'], 'cc' => (string) ( $d['country_code'] ?? '' ), 'region' => (string) ( $d['region'] ?? '' ), 'city' => (string) ( $d['city'] ?? '' ), 'isp' => (string) ( $d['org'] ?? '' ) );
+			}
+		}
+		$out = array_map( 'sanitize_text_field', $out );
+		set_site_transient( $key, $out, $out ? WEEK_IN_SECONDS : HOUR_IN_SECONDS );
+		return $out;
+	}
+
+	/**
+	 * Country code of the current visitor (Cloudflare's header when present).
+	 *
+	 * @return string
+	 */
+	public static function visitor_country() {
+		$cc = self::cloudflare_country();
+		if ( $cc ) {
+			return $cc;
+		}
+		return strtoupper( (string) ( self::geo( kcs_client_ip() )['cc'] ?? '' ) );
+	}
+
+	/**
+	 * "Lagos, Nigeria · MTN" for a payment, looking it up the first time.
+	 *
+	 * @param object $payment Payment.
+	 * @param bool   $lookup  Look it up now when missing.
+	 * @return array ip, where (text), cc.
+	 */
+	public static function payment_place( $payment, $lookup = false ) {
+		$meta = KCS_Transfers::meta( $payment );
+		$ip   = (string) ( $meta['ip'] ?? '' );
+		$geo  = isset( $meta['geo'] ) && is_array( $meta['geo'] ) ? $meta['geo'] : null;
+		if ( null === $geo && $ip && $lookup ) {
+			$geo = self::geo( $ip );
+			if ( $geo ) {
+				KCS_Payments::set_meta( $payment->id, array( 'geo' => $geo ) );
+			}
+		}
+		$where = $geo ? implode( ', ', array_unique( array_filter( array( $geo['city'] ?? '', $geo['region'] ?? '', $geo['country'] ?? '' ) ) ) ) : '';
+		if ( $geo && ! empty( $geo['isp'] ) ) {
+			$where .= ' · ' . $geo['isp'];
+		}
+		return array( 'ip' => $ip, 'where' => $where, 'cc' => (string) ( $geo['cc'] ?? ( $meta['cc'] ?? '' ) ), 'known' => null !== $geo );
+	}
+
+	/**
+	 * Fill in where a new payment came from (runs just after it starts).
+	 *
+	 * @param int $id Payment.
+	 */
+	public static function locate_payment( $id ) {
+		$p = KCS_Payments::get( (int) $id );
+		if ( $p ) {
+			self::payment_place( $p, true );
+		}
+	}
+
+	/**
+	 * Forget the IP addresses of payments older than 90 days (the device code and country stay).
+	 */
+	public static function forget_old_ips() {
+		global $wpdb;
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, meta FROM ' . kcs_table( 'payments' ) . " WHERE created_at < %s AND meta LIKE %s LIMIT 500", gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - 90 * DAY_IN_SECONDS ), '%\"ip\"%' ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DateTime.CurrentTimeTimestamp.Requested
+		foreach ( $rows as $r ) {
+			$meta = json_decode( (string) $r->meta, true );
+			if ( is_array( $meta ) && isset( $meta['ip'] ) ) {
+				unset( $meta['ip'] );
+				if ( isset( $meta['geo']['isp'] ) ) {
+					unset( $meta['geo']['isp'] );
+				}
+				$wpdb->update( kcs_table( 'payments' ), array( 'meta' => wp_json_encode( $meta ) ), array( 'id' => $r->id ) );
+			}
+		}
 	}
 
 	/**
@@ -326,6 +540,19 @@ class KCS_Security {
 			self::log( 'pay_block', __( 'Paused device tried again', 'kingdom-church-suite' ) );
 			return $stop;
 		}
+		$email_l = strtolower( sanitize_email( $email ) );
+		if ( ! $manual && $email_l && isset( self::blocked_emails()[ $email_l ] ) ) {
+			self::log( 'pay_block', __( 'Blocked email tried again', 'kingdom-church-suite' ) . ' · ' . $email_l );
+			return $stop;
+		}
+		$countries = array_filter( array_map( 'trim', explode( ',', strtoupper( (string) kcs_get_option( 'sec_block_countries', '' ) ) ) ) );
+		if ( ! $manual && $countries ) {
+			$cc = self::visitor_country();
+			if ( $cc && in_array( $cc, $countries, true ) ) {
+				self::log( 'pay_block', __( 'Card payment from a blocked country', 'kingdom-church-suite' ) . ' · ' . $cc );
+				return __( 'Online card giving is not available from your location. Please contact the church, or give by bank transfer.', 'kingdom-church-suite' );
+			}
+		}
 		$now = current_time( 'timestamp' ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
 		$q15 = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE ip_hash = %s AND created_at >= %s", $device, gmdate( 'Y-m-d H:i:s', $now - 15 * MINUTE_IN_SECONDS ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$day = gmdate( 'Y-m-d H:i:s', $now - DAY_IN_SECONDS );
@@ -335,7 +562,8 @@ class KCS_Security {
 		if ( $bad >= $s['fails_to_block'] ) {
 			/* translators: %d: count */
 			$reason = sprintf( __( '%d unsuccessful payments in 24 hours (possible card testing)', 'kingdom-church-suite' ), $bad );
-			self::block( $device, $reason );
+			$geo = self::geo( kcs_client_ip() );
+			self::block( $device, $reason, null, array( 'ip' => kcs_client_ip(), 'where' => implode( ', ', array_filter( array( $geo['city'] ?? '', $geo['country'] ?? '' ) ) ), 'email' => $email ) );
 			self::log( 'pay_block', $reason );
 			self::alert( $reason );
 			return $stop;

@@ -368,13 +368,13 @@ document.querySelectorAll('[data-order]').forEach(function (list) {
 // Giving received: check pending online payments with the gateways automatically while the page
 // is open (the "Check gateway" buttons stay as a backup).
 (function () {
-	var rows = document.querySelectorAll('tr[data-auto-check]');
+	var rows = document.querySelectorAll('tr[data-auto-check], tr[data-locate]');
 	var box = document.querySelector('[data-auto-status]');
 	var C = window.kcsChurchAdmin || {};
 	if (!rows.length || !box || !C.rest) { return; }
 	var running = false;
 	function ids() {
-		return Array.prototype.map.call(document.querySelectorAll('tr[data-auto-check]'), function (r) { return +r.getAttribute('data-pay'); });
+		return Array.prototype.map.call(document.querySelectorAll('tr[data-auto-check], tr[data-locate]'), function (r) { return +r.getAttribute('data-pay'); });
 	}
 	function check() {
 		var list = ids();
@@ -396,6 +396,12 @@ document.querySelectorAll('[data-order]').forEach(function (list) {
 						cell.innerHTML = row.html;
 						if (warn) { cell.insertBefore(warn, cell.children[1] || null); }
 					}
+					var where = tr.querySelector('[data-pay-where]');
+					if (row.place && where) {
+						var ip = where.textContent.match(/ · IP .*$/);
+						where.textContent = '📍 ' + row.place + (ip ? ip[0] : '');
+						tr.removeAttribute('data-locate');
+					}
 					if (row.status !== 'pending') {
 						tr.removeAttribute('data-auto-check');
 						tr.classList.add('is-updated');
@@ -411,4 +417,27 @@ document.querySelectorAll('[data-order]').forEach(function (list) {
 	setTimeout(check, 800);
 	setInterval(check, 60000);
 	document.addEventListener('visibilitychange', function () { if (!document.hidden) { check(); } });
+})();
+
+// Giving received: tick payments for bulk delete / restrict.
+(function () {
+	var bulk = document.querySelector('[data-kca-bulk]');
+	if (!bulk) { return; }
+	var picks = function () { return Array.prototype.slice.call(document.querySelectorAll('[data-kca-pick]')); };
+	var count = bulk.querySelector('[data-kca-count]');
+	var all = bulk.querySelector('[data-kca-all]');
+	function update() {
+		var n = picks().filter(function (c) { return c.checked; }).length;
+		count.textContent = n;
+		bulk.classList.toggle('has-picks', n > 0);
+		all.checked = n > 0 && n === picks().length;
+	}
+	all.addEventListener('change', function () { picks().forEach(function (c) { c.checked = all.checked; }); update(); });
+	bulk.querySelector('[data-kca-pick-failed]').addEventListener('click', function () {
+		picks().forEach(function (c) { var st = c.closest('tr').getAttribute('data-st'); c.checked = st === 'failed' || st === 'cancelled'; });
+		update();
+	});
+	document.addEventListener('change', function (e) { if (e.target.matches && e.target.matches('[data-kca-pick]')) { update(); } });
+	bulk.addEventListener('submit', function (e) { if (!picks().some(function (c) { return c.checked; })) { e.preventDefault(); } });
+	update();
 })();

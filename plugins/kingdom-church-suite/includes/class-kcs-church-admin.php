@@ -440,6 +440,66 @@ class KCS_Church_Admin {
 				$msg = $n ? sprintf( _n( '%d payment deleted.', '%d payments deleted.', $n, 'kingdom-church-suite' ), $n ) : __( 'Only failed, cancelled or stuck pending payments (older than 30 minutes) can be deleted.', 'kingdom-church-suite' );
 				break;
 
+			case 'payment_restrict':
+			case 'payment_unrestrict':
+			case 'payments_bulk':
+				$view = 'payments';
+				if ( ! KCS_Transfers::can_confirm() ) {
+					$msg  = __( 'Only church administrators can do this.', 'kingdom-church-suite' );
+					$type = 'error';
+					break;
+				}
+				$hours    = isset( $d['hours'] ) ? (int) $d['hours'] : 168;
+				$reason   = sanitize_text_field( $d['reason'] ?? '' );
+				$reason   = '' !== $reason ? $reason : __( 'Restricted by the church (suspected card testing)', 'kingdom-church-suite' );
+				$what     = in_array( $d['what'] ?? '', array( 'device', 'email', 'both' ), true ) ? $d['what'] : 'both';
+				$restrict = function ( $p ) use ( $hours, $reason, $what ) {
+					$place = KCS_Security::payment_place( $p, true );
+					if ( 'email' !== $what && $p->ip_hash ) {
+						KCS_Security::block( $p->ip_hash, $reason, $hours, array( 'ip' => $place['ip'], 'where' => $place['where'], 'email' => $p->email ) );
+					}
+					if ( 'device' !== $what && $p->email ) {
+						KCS_Security::block_email( $p->email, $reason, $hours );
+					}
+				};
+				if ( 'payment_restrict' === $do ) {
+					$p = KCS_Payments::get( $id );
+					if ( $p ) {
+						$restrict( $p );
+						$msg = __( 'Restricted: this person can no longer pay by card from that device or email. Bank transfer is still open to them.', 'kingdom-church-suite' );
+					}
+				} elseif ( 'payment_unrestrict' === $do ) {
+					$p = KCS_Payments::get( $id );
+					if ( $p ) {
+						KCS_Security::unblock( (string) $p->ip_hash );
+						KCS_Security::unblock_email( (string) $p->email );
+						$msg = __( 'Restriction removed.', 'kingdom-church-suite' );
+					}
+				} else {
+					$ids    = array_slice( array_filter( array_map( 'absint', (array) ( $d['ids'] ?? array() ) ) ), 0, 200 );
+					$action = sanitize_key( $d['bulk'] ?? '' );
+					if ( ! $ids ) {
+						$msg  = __( 'Tick the payments first.', 'kingdom-church-suite' );
+						$type = 'error';
+						break;
+					}
+					if ( 'delete' === $action ) {
+						$in = implode( ',', $ids );
+						$n  = (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . kcs_table( 'payments' ) . " WHERE id IN ($in) AND ( status IN ('failed','cancelled') OR ( status = 'pending' AND created_at < %s ) )", gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - 30 * MINUTE_IN_SECONDS ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DateTime.CurrentTimeTimestamp.Requested
+						/* translators: 1: deleted, 2: skipped */
+						$msg = sprintf( __( '%1$d payment(s) deleted. %2$d skipped (completed, waiting for review, or pending less than 30 minutes).', 'kingdom-church-suite' ), $n, count( $ids ) - $n );
+					} elseif ( 'restrict' === $action ) {
+						foreach ( $ids as $pid ) {
+							$p = KCS_Payments::get( $pid );
+							if ( $p && 'completed' !== $p->status ) {
+								$restrict( $p );
+							}
+						}
+						$msg = __( 'The people behind the ticked payments are restricted from card giving (completed payments were skipped).', 'kingdom-church-suite' );
+					}
+				}
+				break;
+
 			case 'receipt_settings':
 				KCS_Receipts::save_settings( $d );
 				$msg  = __( 'Receipt settings saved.', 'kingdom-church-suite' );
@@ -839,8 +899,13 @@ class KCS_Church_Admin {
 					break;
 				}
 				if ( 'security_unblock' === $do ) {
-					KCS_Security::unblock( sanitize_key( $d['device'] ?? '' ) );
-					$msg = __( 'That device can give online again.', 'kingdom-church-suite' );
+					if ( ! empty( $d['email'] ) ) {
+						KCS_Security::unblock_email( (string) $d['email'] );
+						$msg = __( 'That email can give online again.', 'kingdom-church-suite' );
+					} else {
+						KCS_Security::unblock( sanitize_key( $d['device'] ?? '' ) );
+						$msg = __( 'That device can give online again.', 'kingdom-church-suite' );
+					}
 				} elseif ( 'security_clear' === $do ) {
 					delete_option( KCS_Security::LOG );
 					$msg = __( 'Security log cleared.', 'kingdom-church-suite' );
@@ -850,6 +915,7 @@ class KCS_Church_Admin {
 					if ( '' !== trim( (string) ( $d['turnstile_secret'] ?? '' ) ) || '' === trim( (string) ( $d['turnstile_site'] ?? '' ) ) ) {
 						kcs_update_option( 'turnstile_secret', sanitize_text_field( $d['turnstile_secret'] ?? '' ) );
 					}
+					kcs_update_option( 'sec_block_countries', implode( ',', array_filter( array_map( 'trim', explode( ',', strtoupper( preg_replace( '/[^A-Za-z,]/', '', (string) ( $d['sec_block_countries'] ?? '' ) ) ) ) ), function ( $c ) { return 2 === strlen( $c ); } ) ) );
 					foreach ( array( 'sec_pay_15min' => array( 1, 20 ), 'sec_pay_day' => array( 1, 100 ), 'sec_email_day' => array( 1, 50 ), 'sec_fail_block' => array( 2, 20 ), 'sec_block_hours' => array( 1, 168 ) ) as $k => $r ) {
 						kcs_update_option( $k, (string) max( $r[0], min( $r[1], absint( $d[ $k ] ?? 0 ) ) ) );
 					}
@@ -1621,20 +1687,46 @@ class KCS_Church_Admin {
 				<form method="post" class="kca-inline" onsubmit="return confirm('<?php echo esc_js( __( 'Delete all failed and cancelled payments? This cannot be undone.', 'kingdom-church-suite' ) ); ?>')"><?php echo self::fields( 'payments_delete_failed', 'payments' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost">
 					<?php
 					/* translators: %d: number */
-					echo esc_html( sprintf( __( 'Delete all failed (%d)', 'kingdom-church-suite' ), $failed_n ) );
+					echo esc_html( sprintf( __( 'Delete all failed & cancelled (%d)', 'kingdom-church-suite' ), $failed_n ) );
 					?>
 				</button></form>
 			<?php endif; ?>
 		</div>
+		<?php if ( $can_conf && $result['items'] ) : ?>
+			<form method="post" id="kca-bulk-pay" class="kca-bulk" data-kca-bulk onsubmit="return confirm('<?php echo esc_js( __( 'Do this for all ticked payments?', 'kingdom-church-suite' ) ); ?>')">
+				<?php echo self::fields( 'payments_bulk', 'payments' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<label class="kcs-check"><input type="checkbox" data-kca-all> <?php esc_html_e( 'Select all', 'kingdom-church-suite' ); ?></label>
+				<button type="button" class="kcs-btn kcs-btn--ghost" data-kca-pick-failed><?php esc_html_e( 'Select failed & cancelled', 'kingdom-church-suite' ); ?></button>
+				<span class="kca-bulk__count" data-kca-count>0</span>
+				<select name="bulk" aria-label="<?php esc_attr_e( 'Action', 'kingdom-church-suite' ); ?>">
+					<option value="delete"><?php esc_html_e( 'Delete ticked (failed / cancelled / stuck)', 'kingdom-church-suite' ); ?></option>
+					<option value="restrict"><?php esc_html_e( 'Restrict the people behind them', 'kingdom-church-suite' ); ?></option>
+				</select>
+				<select name="hours" aria-label="<?php esc_attr_e( 'For how long', 'kingdom-church-suite' ); ?>">
+					<option value="24"><?php esc_html_e( 'for 24 hours', 'kingdom-church-suite' ); ?></option>
+					<option value="168" selected><?php esc_html_e( 'for 7 days', 'kingdom-church-suite' ); ?></option>
+					<option value="720"><?php esc_html_e( 'for 30 days', 'kingdom-church-suite' ); ?></option>
+					<option value="0"><?php esc_html_e( 'permanently', 'kingdom-church-suite' ); ?></option>
+				</select>
+				<button class="kcs-btn"><?php esc_html_e( 'Apply', 'kingdom-church-suite' ); ?></button>
+			</form>
+		<?php endif; ?>
 		<div class="kca-table">
 			<table>
-				<thead><tr><th><?php esc_html_e( 'Giver', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Amount', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Method', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Status', 'kingdom-church-suite' ); ?></th><th></th></tr></thead>
+				<thead><tr><?php if ( $can_conf ) : ?><th class="kca-col-check"><span class="screen-reader-text"><?php esc_html_e( 'Select', 'kingdom-church-suite' ); ?></span></th><?php endif; ?><th><?php esc_html_e( 'Giver', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Amount', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Method', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Status', 'kingdom-church-suite' ); ?></th><th></th></tr></thead>
 				<tbody>
 				<?php $kcs_tries = KCS_Security::attempts( wp_list_pluck( $result['items'], 'ip_hash' ) ); ?>
 				<?php foreach ( $result['items'] as $pay ) : ?>
 					<?php $kcs_mode = KCS_Transfers::meta( $pay )['mode'] ?? ''; ?>
-					<tr data-pay="<?php echo (int) $pay->id; ?>"<?php echo 'pending' === $pay->status && ! KCS_Transfers::is_manual( $pay ) ? ' data-auto-check' : ''; ?>>
-						<td data-label="<?php esc_attr_e( 'Giver', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( $pay->name ? $pay->name : $pay->email ); ?></strong><small><?php echo esc_html( $pay->reference . ' · ' . kcs_datetime( $pay->created_at ) ); ?></small></td>
+					<?php
+					$kcs_place   = KCS_Security::payment_place( $pay );
+					$kcs_blocked = ( $pay->ip_hash && isset( KCS_Security::blocked()[ $pay->ip_hash ] ) ) || ( $pay->email && isset( KCS_Security::blocked_emails()[ strtolower( $pay->email ) ] ) );
+					?>
+					<tr data-pay="<?php echo (int) $pay->id; ?>" data-st="<?php echo esc_attr( $pay->status ); ?>"<?php echo 'pending' === $pay->status && ! KCS_Transfers::is_manual( $pay ) ? ' data-auto-check' : ''; ?><?php echo $kcs_place['ip'] && ! $kcs_place['known'] ? ' data-locate' : ''; ?>>
+						<?php if ( $can_conf ) : ?><td class="kca-col-check"><?php if ( 'completed' !== $pay->status ) : ?><input type="checkbox" name="ids[]" value="<?php echo (int) $pay->id; ?>" form="kca-bulk-pay" data-kca-pick aria-label="<?php esc_attr_e( 'Select', 'kingdom-church-suite' ); ?>"><?php endif; ?></td><?php endif; ?>
+						<td data-label="<?php esc_attr_e( 'Giver', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( $pay->name ? $pay->name : $pay->email ); ?></strong><?php echo $kcs_blocked ? ' <span class="kca-pill kca-pill--blocked">⛔ ' . esc_html__( 'Restricted', 'kingdom-church-suite' ) . '</span>' : ''; ?><small><?php echo esc_html( $pay->reference . ' · ' . kcs_datetime( $pay->created_at ) ); ?></small>
+							<?php if ( $kcs_place['ip'] || $kcs_place['cc'] ) : ?><small class="kca-where" data-pay-where>📍 <?php echo esc_html( $kcs_place['where'] ? $kcs_place['where'] : ( $kcs_place['cc'] ? $kcs_place['cc'] : __( 'Finding location…', 'kingdom-church-suite' ) ) ); ?><?php echo $kcs_place['ip'] && KCS_Transfers::can_confirm() ? ' · IP ' . esc_html( $kcs_place['ip'] ) : ''; ?></small><?php endif; ?>
+						</td>
 						<td data-label="<?php esc_attr_e( 'Amount', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( kcs_format_money( $pay->amount, $pay->currency ) ); ?></strong><small><?php echo esc_html( $purposes[ $pay->purpose ] ?? ucwords( str_replace( array( '-', '_' ), ' ', $pay->purpose ) ) ); ?></small></td>
 						<td data-label="<?php esc_attr_e( 'Method', 'kingdom-church-suite' ); ?>"><?php echo esc_html( $pay->gateway ); ?><?php echo 'test' === $kcs_mode ? ' <span class="kca-pill kca-pill--test">' . esc_html__( 'TEST', 'kingdom-church-suite' ) . '</span>' : ''; ?></td>
 						<td data-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>" data-pay-status><?php echo kcs_status_badge( $pay->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php if ( 'completed' !== $pay->status && ! empty( $pay->ip_hash ) && ( $kcs_tries[ $pay->ip_hash ] ?? 0 ) >= 3 ) : ?><small class="kca-warn">⚠ <?php /* translators: %d: count */ echo esc_html( sprintf( __( '%d unfinished payments from this device in 24 hours — possible card testing', 'kingdom-church-suite' ), $kcs_tries[ $pay->ip_hash ] ) ); ?><?php echo isset( KCS_Security::blocked()[ $pay->ip_hash ] ) ? ' · ' . esc_html__( 'device paused', 'kingdom-church-suite' ) : ''; ?></small><?php endif; ?><?php if ( $pay->note && 'completed' !== $pay->status ) : ?><small><?php echo esc_html( $pay->note ); ?></small><?php endif; ?></td>
@@ -1655,6 +1747,20 @@ class KCS_Church_Admin {
 							<?php if ( in_array( $pay->status, array( 'pending', 'review', 'failed', 'cancelled' ), true ) ) : ?>
 								<?php if ( KCS_Transfers::can_confirm() ) : ?><form method="post" class="kca-inline" onsubmit="return confirm('<?php echo esc_js( __( 'Mark this payment as received? The giver gets a receipt.', 'kingdom-church-suite' ) ); ?>')"><?php echo self::fields( 'payment_complete', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn"><?php esc_html_e( 'Mark received', 'kingdom-church-suite' ); ?></button></form><?php endif; ?>
 								<?php if ( ! KCS_Transfers::is_manual( $pay ) ) : ?><form method="post" class="kca-inline"><?php echo self::fields( 'payment_verify', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Check gateway', 'kingdom-church-suite' ); ?></button></form><?php endif; ?>
+							<?php endif; ?>
+						<?php if ( $can_conf && 'completed' !== $pay->status && ( $pay->ip_hash || $pay->email ) ) : ?>
+								<?php if ( $kcs_blocked ) : ?>
+									<form method="post" class="kca-inline"><?php echo self::fields( 'payment_unrestrict', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Remove restriction', 'kingdom-church-suite' ); ?></button></form>
+								<?php else : ?>
+									<details class="kca-restrict"><summary class="kcs-btn kcs-btn--ghost">⛔ <?php esc_html_e( 'Restrict', 'kingdom-church-suite' ); ?></summary>
+										<form method="post" class="kcs-form"><?php echo self::fields( 'payment_restrict', 'payments', $pay->id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+											<label><?php esc_html_e( 'Stop card giving from', 'kingdom-church-suite' ); ?><select name="what"><option value="both"><?php esc_html_e( 'This device (IP) and this email', 'kingdom-church-suite' ); ?></option><option value="device"><?php esc_html_e( 'This device (IP) only', 'kingdom-church-suite' ); ?></option><option value="email"><?php esc_html_e( 'This email only', 'kingdom-church-suite' ); ?></option></select></label>
+											<label><?php esc_html_e( 'For', 'kingdom-church-suite' ); ?><select name="hours"><option value="24"><?php esc_html_e( '24 hours', 'kingdom-church-suite' ); ?></option><option value="168" selected><?php esc_html_e( '7 days', 'kingdom-church-suite' ); ?></option><option value="720"><?php esc_html_e( '30 days', 'kingdom-church-suite' ); ?></option><option value="0"><?php esc_html_e( 'Permanently', 'kingdom-church-suite' ); ?></option></select></label>
+											<label><?php esc_html_e( 'Note (optional)', 'kingdom-church-suite' ); ?><input name="reason" maxlength="150" placeholder="<?php esc_attr_e( 'Many cards, all declined', 'kingdom-church-suite' ); ?>"></label>
+											<button class="kcs-btn kcs-btn--danger"><?php esc_html_e( 'Restrict', 'kingdom-church-suite' ); ?></button>
+										</form>
+									</details>
+								<?php endif; ?>
 							<?php endif; ?>
 						</td>
 					</tr>
@@ -2709,8 +2815,21 @@ class KCS_Church_Admin {
 				<h3><?php esc_html_e( 'Devices paused from giving online', 'kingdom-church-suite' ); ?></h3>
 				<ul class="kca-list">
 					<?php foreach ( $blocked as $dev => $b ) : ?>
-						<li><span><strong><?php echo esc_html( $b['reason'] ); ?></strong><small><?php /* translators: 1: device, 2: until */ echo esc_html( sprintf( __( 'Device %1$s · until %2$s', 'kingdom-church-suite' ), substr( $dev, 0, 8 ), wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $b['until'] ) ) ); ?></small></span>
+						<li><span><strong><?php echo esc_html( $b['reason'] ); ?></strong><small><?php echo esc_html( implode( ' · ', array_filter( array( ! empty( $b['ip'] ) ? 'IP ' . $b['ip'] : sprintf( /* translators: %s: device */ __( 'Device %s', 'kingdom-church-suite' ), substr( $dev, 0, 8 ) ), $b['where'] ?? '', $b['email'] ?? '', ! empty( $b['forever'] ) ? __( 'permanently', 'kingdom-church-suite' ) : sprintf( /* translators: %s: date */ __( 'until %s', 'kingdom-church-suite' ), wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $b['until'] ) ) ) ) ) ); ?></small></span>
 							<form method="post" class="kca-inline"><?php echo self::fields( 'security_unblock', 'security', 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><input type="hidden" name="device" value="<?php echo esc_attr( $dev ); ?>"><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Let it give again', 'kingdom-church-suite' ); ?></button></form></li>
+					<?php endforeach; ?>
+				</ul>
+			</section>
+		<?php endif; ?>
+
+		<?php $kcs_emails = KCS_Security::blocked_emails(); ?>
+		<?php if ( $kcs_emails ) : ?>
+			<section class="kca-card">
+				<h3><?php esc_html_e( 'Emails restricted from card giving', 'kingdom-church-suite' ); ?></h3>
+				<ul class="kca-list">
+					<?php foreach ( $kcs_emails as $em => $b ) : ?>
+						<li><span><strong><?php echo esc_html( $em ); ?></strong><small><?php echo esc_html( $b['reason'] . ' · ' . ( ! empty( $b['forever'] ) ? __( 'permanently', 'kingdom-church-suite' ) : sprintf( /* translators: %s: date */ __( 'until %s', 'kingdom-church-suite' ), wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $b['until'] ) ) ) ); ?></small></span>
+							<form method="post" class="kca-inline"><?php echo self::fields( 'security_unblock', 'security', 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><input type="hidden" name="email" value="<?php echo esc_attr( $em ); ?>"><button class="kcs-btn kcs-btn--ghost"><?php esc_html_e( 'Let it give again', 'kingdom-church-suite' ); ?></button></form></li>
 					<?php endforeach; ?>
 				</ul>
 			</section>
@@ -2727,6 +2846,8 @@ class KCS_Church_Admin {
 				<label><?php esc_html_e( 'Pause a device after this many failed or abandoned payments', 'kingdom-church-suite' ); ?><input type="number" min="2" max="20" name="sec_fail_block" value="<?php echo (int) $s['fails_to_block']; ?>"></label>
 				<label><?php esc_html_e( 'Pause for (hours)', 'kingdom-church-suite' ); ?><input type="number" min="1" max="168" name="sec_block_hours" value="<?php echo (int) $s['block_hours']; ?>"></label>
 			</div>
+			<label><?php esc_html_e( 'Block card payments from these countries (optional)', 'kingdom-church-suite' ); ?><input name="sec_block_countries" value="<?php echo esc_attr( (string) kcs_get_option( 'sec_block_countries', '' ) ); ?>" placeholder="<?php esc_attr_e( 'Two-letter codes, e.g. RU, VN', 'kingdom-church-suite' ); ?>">
+				<small class="kcs-muted"><?php esc_html_e( 'Only if card testers keep coming from a country where you have no givers. Bank transfer stays open. Each payment in Giving received shows its location to help you decide.', 'kingdom-church-suite' ); ?></small></label>
 			<h3><?php esc_html_e( '“I am human” check (Cloudflare Turnstile)', 'kingdom-church-suite' ); ?></h3>
 			<p class="kcs-muted"><?php esc_html_e( 'A free, privacy-friendly check that most people pass without clicking anything. Get keys at dash.cloudflare.com → Turnstile → Add widget, and add your website address(es) to the widget.', 'kingdom-church-suite' ); ?></p>
 			<label><?php esc_html_e( 'Ask for it on', 'kingdom-church-suite' ); ?>
