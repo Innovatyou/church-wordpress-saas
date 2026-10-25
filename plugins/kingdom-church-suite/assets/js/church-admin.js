@@ -437,6 +437,12 @@ document.querySelectorAll('[data-order]').forEach(function (list) {
 		picks().forEach(function (c) { var st = c.closest('tr').getAttribute('data-st'); c.checked = st === 'failed' || st === 'cancelled'; });
 		update();
 	});
+	bulk.querySelector('[data-kca-pick-blocked]').addEventListener('click', function () {
+		picks().forEach(function (c) { c.checked = c.closest('tr').hasAttribute('data-blocked'); });
+		var sel = bulk.querySelector('select[name="bulk"]');
+		if (sel) { sel.value = 'unrestrict'; }
+		update();
+	});
 	document.addEventListener('change', function (e) { if (e.target.matches && e.target.matches('[data-kca-pick]')) { update(); } });
 	bulk.addEventListener('submit', function (e) { if (!picks().some(function (c) { return c.checked; })) { e.preventDefault(); } });
 	update();
