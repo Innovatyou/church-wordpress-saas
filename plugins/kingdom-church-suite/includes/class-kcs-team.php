@@ -107,6 +107,7 @@ class KCS_Team {
 	public static function action_views( $do ) {
 		$map = array(
 			'partner_'           => array( 'partners' ),
+			'partners_'          => array( 'partners' ),
 			'payment_complete'   => array( 'payments', 'transfers' ),
 			'payment_reject'     => array( 'payments', 'transfers' ),
 			'payment_verify'     => array( 'payments', 'transfers' ),

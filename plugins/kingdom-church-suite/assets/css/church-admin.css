@@ -316,3 +316,4 @@ tr.is-updated td { animation: kca-flash 1.6s ease-out; }
 .kca-bulk.has-picks .kca-bulk__count { background: var(--kcs-primary); color: #fff; }
 .kca-col-check { width: 36px; }
 .kca-col-check input { width: 18px; height: 18px; }
+.kca-bulk [data-kca-for][hidden] { display: none !important; }

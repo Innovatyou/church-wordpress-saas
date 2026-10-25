@@ -334,6 +334,52 @@ class KCS_Church_Admin {
 				$d['return'] = self::url( 'partners' );
 				break;
 
+			case 'partners_bulk':
+				$view   = 'partners';
+				$ids    = array_slice( array_filter( array_map( 'absint', (array) ( $d['ids'] ?? array() ) ) ), 0, 200 );
+				$action = sanitize_key( $d['bulk'] ?? '' );
+				if ( ! $ids ) {
+					$msg  = __( 'Tick the partners first.', 'kingdom-church-suite' );
+					$type = 'error';
+					break;
+				}
+				if ( 'delete' === $action ) {
+					if ( ! current_user_can( 'manage_options' ) ) {
+						$msg  = __( 'Only church administrators can delete partners.', 'kingdom-church-suite' );
+						$type = 'error';
+						break;
+					}
+					$n      = 0;
+					$logins = 0;
+					require_once ABSPATH . 'wp-admin/includes/user.php';
+					foreach ( $ids as $pid ) {
+						$partner = KCS_Partners::get( $pid );
+						if ( ! $partner ) {
+							continue;
+						}
+						$login = ! empty( $d['delete_login'] ) ? self::partner_login_removable( $partner ) : null;
+						KCS_Partners::delete( $pid );
+						++$n;
+						if ( $login ) {
+							if ( is_multisite() ) {
+								remove_user_from_blog( $login->ID, get_current_blog_id() );
+							} else {
+								wp_delete_user( $login->ID );
+							}
+							++$logins;
+						}
+					}
+					/* translators: 1: partners, 2: logins */
+					$msg = sprintf( __( '%1$d partner(s) deleted and %2$d website login(s) removed. Their past payments are kept in Giving received.', 'kingdom-church-suite' ), $n, $logins );
+				} elseif ( 'status' === $action && isset( KCS_Partners::statuses()[ $d['status'] ?? '' ] ) ) {
+					foreach ( $ids as $pid ) {
+						KCS_Partners::update( $pid, array( 'status' => sanitize_key( $d['status'] ) ) );
+					}
+					/* translators: 1: count, 2: status */
+					$msg = sprintf( __( '%1$d partner(s) set to “%2$s”.', 'kingdom-church-suite' ), count( $ids ), KCS_Partners::statuses()[ $d['status'] ] );
+				}
+				break;
+
 			case 'partner_status':
 				KCS_Partners::update( $id, array( 'status' => sanitize_key( $d['status'] ?? '' ) ) );
 				$msg = __( 'Partner status updated.', 'kingdom-church-suite' );
@@ -1612,12 +1658,29 @@ class KCS_Church_Admin {
 			<select name="status" aria-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>"><option value=""><?php esc_html_e( 'All statuses', 'kingdom-church-suite' ); ?></option><?php foreach ( KCS_Partners::statuses() as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $status, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
 			<button class="kcs-btn"><?php esc_html_e( 'Filter', 'kingdom-church-suite' ); ?></button>
 		</form>
+		<?php $kcs_owner = current_user_can( 'manage_options' ); ?>
+		<?php if ( $result['items'] ) : ?>
+			<form method="post" id="kca-bulk-partners" class="kca-bulk" data-kca-bulk onsubmit="return confirm(this.bulk.value === 'delete' ? '<?php echo esc_js( __( 'Delete all ticked partners? This cannot be undone. Their past payments are kept.', 'kingdom-church-suite' ) ); ?>' : '<?php echo esc_js( __( 'Change the status of all ticked partners?', 'kingdom-church-suite' ) ); ?>')">
+				<?php echo self::fields( 'partners_bulk', 'partners' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<label class="kcs-check"><input type="checkbox" data-kca-all> <?php esc_html_e( 'Select all on this page', 'kingdom-church-suite' ); ?></label>
+				<button type="button" class="kcs-btn kcs-btn--ghost" data-kca-pick-status="pending,inactive"<?php echo $kcs_owner ? ' data-kca-action="delete"' : ''; ?>><?php esc_html_e( 'Select pending & inactive', 'kingdom-church-suite' ); ?></button>
+				<span class="kca-bulk__count" data-kca-count>0</span>
+				<select name="bulk" aria-label="<?php esc_attr_e( 'Action', 'kingdom-church-suite' ); ?>">
+					<?php if ( $kcs_owner ) : ?><option value="delete"><?php esc_html_e( 'Delete ticked partners', 'kingdom-church-suite' ); ?></option><?php endif; ?>
+					<option value="status"><?php esc_html_e( 'Change status to…', 'kingdom-church-suite' ); ?></option>
+				</select>
+				<select name="status" aria-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>" data-kca-for="status"><?php foreach ( KCS_Partners::statuses() as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>"><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
+				<?php if ( $kcs_owner ) : ?><label class="kcs-check" data-kca-for="delete"><input type="checkbox" name="delete_login" value="1"> <?php esc_html_e( 'Also remove their website logins', 'kingdom-church-suite' ); ?></label><?php endif; ?>
+				<button class="kcs-btn"><?php esc_html_e( 'Apply', 'kingdom-church-suite' ); ?></button>
+			</form>
+		<?php endif; ?>
 		<div class="kca-table">
 			<table>
-				<thead><tr><th><?php esc_html_e( 'Partner', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Plan', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Next due', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Total given', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Status', 'kingdom-church-suite' ); ?></th></tr></thead>
+				<thead><tr><th class="kca-col-check"><span class="screen-reader-text"><?php esc_html_e( 'Select', 'kingdom-church-suite' ); ?></span></th><th><?php esc_html_e( 'Partner', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Plan', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Next due', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Total given', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Status', 'kingdom-church-suite' ); ?></th></tr></thead>
 				<tbody>
 				<?php foreach ( $result['items'] as $p ) : ?>
-					<tr>
+					<tr data-st="<?php echo esc_attr( $p->status ); ?>">
+						<td class="kca-col-check"><input type="checkbox" name="ids[]" value="<?php echo (int) $p->id; ?>" form="kca-bulk-partners" data-kca-pick aria-label="<?php esc_attr_e( 'Select', 'kingdom-church-suite' ); ?>"></td>
 						<td data-label="<?php esc_attr_e( 'Partner', 'kingdom-church-suite' ); ?>"><a href="<?php echo esc_url( self::url( 'partners', array( 'id' => $p->id ) ) ); ?>"><strong><?php echo esc_html( trim( $p->first_name . ' ' . $p->last_name ) ); ?></strong></a><small><?php echo esc_html( $p->email . ' · ' . $p->phone ); ?></small></td>
 						<td data-label="<?php esc_attr_e( 'Plan', 'kingdom-church-suite' ); ?>"><?php echo esc_html( $names[ $p->plan_id ] ?? '—' ); ?><small><?php echo esc_html( kcs_format_money( $p->amount, $p->currency ) ); ?></small></td>
 						<td data-label="<?php esc_attr_e( 'Next due', 'kingdom-church-suite' ); ?>"><?php echo $p->next_due_date ? esc_html( mysql2date( get_option( 'date_format' ), $p->next_due_date ) ) : '—'; ?></td>
@@ -1625,7 +1688,7 @@ class KCS_Church_Admin {
 						<td data-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>"><?php echo self::status_form( 'partner_status', 'partners', $p->id, KCS_Partners::statuses(), $p->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
 					</tr>
 				<?php endforeach; ?>
-				<?php if ( ! $result['items'] ) : ?><tr><td colspan="5" class="kcs-muted"><?php esc_html_e( 'No partners match.', 'kingdom-church-suite' ); ?></td></tr><?php endif; ?>
+				<?php if ( ! $result['items'] ) : ?><tr><td colspan="6" class="kcs-muted"><?php esc_html_e( 'No partners match.', 'kingdom-church-suite' ); ?></td></tr><?php endif; ?>
 				</tbody>
 			</table>
 		</div>
@@ -1712,7 +1775,7 @@ class KCS_Church_Admin {
 			<form method="post" id="kca-bulk-pay" class="kca-bulk" data-kca-bulk onsubmit="return confirm('<?php echo esc_js( __( 'Do this for all ticked payments?', 'kingdom-church-suite' ) ); ?>')">
 				<?php echo self::fields( 'payments_bulk', 'payments' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				<label class="kcs-check"><input type="checkbox" data-kca-all> <?php esc_html_e( 'Select all', 'kingdom-church-suite' ); ?></label>
-				<button type="button" class="kcs-btn kcs-btn--ghost" data-kca-pick-failed><?php esc_html_e( 'Select failed & cancelled', 'kingdom-church-suite' ); ?></button>
+				<button type="button" class="kcs-btn kcs-btn--ghost" data-kca-pick-status="failed,cancelled" data-kca-action="delete"><?php esc_html_e( 'Select failed & cancelled', 'kingdom-church-suite' ); ?></button>
 				<button type="button" class="kcs-btn kcs-btn--ghost" data-kca-pick-blocked><?php esc_html_e( 'Select restricted', 'kingdom-church-suite' ); ?></button>
 				<span class="kca-bulk__count" data-kca-count>0</span>
 				<select name="bulk" aria-label="<?php esc_attr_e( 'Action', 'kingdom-church-suite' ); ?>">

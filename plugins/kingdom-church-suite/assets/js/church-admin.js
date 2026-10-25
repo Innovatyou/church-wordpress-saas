@@ -419,31 +419,39 @@ document.querySelectorAll('[data-order]').forEach(function (list) {
 	document.addEventListener('visibilitychange', function () { if (!document.hidden) { check(); } });
 })();
 
-// Giving received: tick payments for bulk delete / restrict.
-(function () {
-	var bulk = document.querySelector('[data-kca-bulk]');
-	if (!bulk) { return; }
-	var picks = function () { return Array.prototype.slice.call(document.querySelectorAll('[data-kca-pick]')); };
+// Bulk actions (Giving received, Partners): tick rows, then apply an action to all ticked.
+document.querySelectorAll('[data-kca-bulk]').forEach(function (bulk) {
+	// getAttribute: the form has a hidden field named "id", which hides the form's own .id.
+	var formId = bulk.getAttribute('id');
+	var picks = function () { return Array.prototype.slice.call(document.querySelectorAll('[data-kca-pick][form="' + formId + '"]')); };
 	var count = bulk.querySelector('[data-kca-count]');
 	var all = bulk.querySelector('[data-kca-all]');
+	var sel = bulk.querySelector('select[name="bulk"]');
 	function update() {
 		var n = picks().filter(function (c) { return c.checked; }).length;
-		count.textContent = n;
+		if (count) { count.textContent = n; }
 		bulk.classList.toggle('has-picks', n > 0);
-		all.checked = n > 0 && n === picks().length;
+		if (all) { all.checked = n > 0 && n === picks().length; }
 	}
-	all.addEventListener('change', function () { picks().forEach(function (c) { c.checked = all.checked; }); update(); });
-	bulk.querySelector('[data-kca-pick-failed]').addEventListener('click', function () {
-		picks().forEach(function (c) { var st = c.closest('tr').getAttribute('data-st'); c.checked = st === 'failed' || st === 'cancelled'; });
+	function pickWhere(test, action) {
+		picks().forEach(function (c) { c.checked = test(c.closest('tr')); });
+		if (action && sel) { sel.value = action; sel.dispatchEvent(new Event('change')); }
 		update();
+	}
+	if (all) { all.addEventListener('change', function () { picks().forEach(function (c) { c.checked = all.checked; }); update(); }); }
+	// Buttons like data-kca-pick-status="failed,cancelled" (and optional data-kca-action) tick rows by status.
+	bulk.querySelectorAll('[data-kca-pick-status]').forEach(function (b) {
+		var list = b.getAttribute('data-kca-pick-status').split(',');
+		b.addEventListener('click', function () { pickWhere(function (tr) { return list.indexOf(tr.getAttribute('data-st')) !== -1; }, b.getAttribute('data-kca-action')); });
 	});
-	bulk.querySelector('[data-kca-pick-blocked]').addEventListener('click', function () {
-		picks().forEach(function (c) { c.checked = c.closest('tr').hasAttribute('data-blocked'); });
-		var sel = bulk.querySelector('select[name="bulk"]');
-		if (sel) { sel.value = 'unrestrict'; }
-		update();
-	});
-	document.addEventListener('change', function (e) { if (e.target.matches && e.target.matches('[data-kca-pick]')) { update(); } });
+	var blocked = bulk.querySelector('[data-kca-pick-blocked]');
+	if (blocked) { blocked.addEventListener('click', function () { pickWhere(function (tr) { return tr.hasAttribute('data-blocked'); }, 'unrestrict'); }); }
+	// Show the extra choices that belong to the chosen action only.
+	function extras() {
+		bulk.querySelectorAll('[data-kca-for]').forEach(function (el) { el.hidden = !sel || el.getAttribute('data-kca-for').split(',').indexOf(sel.value) === -1; });
+	}
+	if (sel) { sel.addEventListener('change', extras); extras(); }
+	document.addEventListener('change', function (e) { if (e.target.matches && e.target.matches('[data-kca-pick][form="' + formId + '"]')) { update(); } });
 	bulk.addEventListener('submit', function (e) { if (!picks().some(function (c) { return c.checked; })) { e.preventDefault(); } });
 	update();
-})();
+});
