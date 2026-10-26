@@ -10,6 +10,9 @@ $kingdom_form = get_theme_mod( 'kingdom_contact_form' );
 if ( ! $kingdom_form && get_theme_mod( 'kingdom_contact_form_show', true ) && shortcode_exists( 'kcs_contact_form' ) ) {
 	$kingdom_form = '[kcs_contact_form]';
 }
+if ( kingdom_content_has( 'kcs_contact_form' ) ) {
+	$kingdom_form = ''; // The page text already has the form: do not show it twice.
+}
 $kingdom_intro = get_theme_mod( 'kingdom_contact_intro', '' );
 $kingdom_times = kingdom_service_times();
 ?>

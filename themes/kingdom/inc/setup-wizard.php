@@ -247,3 +247,39 @@ function kingdom_ensure_contact_page() {
 	}
 }
 add_action( 'init', 'kingdom_ensure_contact_page', 40 );
+
+/**
+ * A page at /contact-us/ or /contact/ with no template chosen (made by hand or in Church Admin →
+ * Pages) shows as a plain page. Give it the full Contact layout: details, service times, the
+ * message form and the map.
+ *
+ * @param string $template Template file.
+ * @return string
+ */
+function kingdom_contact_page_layout( $template ) {
+	if ( is_page() && in_array( get_post_field( 'post_name', get_queried_object_id() ), array( 'contact-us', 'contact' ), true ) && in_array( get_page_template_slug( get_queried_object_id() ), array( '', 'default' ), true ) ) {
+		$contact = locate_template( 'page-templates/template-contact.php' );
+		if ( $contact ) {
+			return $contact;
+		}
+	}
+	return $template;
+}
+add_filter( 'template_include', 'kingdom_contact_page_layout', 20 );
+
+/**
+ * Once per site: set the Contact template on such pages, so the editor shows it too.
+ */
+function kingdom_fix_contact_template() {
+	if ( get_option( 'kingdom_contact_template_fixed' ) ) {
+		return;
+	}
+	update_option( 'kingdom_contact_template_fixed', 1, false );
+	foreach ( array( 'contact-us', 'contact' ) as $slug ) {
+		$page = get_page_by_path( $slug );
+		if ( $page && in_array( get_page_template_slug( $page ), array( '', 'default' ), true ) ) {
+			update_post_meta( $page->ID, '_wp_page_template', 'page-templates/template-contact.php' );
+		}
+	}
+}
+add_action( 'init', 'kingdom_fix_contact_template', 41 );

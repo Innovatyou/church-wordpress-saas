@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'KINGDOM_VERSION', '1.5.23' );
+define( 'KINGDOM_VERSION', '1.5.24' );
 define( 'KINGDOM_DIR', get_template_directory() );
 define( 'KINGDOM_URI', get_template_directory_uri() );
 
