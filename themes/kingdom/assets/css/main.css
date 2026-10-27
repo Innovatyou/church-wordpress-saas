@@ -714,6 +714,7 @@ body:not(.k-3d) .k-hero__scene { display: none; }
 .k-split__media img[src$=".svg"] { object-position: center 30%; }
 
 /* App-style dashboards */
+.k-result-stage { padding-block: clamp(1.25rem, 4vw, 3rem) clamp(2rem, 6vw, 4.5rem); background: radial-gradient(80% 60% at 50% 0%, color-mix(in srgb, var(--k-primary) 10%, transparent), transparent 70%), var(--k-surface-2); }
 .k-app { padding-block: clamp(1.25rem, 3vw, 2.5rem) clamp(2rem, 5vw, 4rem); }
 .is-dashboard .k-palette, .is-dashboard .k-whatsapp { display: none; }
 .is-dashboard-admin .k-topbar, .is-dashboard-admin .k-footer__newsletter { display: none !important; }

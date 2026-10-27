@@ -17,6 +17,17 @@ while ( have_posts() ) :
 		<?php
 		continue;
 	endif;
+	if ( kingdom_is_result_page() ) :
+		// Payment result: one focused card on a soft backdrop, without the big page title.
+		?>
+		<div class="k-result-stage">
+			<div class="k-container k-container--narrow">
+				<?php the_content(); ?>
+			</div>
+		</div>
+		<?php
+		continue;
+	endif;
 	kingdom_page_header();
 	// The church's Visit page shows its visitor information, questions and questionnaire with any
 	// layout (it may have been created with the standard page layout).

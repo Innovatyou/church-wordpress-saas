@@ -118,13 +118,13 @@ class KCS_Transfers {
 		$reference = isset( $_POST['reference'] ) ? sanitize_text_field( wp_unslash( $_POST['reference'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified below.
 		$payment   = $reference ? KCS_Payments::get_by_reference( $reference ) : null;
 		if ( ! $payment || ! self::is_manual( $payment ) ) {
-			wp_die( esc_html__( 'We could not find that payment reference.', 'kingdom-church-suite' ), 404 );
+			kcs_message_page( __( 'Payment not found', 'kingdom-church-suite' ), __( 'We could not find that payment reference.', 'kingdom-church-suite' ), 'error', 404 );
 		}
 		if ( ! isset( $_POST['_kcs_tn'] ) || ! wp_verify_nonce( sanitize_key( $_POST['_kcs_tn'] ), self::nonce_action( $payment->reference ) ) ) {
-			wp_die( esc_html__( 'Your session expired. Please go back and try again.', 'kingdom-church-suite' ), 403 );
+			kcs_message_page( __( 'Session expired', 'kingdom-church-suite' ), __( 'Your session expired. Please go back and try again.', 'kingdom-church-suite' ), 'error', 403, array( self::back_url( $payment->reference, '' ), __( 'Go back', 'kingdom-church-suite' ) ) );
 		}
 		if ( ! kcs_rate_limit( 'transfer_notice', 10, 600 ) ) {
-			wp_die( esc_html__( 'Too many attempts. Please wait a few minutes.', 'kingdom-church-suite' ), 429 );
+			kcs_message_page( __( 'Please wait a moment', 'kingdom-church-suite' ), __( 'Too many attempts. Please wait a few minutes.', 'kingdom-church-suite' ), 'info', 429, array( self::back_url( $payment->reference, '' ), __( 'Go back', 'kingdom-church-suite' ) ) );
 		}
 		if ( 'pending' !== $payment->status ) {
 			wp_safe_redirect( self::back_url( $payment->reference, 'state' ) );

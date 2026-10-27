@@ -834,3 +834,77 @@ function kcs_pager( $total, $per, $page, $base, $args = array(), $opts = array()
 function kcs_datetime( $mysql ) {
 	return $mysql ? mysql2date( get_option( 'date_format' ), $mysql ) . ' · ' . mysql2date( get_option( 'time_format' ), $mysql ) : '';
 }
+
+/**
+ * Show a short branded message page and stop (in place of the plain WordPress error screen),
+ * e.g. after a newsletter link or when a payment link has expired.
+ *
+ * @param string     $title   Heading.
+ * @param string     $message Message (plain text).
+ * @param string     $tone    success, error or info.
+ * @param int        $code    HTTP status.
+ * @param array|null $link    [ url, label ]; defaults to the homepage.
+ */
+function kcs_message_page( $title, $message, $tone = 'info', $code = 200, $link = null ) {
+	$church  = kcs_get_option( 'church_name', get_bloginfo( 'name' ) );
+	$logo    = kcs_get_option( 'church_logo' ) ? kcs_get_option( 'church_logo' ) : ( get_theme_mod( 'custom_logo' ) ? wp_get_attachment_image_url( (int) get_theme_mod( 'custom_logo' ), 'medium' ) : '' );
+	$primary = sanitize_hex_color( get_theme_mod( 'kingdom_color_primary', '#5b2a86' ) );
+	$primary = $primary ? $primary : '#5b2a86';
+	$colors  = array( 'success' => '#1e8e5a', 'error' => '#c0392b', 'info' => $primary );
+	$tone    = isset( $colors[ $tone ] ) ? $tone : 'info';
+	$icons   = array(
+		'success' => '<path d="M15 27l7 7 15-16"/>',
+		'error'   => '<path d="M19 19l14 14M33 19L19 33"/>',
+		'info'    => '<path d="M26 17v1M26 24v12"/>',
+	);
+	$link    = $link ? $link : array( home_url( '/' ), __( 'Go to homepage', 'kingdom-church-suite' ) );
+
+	status_header( (int) $code );
+	nocache_headers();
+	header( 'Content-Type: text/html; charset=utf-8' );
+	header( 'X-Robots-Tag: noindex, nofollow' );
+	?>
+<!doctype html>
+<html <?php language_attributes(); ?>>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title><?php echo esc_html( $title . ' · ' . $church ); ?></title>
+<style>
+:root { --p: <?php echo esc_html( $primary ); ?>; --t: <?php echo esc_html( $colors[ $tone ] ); ?>; --bg: #f6f3fa; --card: #fff; --text: #1f1b24; --muted: #6b6475; --line: #e4dfeb; color-scheme: light dark; }
+@media (prefers-color-scheme: dark) { :root { --bg: #14111a; --card: #1e1a26; --text: #f3eff8; --muted: #a9a1b6; --line: #332c40; } }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--text); background: radial-gradient(80% 60% at 50% 0%, color-mix(in srgb, var(--p) 14%, transparent), transparent 70%), var(--bg); }
+.card { width: 100%; max-width: 460px; overflow: hidden; text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 24px 60px -24px color-mix(in srgb, var(--t) 35%, rgba(20, 10, 40, .35)); animation: rise .5s cubic-bezier(.2, .8, .2, 1) both; }
+.top { position: relative; padding: 40px 28px 8px; background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--t) 14%, transparent), transparent 70%); }
+.top::before { content: ""; position: absolute; inset: 0 0 auto; height: 5px; background: var(--t); }
+.logo { display: block; max-height: 48px; max-width: 160px; margin: 0 auto 20px; }
+.icon { width: 80px; height: 80px; margin: 0 auto 16px; border-radius: 50%; display: grid; place-items: center; background: var(--t); color: #fff; box-shadow: 0 0 0 10px color-mix(in srgb, var(--t) 10%, transparent); }
+.icon svg { width: 46px; height: 46px; fill: none; stroke: currentColor; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+.church { margin: 0 0 4px; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--t); }
+h1 { margin: 0; font-size: 1.6rem; line-height: 1.25; }
+p.msg { margin: 12px auto 28px; max-width: 38ch; padding: 0 28px; color: var(--muted); }
+.actions { padding: 20px 28px 26px; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--p) 4%, var(--card)); }
+.btn { display: inline-block; width: 100%; padding: 14px 24px; border-radius: 999px; background: var(--p); color: #fff; font-weight: 600; text-decoration: none; }
+.btn:hover { filter: brightness(1.08); }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+@media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+</style>
+</head>
+<body>
+<main class="card" role="main">
+	<div class="top">
+		<?php if ( $logo ) : ?><img class="logo" src="<?php echo esc_url( $logo ); ?>" alt="<?php echo esc_attr( $church ); ?>"><?php endif; ?>
+		<div class="icon"><svg viewBox="0 0 52 52" aria-hidden="true"><?php echo $icons[ $tone ]; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></svg></div>
+		<p class="church"><?php echo esc_html( $church ); ?></p>
+		<h1><?php echo esc_html( $title ); ?></h1>
+	</div>
+	<p class="msg"><?php echo esc_html( $message ); ?></p>
+	<div class="actions"><a class="btn" href="<?php echo esc_url( $link[0] ); ?>"><?php echo esc_html( $link[1] ); ?></a></div>
+</main>
+</body>
+</html>
+	<?php
+	exit;
+}

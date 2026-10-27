@@ -1178,6 +1178,16 @@ function kingdom_dashboard_type() {
 }
 
 /**
+ * Is this the payment result (thank you) page?
+ *
+ * @return bool
+ */
+function kingdom_is_result_page() {
+	$post = is_page() ? get_post() : null;
+	return $post && has_shortcode( $post->post_content, 'kcs_payment_status' );
+}
+
+/**
  * Website WhatsApp chat widget settings, or null when it should not show.
  *
  * Managed in Church Admin → Pastors & WhatsApp (plugin). Without the plugin, the

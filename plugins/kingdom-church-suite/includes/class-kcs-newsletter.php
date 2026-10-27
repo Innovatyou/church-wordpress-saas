@@ -189,7 +189,7 @@ class KCS_Newsletter {
 		$sub    = self::get_by_token( $token );
 
 		if ( ! $sub ) {
-			wp_die( esc_html__( 'This link is invalid or has expired.', 'kingdom-church-suite' ), esc_html( $church ), array( 'response' => 404, 'link_url' => esc_url( home_url( '/' ) ), 'link_text' => esc_html__( 'Go to homepage', 'kingdom-church-suite' ) ) );
+			kcs_message_page( __( 'Link expired', 'kingdom-church-suite' ), __( 'This link is invalid or has expired.', 'kingdom-church-suite' ), 'error', 404 );
 		}
 		global $wpdb;
 		if ( 'confirm' === $action ) {
@@ -197,14 +197,16 @@ class KCS_Newsletter {
 				$wpdb->update( kcs_table( 'subscribers' ), array( 'status' => 'subscribed', 'confirmed_at' => current_time( 'mysql' ) ), array( 'id' => $sub->id ) );
 				self::welcome( $sub->email, $sub->name, $sub->token );
 			}
+			$title   = __( 'You are subscribed!', 'kingdom-church-suite' );
 			$message = __( 'Thank you! Your subscription is confirmed. 🎉', 'kingdom-church-suite' );
 		} elseif ( 'unsubscribe' === $action ) {
 			self::unsubscribe( $token );
+			$title   = __( 'You have been unsubscribed', 'kingdom-church-suite' );
 			$message = __( 'You have been unsubscribed. We are sorry to see you go — you are always welcome back.', 'kingdom-church-suite' );
 		} else {
 			return;
 		}
-		wp_die( '<h1>' . esc_html( $church ) . '</h1><p>' . esc_html( $message ) . '</p>', esc_html( $church ), array( 'response' => 200, 'link_url' => esc_url( home_url( '/' ) ), 'link_text' => esc_html__( 'Go to homepage', 'kingdom-church-suite' ) ) );
+		kcs_message_page( $title, $message, 'confirm' === $action ? 'success' : 'info' );
 	}
 
 	/**

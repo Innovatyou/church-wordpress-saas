@@ -152,7 +152,7 @@ class KCS_Receipts {
 		// phpcs:enable
 		$payment = KCS_Payments::get_by_reference( $ref );
 		if ( ! $payment || 'completed' !== $payment->status || ! hash_equals( self::key( $ref ), $key ) ) {
-			wp_die( esc_html__( 'This receipt link is not valid.', 'kingdom-church-suite' ), esc_html__( 'Receipt', 'kingdom-church-suite' ), array( 'response' => 404 ) );
+			kcs_message_page( __( 'Receipt not available', 'kingdom-church-suite' ), __( 'This receipt link is not valid.', 'kingdom-church-suite' ), 'error', 404 );
 		}
 		nocache_headers();
 		header( 'X-Robots-Tag: noindex, nofollow' );
