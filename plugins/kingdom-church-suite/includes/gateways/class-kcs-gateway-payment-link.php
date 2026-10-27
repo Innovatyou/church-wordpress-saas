@@ -38,6 +38,7 @@ class KCS_Gateway_Payment_Link extends KCS_Gateway {
 			'paystack'    => 'Paystack',
 			'flutterwave' => 'Flutterwave',
 			'flw.page'    => 'Flutterwave',
+			'bachs'       => 'Bachs',
 			'remita'      => 'Remita',
 			'opay'        => 'Opay',
 			'moniepoint'  => 'Moniepoint',

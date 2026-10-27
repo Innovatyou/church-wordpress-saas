@@ -167,6 +167,7 @@ A full church-management dashboard on the **Church Admin** page (`[kcs_church_ad
 | Gateway | Integration | Webhook verification |
 |---|---|---|
 | **Flutterwave** | Standard checkout (v3) | `verif-hash` secret hash |
+| **Bachs** | Checkout Sessions (card, bank transfer, mobile money, crypto; sandbox or live from the `sk_sandbox_` / `sk_live_` key) | HMAC-SHA256 of `timestamp.body` (`X-Bachs-Signature-V2`, 5-minute tolerance) |
 | **Paystack** | Hosted checkout | HMAC-SHA512 (`x-paystack-signature`) |
 | **PayPal** | Orders v2, capture on return | PayPal verify-webhook-signature API |
 | **Stripe** | Checkout Sessions (cards, Apple Pay, Google Pay) | `Stripe-Signature` HMAC-SHA256 with timestamp tolerance |

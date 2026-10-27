@@ -190,6 +190,7 @@ class KCS_Payments {
 			$list = array(
 				'paystack'      => new KCS_Gateway_Paystack(),
 				'flutterwave'   => new KCS_Gateway_Flutterwave(),
+				'bachs'         => new KCS_Gateway_Bachs(),
 				'globalpay'     => new KCS_Gateway_GlobalPay(),
 				'paypal'        => new KCS_Gateway_PayPal(),
 				'stripe'        => new KCS_Gateway_Stripe(),

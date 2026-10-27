@@ -37,6 +37,7 @@ foreach ( $gateways as $i => $g ) {
 $channels = array(
 	'paystack'    => __( 'Card, bank transfer, USSD, QR or mobile money', 'kingdom-church-suite' ),
 	'flutterwave' => __( 'Card, bank transfer, USSD or mobile money', 'kingdom-church-suite' ),
+	'bachs'       => __( 'Card, bank transfer, mobile money or crypto', 'kingdom-church-suite' ),
 	'stripe'      => __( 'Card, Apple Pay or Google Pay', 'kingdom-church-suite' ),
 	'paypal'      => __( 'PayPal balance or card', 'kingdom-church-suite' ),
 );
