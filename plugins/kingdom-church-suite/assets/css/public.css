@@ -61,8 +61,11 @@
 .kcs-badge--review, .kcs-badge--paused, .kcs-badge--draft { background: #e0e7ff; color: #3730a3; }
 
 /* Plans */
-.kcs-plans { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
-@media (min-width: 1100px) { .kcs-plans { grid-template-columns: repeat(var(--kcs-cols, 4), 1fr); } }
+/* Cards wrap and centre, so one, two or many plans (per region) always sit balanced. */
+.kcs-plans { --kcs-gap: 1.25rem; display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: var(--kcs-gap); }
+.kcs-plans > .kcs-plan { flex: 1 1 260px; max-width: 400px; }
+@media (min-width: 1100px) { .kcs-plans > .kcs-plan { flex: 1 1 max(240px, calc((100% - (var(--kcs-cols, 4) - 1) * var(--kcs-gap)) / var(--kcs-cols, 4) - .1px)); max-width: 420px; } }
+@media (max-width: 600px) { .kcs-plans > .kcs-plan { flex-basis: 100%; max-width: 480px; } }
 .kcs-plan { position: relative; display: flex; flex-direction: column; gap: .75rem; padding: 2rem 1.5rem; border-radius: var(--kcs-radius); background: var(--kcs-surface); border: 1px solid var(--kcs-border); color: var(--kcs-text); transition: transform .2s, box-shadow .2s; }
 .kcs-plan:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(0,0,0,.08); }
 .kcs-plan.is-featured { border: 2px solid var(--kcs-primary); box-shadow: 0 18px 40px rgba(0,0,0,.1); }
