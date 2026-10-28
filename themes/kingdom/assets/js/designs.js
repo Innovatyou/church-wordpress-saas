@@ -48,6 +48,28 @@
 		});
 	}
 
+	/* Banner title always fits: every word on screen, at most about half the banner high */
+	var fitTitles = function () {
+		document.querySelectorAll('.k-hero__title').forEach(function (el) {
+			el.style.fontSize = '';
+			var hero = el.closest('.k-hero');
+			var maxH = (hero ? Math.min(hero.clientHeight, window.innerHeight) : window.innerHeight) * 0.5;
+			var size = parseFloat(getComputedStyle(el).fontSize);
+			var widest = function () {
+				var w = 0;
+				var words = el.querySelectorAll('.k-w');
+				if (!words.length) { return el.scrollWidth; }
+				words.forEach(function (s) { w = Math.max(w, s.getBoundingClientRect().width); });
+				return w;
+			};
+			var guard = 0;
+			while (size > 26 && guard++ < 40 && (widest() > el.clientWidth + 1 || el.scrollWidth > el.clientWidth + 1 || el.getBoundingClientRect().height > maxH)) {
+				size *= 0.93;
+				el.style.fontSize = size.toFixed(1) + 'px';
+			}
+		});
+	};
+
 	/* Reveal on scroll, staggered within each group ------------------------- */
 	if (effects.reveal && !reduce && 'IntersectionObserver' in window) {
 		root.classList.add('k-fx');
@@ -72,6 +94,11 @@
 			});
 		});
 	}
+
+	fitTitles();
+	if (document.fonts && document.fonts.ready) { document.fonts.ready.then(fitTitles); }
+	var fitTimer;
+	window.addEventListener('resize', function () { clearTimeout(fitTimer); fitTimer = setTimeout(fitTitles, 150); }, { passive: true });
 
 	/* Light that follows the cursor over cards ------------------------------ */
 	if (effects.spotlight && fine) {

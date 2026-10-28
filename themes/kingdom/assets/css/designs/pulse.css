@@ -33,8 +33,8 @@
 /* Huge, tight headlines; every other word in outline */
 .k-design-pulse :is(.k-hero__title, .k-section__title, .k-page-header__title, .k-cta h2) { text-transform: uppercase; letter-spacing: .01em; line-height: .95; color: var(--k-text); }
 .k-design-pulse .k-section__title { font-size: clamp(2.6rem, 7vw, 5.2rem); }
-.k-design-pulse .k-hero__title { font-size: clamp(3.4rem, 11vw, 8.5rem); }
-.k-design-pulse .k-split-words .k-w:nth-child(even) > span, .k-design-pulse .k-hero__title .k-w:nth-child(4n+3) > span { color: transparent; -webkit-text-stroke: 2px var(--k-neon); }
+.k-design-pulse .k-hero__title { font-size: clamp(2.2rem, 7vw, 6.5rem); }
+.k-design-pulse .k-split-words .k-w:nth-child(even) > span { color: transparent; -webkit-text-stroke: max(1px, .022em) var(--k-neon); }
 .k-design-pulse .k-eyebrow { color: var(--k-neon) !important; font-weight: 800; letter-spacing: .3em; }
 .k-design-pulse .k-eyebrow::before { content: "● "; animation: k-blink 1.4s steps(2) infinite; }
 @keyframes k-blink { 50% { opacity: 0; } }
