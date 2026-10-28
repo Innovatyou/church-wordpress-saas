@@ -1,0 +1,98 @@
+/* ==========================================================================
+   Design: Cosmos 3D — immersive depth. A starfield that moves with the
+   visitor's cursor and scroll (designs.js), nebula light, glowing orbits and
+   cards that rise into place in 3D. Always dark.
+   ========================================================================== */
+:root[data-design="cosmos"], :root[data-design="cosmos"][data-theme] {
+	--k-radius: 18px;
+	--k-bg: #05030d;
+	--k-surface: #100c20;
+	--k-surface-2: #0a0717;
+	--k-text: #efeaff;
+	--k-muted: #a7a0c8;
+	--k-border: #262043;
+	--k-glow: color-mix(in srgb, var(--k-accent) 70%, #fff);
+	--k-shadow: 0 10px 30px rgba(0, 0, 0, .55);
+	--k-shadow-lg: 0 30px 80px rgba(0, 0, 0, .7);
+	--k-rise: k-cosmos-rise;
+	color-scheme: dark;
+}
+.k-design-cosmos [data-theme-toggle] { display: none; }
+.k-design-cosmos {
+	color: var(--k-text);
+	background:
+		radial-gradient(1px 1px at 12% 18%, #fff 50%, transparent 51%),
+		radial-gradient(1px 1px at 72% 34%, #fff 50%, transparent 51%),
+		radial-gradient(1.5px 1.5px at 38% 72%, #dfe4ff 50%, transparent 51%),
+		radial-gradient(1px 1px at 88% 82%, #fff 50%, transparent 51%),
+		radial-gradient(1px 1px at 54% 8%, #cfd6ff 50%, transparent 51%),
+		radial-gradient(60vmax 40vmax at 85% 10%, color-mix(in srgb, var(--k-primary) 28%, transparent), transparent 70%),
+		radial-gradient(50vmax 40vmax at 5% 80%, color-mix(in srgb, var(--k-accent) 14%, transparent), transparent 70%),
+		var(--k-bg);
+	background-size: 420px 420px, 380px 380px, 520px 520px, 460px 460px, 610px 610px, 100% 100%, 100% 100%, auto;
+	background-attachment: fixed;
+}
+.k-design-cosmos a:not(.k-btn):not(.kcs-btn) { color: var(--k-glow); }
+.k-design-cosmos :is(.k-card__title a, .k-menu a, .k-brand__name, .k-event-row, .k-leader__name a, .k-social-card) { color: var(--k-text) !important; }
+.k-design-cosmos .k-section, .k-design-cosmos .k-section--alt, .k-design-cosmos .k-cta, .k-design-cosmos .k-page-header:not(.has-image), .k-design-cosmos .k-hero--split, .k-design-cosmos .k-hero--minimal, .k-design-cosmos .k-result-stage { background: transparent; }
+.k-design-cosmos .k-section--alt { background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--k-primary) 8%, transparent) 30% 70%, transparent); }
+.k-design-cosmos .k-page-header { position: relative; overflow: hidden; }
+.k-design-cosmos .k-page-header > .k-container { position: relative; z-index: 2; }
+
+/* Headlines glow; section heads float a little as they pass (parallax) */
+.k-design-cosmos :is(.k-hero__title, .k-section__title, .k-page-header__title) { color: var(--k-text); text-shadow: 0 0 40px color-mix(in srgb, var(--k-glow) 35%, transparent); letter-spacing: -.01em; }
+.k-design-cosmos .k-eyebrow { color: var(--k-glow) !important; letter-spacing: .32em; }
+.k-design-cosmos .k-section__text, .k-design-cosmos .k-lead, .k-design-cosmos .k-prose p { color: var(--k-muted); }
+.k-design-cosmos .k-section__head.k-par.k-in { transform: translateY(calc(var(--k-par, 0) * -24px)); }
+
+/* Cards: deep glass that rises in 3D, with an orbit of light on hover */
+.k-design-cosmos .k-grid, .k-design-cosmos .kcs-plans { perspective: 1100px; }
+.k-design-cosmos :is(.k-card, .kcs-plan, .k-feature, .k-testimony, .k-event-row, .k-social-card, .kcs-form, .kcs-card, .kcs-result__card, .k-featured-sermon, .k-floating-card) {
+	position: relative; color: var(--k-text);
+	background: linear-gradient(160deg, color-mix(in srgb, var(--k-surface) 80%, transparent), color-mix(in srgb, var(--k-surface-2) 80%, transparent));
+	border: 1px solid var(--k-border); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+	box-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset, var(--k-shadow);
+}
+.k-design-cosmos :is(.k-card, .kcs-plan, .k-feature, .k-event-row)::after {
+	content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .35s;
+	background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--k-glow) 20%, transparent), transparent 55%);
+}
+.k-design-cosmos :is(.k-card, .kcs-plan, .k-feature, .k-event-row):hover::after { opacity: 1; }
+.k-design-cosmos :is(.k-card, .kcs-plan, .k-feature, .k-event-row):hover { border-color: color-mix(in srgb, var(--k-glow) 45%, var(--k-border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--k-glow) 20%, transparent), 0 30px 60px -20px color-mix(in srgb, var(--k-primary) 60%, #000), 0 0 60px -20px var(--k-glow); }
+.k-design-cosmos .kcs-plan.is-featured { border-color: var(--k-glow); box-shadow: 0 0 50px -15px var(--k-glow); }
+.k-design-cosmos .kcs-plan__price strong, .k-design-cosmos .kcs-plan__name { color: var(--k-text); }
+.k-design-cosmos .k-date-badge { background: var(--k-surface); color: var(--k-text); border: 1px solid var(--k-border); }
+.k-design-cosmos .k-date-badge b { color: var(--k-glow); }
+.k-design-cosmos .k-feature__icon { background: color-mix(in srgb, var(--k-glow) 14%, transparent); color: var(--k-glow); box-shadow: 0 0 24px -6px var(--k-glow); }
+
+/* Buttons: glowing, with a pulse of light */
+.k-design-cosmos .k-btn, .k-design-cosmos .kcs-btn { background: linear-gradient(135deg, var(--k-primary), color-mix(in srgb, var(--k-primary) 50%, var(--k-accent))); border-color: transparent; color: #fff !important; box-shadow: 0 0 0 1px color-mix(in srgb, var(--k-glow) 35%, transparent), 0 10px 30px -10px var(--k-primary); }
+.k-design-cosmos .k-btn--accent { background: linear-gradient(135deg, var(--k-accent), color-mix(in srgb, var(--k-accent) 60%, #fff)); color: #120c26 !important; animation: k-glow 3s ease-in-out infinite; }
+.k-design-cosmos :is(.k-btn--outline, .k-btn--glass, .kcs-btn--ghost) { background: rgba(255, 255, 255, .06); color: var(--k-text) !important; border-color: color-mix(in srgb, var(--k-glow) 40%, transparent); }
+@keyframes k-glow { 50% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--k-glow) 50%, transparent), 0 0 40px -6px var(--k-accent); } }
+
+/* Banner: nebula, starfield canvas and an orbit ring */
+.k-design-cosmos .k-hero--cover .k-hero__overlay { background: radial-gradient(70% 60% at 70% 30%, color-mix(in srgb, var(--k-primary) 45%, transparent), transparent 70%), linear-gradient(180deg, rgba(5, 3, 13, .55), rgba(5, 3, 13, .55) 50%, var(--k-bg)); }
+.k-design-cosmos .k-hero--cover::after {
+	content: ""; position: absolute; z-index: 1; right: -12vmax; top: 10%; width: 60vmax; aspect-ratio: 1; border-radius: 50%; pointer-events: none;
+	border: 1px solid color-mix(in srgb, var(--k-glow) 35%, transparent);
+	box-shadow: 0 0 80px -10px color-mix(in srgb, var(--k-glow) 40%, transparent), inset 0 0 80px -10px color-mix(in srgb, var(--k-primary) 50%, transparent);
+	transform: rotateX(72deg) rotateZ(0deg); animation: k-cosmos-orbit 30s linear infinite;
+}
+@keyframes k-cosmos-orbit { to { transform: rotateX(72deg) rotateZ(360deg); } }
+.k-design-cosmos .k-hero__scene .k-orb { mix-blend-mode: screen; }
+
+/* Header, bands, footer */
+.k-design-cosmos .k-header, .k-design-cosmos.has-transparent-header .k-header.is-scrolled { background: color-mix(in srgb, var(--k-bg) 75%, transparent); backdrop-filter: blur(16px) saturate(1.3); -webkit-backdrop-filter: blur(16px) saturate(1.3); border-color: var(--k-border); }
+.k-design-cosmos.has-transparent-header .k-header:not(.is-scrolled) { background: transparent; backdrop-filter: none; }
+.k-design-cosmos .k-menu a:hover, .k-design-cosmos .k-menu .current-menu-item > a { background: color-mix(in srgb, var(--k-glow) 12%, transparent); }
+.k-design-cosmos .k-menu .sub-menu { background: var(--k-surface); border-color: var(--k-border); }
+.k-design-cosmos .k-topbar { background: #000; }
+.k-design-cosmos :is(.k-stats, .k-verse-band, .k-times, .k-countdown-band) { background: linear-gradient(120deg, color-mix(in srgb, var(--k-primary) 35%, #05030d), #05030d); border-block: 1px solid var(--k-border); }
+.k-design-cosmos .k-stat strong { text-shadow: 0 0 30px var(--k-glow); }
+.k-design-cosmos .k-cta__inner { background: radial-gradient(80% 120% at 100% 0%, color-mix(in srgb, var(--k-accent) 30%, transparent), transparent 60%), linear-gradient(135deg, color-mix(in srgb, var(--k-primary) 70%, #000), #0a0717); border: 1px solid var(--k-border); }
+.k-design-cosmos .k-footer { background: #030208; border-top: 1px solid var(--k-border); }
+.k-design-cosmos .k-tabbar { background: color-mix(in srgb, #05030d 85%, transparent); border-color: var(--k-border); }
+.k-design-cosmos :is(input, select, textarea) { background: var(--k-surface-2); color: var(--k-text); border-color: var(--k-border); }
+
+@keyframes k-cosmos-rise { from { opacity: 0; transform: perspective(900px) rotateX(22deg) translateY(50px) scale(.95); } }

@@ -1,0 +1,99 @@
+/* ==========================================================================
+   Design: Pulse Night — bold and dark for youth and young-adult churches.
+   Neon edges that travel around cards, huge headlines, a moving grid, film
+   grain and buttons that pull toward the cursor. Always dark.
+   ========================================================================== */
+@property --k-angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+
+:root[data-design="pulse"], :root[data-design="pulse"][data-theme] {
+	--k-radius: 18px;
+	--k-bg: #07070c;
+	--k-surface: #101019;
+	--k-surface-2: #0b0b13;
+	--k-text: #f4f4ff;
+	--k-muted: #a6a6c4;
+	--k-border: #23233a;
+	--k-neon: var(--k-accent);
+	--k-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+	--k-shadow-lg: 0 30px 70px rgba(0, 0, 0, .6);
+	--k-rise: k-pulse-rise;
+	color-scheme: dark;
+}
+.k-design-pulse { background: var(--k-bg); color: var(--k-text); }
+.k-design-pulse [data-theme-toggle] { display: none; }
+.k-design-pulse a:not(.k-btn):not(.kcs-btn) { color: color-mix(in srgb, var(--k-neon) 75%, #fff); }
+.k-design-pulse :is(.k-card__title a, .k-menu a, .k-brand__name, .k-event-row, .k-leader__name a, .k-social-card) { color: var(--k-text) !important; }
+
+/* Film grain over everything */
+.k-design-pulse::after {
+	content: ""; position: fixed; inset: 0; z-index: 400; pointer-events: none; opacity: .06; mix-blend-mode: overlay;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Huge, tight headlines; every other word in outline */
+.k-design-pulse :is(.k-hero__title, .k-section__title, .k-page-header__title, .k-cta h2) { text-transform: uppercase; letter-spacing: .01em; line-height: .95; color: var(--k-text); }
+.k-design-pulse .k-section__title { font-size: clamp(2.6rem, 7vw, 5.2rem); }
+.k-design-pulse .k-hero__title { font-size: clamp(3.4rem, 11vw, 8.5rem); }
+.k-design-pulse .k-split-words .k-w:nth-child(even) > span, .k-design-pulse .k-hero__title .k-w:nth-child(4n+3) > span { color: transparent; -webkit-text-stroke: 2px var(--k-neon); }
+.k-design-pulse .k-eyebrow { color: var(--k-neon) !important; font-weight: 800; letter-spacing: .3em; }
+.k-design-pulse .k-eyebrow::before { content: "● "; animation: k-blink 1.4s steps(2) infinite; }
+@keyframes k-blink { 50% { opacity: 0; } }
+.k-design-pulse .k-section__text, .k-design-pulse .k-lead, .k-design-pulse .k-prose p { color: var(--k-muted); }
+
+/* Sections: a moving grid floor behind alternate sections */
+.k-design-pulse .k-section, .k-design-pulse .k-cta, .k-design-pulse .k-page-header:not(.has-image), .k-design-pulse .k-hero--split, .k-design-pulse .k-hero--minimal, .k-design-pulse .k-result-stage { background: var(--k-bg); }
+.k-design-pulse .k-section--alt { position: relative; isolation: isolate; background: var(--k-surface-2); }
+.k-design-pulse .k-section--alt::before {
+	content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+	background-image: linear-gradient(color-mix(in srgb, var(--k-neon) 12%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--k-neon) 12%, transparent) 1px, transparent 1px);
+	background-size: 56px 56px; animation: k-grid 12s linear infinite;
+	-webkit-mask-image: radial-gradient(ellipse at 50% 50%, #000 20%, transparent 75%); mask-image: radial-gradient(ellipse at 50% 50%, #000 20%, transparent 75%);
+}
+@keyframes k-grid { to { background-position: 0 56px, 56px 0; } }
+
+/* Cards: dark glass with a neon edge that travels around on hover */
+.k-design-pulse :is(.k-card, .kcs-plan, .k-feature, .k-testimony, .k-event-row, .k-social-card, .kcs-form, .kcs-card, .kcs-result__card, .k-featured-sermon) {
+	--k-angle: 0deg;
+	background: linear-gradient(var(--k-surface), var(--k-surface)) padding-box, conic-gradient(from var(--k-angle), var(--k-border), var(--k-border)) border-box;
+	border: 1px solid transparent; color: var(--k-text); box-shadow: none;
+}
+.k-design-pulse :is(.k-card, .kcs-plan, .k-feature, .k-event-row, .k-social-card):hover, .k-design-pulse .kcs-plan.is-featured {
+	background: linear-gradient(var(--k-surface), var(--k-surface)) padding-box, conic-gradient(from var(--k-angle), var(--k-neon), var(--k-primary), transparent 40%, var(--k-neon) 60%, transparent 80%, var(--k-neon)) border-box;
+	animation: k-orbit-edge 3s linear infinite; box-shadow: 0 0 40px -12px var(--k-neon);
+}
+@keyframes k-orbit-edge { to { --k-angle: 360deg; } }
+.k-design-pulse :is(.k-card, .k-feature, .k-event-row) { position: relative; overflow: hidden; }
+.k-design-pulse .kcs-plan { position: relative; }
+.k-design-pulse :is(.k-card, .kcs-plan, .k-feature, .k-event-row)::after {
+	content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
+	background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--k-neon) 18%, transparent), transparent 60%);
+}
+.k-design-pulse :is(.k-card, .kcs-plan, .k-feature, .k-event-row):hover::after { opacity: 1; }
+.k-design-pulse .kcs-plan__price strong, .k-design-pulse .kcs-plan__name { color: var(--k-text); }
+.k-design-pulse .k-card__media img { filter: saturate(1.2) contrast(1.05); }
+.k-design-pulse .k-date-badge { background: var(--k-neon); color: #07070c; }
+.k-design-pulse .k-date-badge b { color: #07070c; }
+
+/* Buttons: neon, magnetic (designs.js) */
+.k-design-pulse .k-btn, .k-design-pulse .kcs-btn { background: var(--k-neon); border-color: var(--k-neon); color: #07070c !important; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; font-size: .92rem; white-space: nowrap; box-shadow: 0 0 0 0 var(--k-neon); transition: transform .25s var(--k-ease), box-shadow .3s; }
+.k-design-pulse .k-btn:hover, .k-design-pulse .kcs-btn:hover { box-shadow: 0 0 30px -4px var(--k-neon), 0 0 80px -20px var(--k-neon); }
+.k-design-pulse :is(.k-btn--outline, .k-btn--glass, .kcs-btn--ghost) { background: transparent; color: var(--k-text) !important; border-color: color-mix(in srgb, var(--k-neon) 60%, transparent); }
+
+/* Header, banner, bands */
+.k-design-pulse .k-header, .k-design-pulse.has-transparent-header .k-header.is-scrolled { background: color-mix(in srgb, var(--k-bg) 80%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-color: var(--k-border); }
+.k-design-pulse.has-transparent-header .k-header:not(.is-scrolled) { background: transparent; backdrop-filter: none; }
+.k-design-pulse .k-menu a:hover, .k-design-pulse .k-menu .current-menu-item > a { background: color-mix(in srgb, var(--k-neon) 14%, transparent); color: var(--k-neon) !important; }
+.k-design-pulse .k-menu .sub-menu { background: var(--k-surface); border-color: var(--k-border); }
+.k-design-pulse .k-topbar { background: #000; }
+.k-design-pulse .k-hero--cover .k-hero__overlay { background: linear-gradient(180deg, rgba(7, 7, 12, .55), rgba(7, 7, 12, .5) 40%, var(--k-bg)), radial-gradient(80% 60% at 50% 110%, color-mix(in srgb, var(--k-neon) 45%, transparent), transparent 70%); }
+.k-design-pulse .k-hero__scene { display: none; }
+.k-design-pulse :is(.k-stats, .k-verse-band, .k-times, .k-countdown-band) { background: #000; border-block: 1px solid var(--k-border); }
+.k-design-pulse .k-stat strong { background: linear-gradient(180deg, #fff, var(--k-neon)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.k-design-pulse .k-cta__inner { background: linear-gradient(120deg, color-mix(in srgb, var(--k-neon) 30%, #000), #000); border: 1px solid color-mix(in srgb, var(--k-neon) 50%, transparent); }
+.k-design-pulse .k-footer { background: #000; border-top: 1px solid var(--k-border); }
+.k-design-pulse .k-tabbar { background: color-mix(in srgb, #000 85%, transparent); border-color: var(--k-border); }
+.k-design-pulse .k-progress { background: var(--k-neon); box-shadow: 0 0 12px var(--k-neon); height: 2px; }
+.k-design-pulse :is(input, select, textarea) { background: var(--k-surface-2); color: var(--k-text); border-color: var(--k-border); }
+
+@keyframes k-pulse-rise { from { opacity: 0; transform: translateY(40px) skewY(2deg); } }
+.k-design-pulse .k-feature__icon, .k-design-pulse .k-facts li > .k-icon { background: color-mix(in srgb, var(--k-neon) 14%, transparent); color: var(--k-neon); }

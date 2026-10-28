@@ -167,6 +167,8 @@ p { margin: 0 0 1.1em; }
 /* Eyebrow & headings ------------------------------------------------------ */
 .k-eyebrow { display: inline-block; font-family: var(--k-font-body); font-size: .8rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--k-primary); margin-bottom: .75rem; }
 [data-theme="dark"] .k-eyebrow { color: var(--k-accent); }
+/* Church main colour text stays readable on dark backgrounds */
+[data-theme="dark"] .kcs-plan__price strong, [data-design="pulse"] .kcs-plan__price strong, [data-design="cosmos"] .kcs-plan__price strong { color: color-mix(in srgb, var(--k-primary) 40%, #fff); }
 .k-eyebrow--light { color: var(--k-accent) !important; }
 .k-section { padding-block: var(--k-section); }
 .k-section--tight { padding-block: 2.5rem; }

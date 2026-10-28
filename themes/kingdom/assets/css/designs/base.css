@@ -1,0 +1,33 @@
+/* ==========================================================================
+   Ministry OS website designs — shared motion layer (loaded with every design
+   except Classic). Hidden-until-revealed states only apply once designs.js has
+   added .k-fx to <html>, so pages without JavaScript show everything.
+   ========================================================================== */
+:root { --k-ease: cubic-bezier(.2, .8, .2, 1); --k-rise: k-rise; }
+body { overflow-x: clip; }
+
+/* Reveal on scroll */
+.k-fx .k-rv:not(.k-in) { opacity: 0; }
+.k-fx .k-rv.k-in { animation: var(--k-rise) .9s var(--k-ease) var(--k-d, 0ms) backwards; }
+@keyframes k-rise { from { opacity: 0; transform: translateY(32px); } }
+
+/* Headlines: each word rises out of its line */
+.k-split-words .k-w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .1em; margin-bottom: -.1em; }
+.k-split-words .k-w > span { display: inline-block; }
+.k-fx .k-split-words.k-rv:not(.k-in) { opacity: 1; }
+.k-fx .k-split-words:not(.k-in) .k-w > span { transform: translateY(110%); }
+.k-fx .k-split-words.k-in { animation: none; }
+.k-fx .k-split-words.k-in .k-w > span { animation: k-word .85s var(--k-ease) calc(var(--k-i, 0) * 55ms) backwards; }
+@keyframes k-word { from { transform: translateY(110%); } }
+
+/* Reading progress */
+.k-progress { position: fixed; z-index: 300; top: 0; left: 0; right: 0; height: 3px; transform: scaleX(0); transform-origin: 0 50%; background: linear-gradient(90deg, var(--k-primary), var(--k-accent)); pointer-events: none; }
+.admin-bar .k-progress { top: 32px; }
+
+/* Starfield canvas (Cosmos) */
+.k-stars { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+	.k-fx .k-rv:not(.k-in), .k-fx .k-split-words:not(.k-in) .k-w > span { opacity: 1; transform: none; }
+	*, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}

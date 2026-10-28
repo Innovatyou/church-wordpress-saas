@@ -1,0 +1,90 @@
+/* ==========================================================================
+   Design: Ember Community — warm and welcoming. Soft living shapes drift
+   behind sections, section edges are wavy, cards are layered like paper and
+   pictures have gently changing, organic outlines.
+   ========================================================================== */
+:root[data-design="ember"] {
+	--k-radius: 26px;
+	--k-bg: #fff8f0;
+	--k-surface: #ffffff;
+	--k-surface-2: #fdeedd;
+	--k-text: #2b1a10;
+	--k-muted: #7a6252;
+	--k-border: #f0dcc6;
+	--k-shadow: 0 14px 30px -18px rgba(120, 60, 20, .35);
+	--k-shadow-lg: 0 30px 60px -28px rgba(120, 60, 20, .45);
+	--k-rise: k-ember-rise;
+	--k-wave-b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 40' preserveAspectRatio='none'%3E%3Cpath d='M0 0v20c120 16 240 20 360 10s240-28 360-26 240 24 360 28 240-10 360-18V0z'/%3E%3C/svg%3E");
+	--k-wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 40' preserveAspectRatio='none'%3E%3Cpath d='M0 40V20C120 4 240 0 360 10s240 28 360 26 240-24 360-28 240 10 360 18V40z'/%3E%3C/svg%3E");
+}
+:root[data-design="ember"][data-theme="dark"] {
+	--k-bg: #1a120c;
+	--k-surface: #241a12;
+	--k-surface-2: #2c2017;
+	--k-text: #f6e9dc;
+	--k-muted: #c2a991;
+	--k-border: #3d2d20;
+	--k-shadow: 0 14px 30px -18px rgba(0, 0, 0, .6);
+	--k-shadow-lg: 0 30px 60px -28px rgba(0, 0, 0, .7);
+}
+.k-design-ember { background: var(--k-bg); }
+
+/* Wavy top and bottom edges on coloured sections */
+.k-design-ember :is(.k-section--alt, .k-stats, .k-verse-band) {
+	-webkit-mask: var(--k-wave) top / 100% 36px no-repeat, linear-gradient(#000, #000) 0 35px / 100% calc(100% - 70px) no-repeat, var(--k-wave-b) bottom / 100% 36px no-repeat;
+	mask: var(--k-wave) top / 100% 36px no-repeat, linear-gradient(#000, #000) 0 35px / 100% calc(100% - 70px) no-repeat, var(--k-wave-b) bottom / 100% 36px no-repeat;
+	padding-block: calc(var(--k-section) + 20px);
+}
+
+/* Living shapes behind sections */
+.k-design-ember .k-section { position: relative; isolation: isolate; overflow: clip; }
+.k-design-ember .k-section::before, .k-design-ember .k-section::after {
+	content: ""; position: absolute; z-index: -1; pointer-events: none; border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%;
+	animation: k-morph 18s ease-in-out infinite alternate;
+}
+.k-design-ember .k-section::before { width: clamp(220px, 34vw, 460px); aspect-ratio: 1; top: -8%; right: -10%; background: color-mix(in srgb, var(--k-accent) 20%, transparent); }
+.k-design-ember .k-section::after { width: clamp(160px, 24vw, 320px); aspect-ratio: 1; bottom: -10%; left: -8%; background: color-mix(in srgb, var(--k-primary) 12%, transparent); animation-delay: -9s; }
+.k-design-ember .k-section:nth-of-type(even)::before { right: auto; left: -12%; }
+.k-design-ember .k-section:nth-of-type(even)::after { left: auto; right: -6%; }
+@keyframes k-morph {
+	0% { border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; transform: translate(0, 0) rotate(0deg); }
+	50% { border-radius: 63% 37% 39% 61% / 55% 63% 37% 45%; transform: translate(14px, -18px) rotate(40deg); }
+	100% { border-radius: 38% 62% 50% 50% / 62% 38% 62% 38%; transform: translate(-10px, 12px) rotate(80deg); }
+}
+
+/* Organic pictures */
+.k-design-ember .k-split__media img { border-radius: 58% 42% 46% 54% / 48% 52% 48% 52%; animation: k-morph-img 16s ease-in-out infinite alternate; }
+.k-design-ember .k-split__media img.k-par { translate: 0 calc(var(--k-par, 0) * -16px); }
+@keyframes k-morph-img { 50% { border-radius: 44% 56% 58% 42% / 56% 44% 56% 44%; } 100% { border-radius: 52% 48% 40% 60% / 46% 58% 42% 54%; } }
+.k-design-ember .k-split__accent { border: 0; background: color-mix(in srgb, var(--k-accent) 30%, transparent); border-radius: 46% 54% 52% 48% / 52% 46% 54% 48%; animation: k-morph-img 20s ease-in-out infinite alternate-reverse; }
+.k-design-ember .k-leader__photo { border-radius: 50%; aspect-ratio: 1; }
+
+/* Paper cards: soft layers that lift and tilt slightly on hover */
+.k-design-ember :is(.k-card, .kcs-plan, .k-feature, .k-testimony, .k-event-row, .kcs-form, .kcs-card) {
+	background: var(--k-surface); border: 0;
+	box-shadow: 0 0 0 1px var(--k-border), 0 8px 0 -4px color-mix(in srgb, var(--k-surface-2) 90%, var(--k-accent)), 0 16px 0 -8px color-mix(in srgb, var(--k-surface-2) 70%, var(--k-accent)), var(--k-shadow);
+	transition: transform .45s cubic-bezier(.34, 1.56, .64, 1), box-shadow .3s;
+}
+.k-design-ember :is(.k-card, .kcs-plan, .k-feature, .k-event-row):hover { transform: translateY(-8px) rotate(-.6deg); box-shadow: 0 0 0 1px var(--k-border), 0 10px 0 -4px color-mix(in srgb, var(--k-surface-2) 90%, var(--k-accent)), 0 20px 0 -8px color-mix(in srgb, var(--k-surface-2) 70%, var(--k-accent)), var(--k-shadow-lg); }
+.k-design-ember :is(.k-card, .kcs-plan, .k-feature):nth-child(even):hover { transform: translateY(-8px) rotate(.6deg); }
+.k-design-ember .k-card__media { margin: .6rem .6rem 0; border-radius: calc(var(--k-radius) - 8px); }
+.k-design-ember .k-feature__icon { border-radius: 40% 60% 55% 45% / 50% 45% 55% 50%; background: color-mix(in srgb, var(--k-accent) 25%, transparent); }
+
+/* Buttons: round and warm, a little bounce */
+.k-design-ember .k-btn, .k-design-ember .kcs-btn { border-radius: 999px; transition: transform .35s cubic-bezier(.34, 1.56, .64, 1), box-shadow .3s; box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--k-primary) 70%, transparent); }
+.k-design-ember .k-btn:hover, .k-design-ember .kcs-btn:hover { transform: translateY(-3px) scale(1.03); }
+.k-design-ember .k-eyebrow { background: color-mix(in srgb, var(--k-accent) 22%, transparent); color: color-mix(in srgb, var(--k-primary) 85%, #000); padding: .4em 1em; border-radius: 999px; letter-spacing: .1em; }
+[data-theme="dark"] .k-design-ember .k-eyebrow { color: var(--k-accent); }
+
+/* Banner, bands, footer */
+.k-design-ember .k-hero--cover .k-hero__overlay { background: linear-gradient(160deg, color-mix(in srgb, var(--k-primary) 55%, rgba(40, 15, 5, .6)), rgba(40, 15, 5, .45) 50%, color-mix(in srgb, var(--k-accent) 30%, rgba(40, 15, 5, .85))); }
+.k-design-ember .k-hero--cover { border-radius: 0 0 clamp(28px, 6vw, 80px) clamp(28px, 6vw, 80px); }
+.k-design-ember .k-section--alt { background: var(--k-surface-2); }
+.k-design-ember .k-stats { background: linear-gradient(135deg, var(--k-primary), color-mix(in srgb, var(--k-primary) 60%, var(--k-accent))); }
+.k-design-ember .k-verse-band { background: linear-gradient(135deg, color-mix(in srgb, var(--k-primary) 80%, #000), var(--k-primary)); }
+.k-design-ember .k-cta__inner { border-radius: 40px; background: linear-gradient(135deg, var(--k-primary), color-mix(in srgb, var(--k-primary) 55%, var(--k-accent))); }
+.k-design-ember .k-times { background: var(--k-primary); }
+.k-design-ember .k-page-header:not(.has-image) { background: var(--k-surface-2); border-radius: 0 0 48px 48px; }
+.k-design-ember .k-footer { border-radius: clamp(28px, 6vw, 64px) clamp(28px, 6vw, 64px) 0 0; }
+
+@keyframes k-ember-rise { 0% { opacity: 0; transform: translateY(30px) scale(.94); } 70% { transform: translateY(-4px) scale(1.01); } }

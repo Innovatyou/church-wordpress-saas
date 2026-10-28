@@ -1,0 +1,88 @@
+/* ==========================================================================
+   Design: Sanctuary — cathedral elegance. Ivory and gold, arched pictures,
+   light rays over the banner, ornamented headings and slow parallax.
+   ========================================================================== */
+:root[data-design="sanctuary"] {
+	--k-radius: 6px;
+	--k-bg: #fbf7ef;
+	--k-surface: #fffdf8;
+	--k-surface-2: #f4ecdc;
+	--k-text: #2a1d12;
+	--k-muted: #6f6050;
+	--k-border: color-mix(in srgb, var(--k-accent) 28%, #e9e0cf);
+	--k-gold: color-mix(in srgb, var(--k-accent) 85%, #8a6a1f);
+	--k-shadow: 0 12px 34px -16px rgba(60, 40, 10, .25);
+	--k-shadow-lg: 0 28px 60px -24px rgba(60, 40, 10, .35);
+	--k-rise: k-sanct-rise;
+}
+:root[data-design="sanctuary"][data-theme="dark"] {
+	--k-bg: #14100b;
+	--k-surface: #1c1711;
+	--k-surface-2: #231c14;
+	--k-text: #f3ebdd;
+	--k-muted: #b9a991;
+	--k-border: color-mix(in srgb, var(--k-accent) 25%, #3a2f22);
+}
+.k-design-sanctuary { background: var(--k-bg); }
+
+/* Ornamented headings: a gold rule with a diamond under each section title */
+.k-design-sanctuary .k-section__title, .k-design-sanctuary .k-page-header__title, .k-design-sanctuary .k-hero__title { font-weight: 500; letter-spacing: .01em; }
+.k-design-sanctuary .k-section__head--center .k-section__title::after, .k-design-sanctuary .k-section__head.k-center .k-section__title::after {
+	content: ""; display: block; width: 150px; height: 14px; margin: .45em auto 0;
+	background:
+		linear-gradient(var(--k-gold), var(--k-gold)) left 50% / 58px 1px no-repeat,
+		linear-gradient(var(--k-gold), var(--k-gold)) right 50% / 58px 1px no-repeat,
+		linear-gradient(45deg, transparent 42%, var(--k-gold) 42% 58%, transparent 58%) center / 14px 14px no-repeat,
+		linear-gradient(-45deg, transparent 42%, var(--k-gold) 42% 58%, transparent 58%) center / 14px 14px no-repeat;
+}
+.k-design-sanctuary .k-eyebrow { color: var(--k-gold); letter-spacing: .28em; font-weight: 600; display: inline-flex; align-items: center; gap: .8em; }
+.k-design-sanctuary .k-eyebrow::before, .k-design-sanctuary .k-eyebrow::after { content: ""; width: 28px; height: 1px; background: currentColor; opacity: .7; }
+
+/* Arched pictures, like cathedral windows */
+.k-design-sanctuary .k-split__media img, .k-design-sanctuary .k-hero__image, .k-design-sanctuary .k-leader__photo { border-radius: 999px 999px var(--k-radius) var(--k-radius); }
+.k-design-sanctuary .k-split__accent { border: 1px solid var(--k-gold); border-radius: 999px 999px var(--k-radius) var(--k-radius); top: -1rem; right: -1rem; bottom: 1rem; left: 1rem; }
+.k-design-sanctuary .k-split__media { overflow: visible; }
+.k-design-sanctuary .k-split__media img.k-par { transform: translateY(calc(var(--k-par, 0) * -26px)); }
+.k-design-sanctuary .k-hero__image.k-par { transform: translateY(calc(var(--k-par, 0) * -30px)); }
+.k-design-sanctuary .k-page-header.has-image.k-par { background-position: center calc(50% + var(--k-par, 0) * 60px); }
+
+/* Cards: framed, with a gold hairline and inner margin */
+.k-design-sanctuary :is(.k-card, .kcs-plan, .k-feature, .k-testimony, .k-event-row, .kcs-form, .kcs-card) { background: var(--k-surface); border: 1px solid var(--k-border); box-shadow: inset 0 0 0 5px var(--k-surface), inset 0 0 0 6px color-mix(in srgb, var(--k-gold) 30%, transparent), var(--k-shadow); }
+.k-design-sanctuary .k-card { border-top: 3px solid var(--k-gold); }
+.k-design-sanctuary .k-card:hover { transform: translateY(-5px); box-shadow: inset 0 0 0 5px var(--k-surface), inset 0 0 0 6px var(--k-gold), var(--k-shadow-lg); }
+.k-design-sanctuary .k-card__media img { filter: sepia(.12) saturate(1.05); }
+.k-design-sanctuary .k-testimony::before { color: color-mix(in srgb, var(--k-gold) 35%, transparent); }
+.k-design-sanctuary .kcs-plan.is-featured { border: 1px solid var(--k-gold); box-shadow: inset 0 0 0 5px var(--k-surface), inset 0 0 0 6px var(--k-gold), var(--k-shadow-lg); }
+
+/* Buttons: engraved, with a light sweep on hover */
+.k-design-sanctuary .k-btn, .k-design-sanctuary .kcs-btn { border-radius: 3px; text-transform: uppercase; letter-spacing: .14em; font-size: .85rem; position: relative; overflow: hidden; }
+.k-design-sanctuary .k-btn::after, .k-design-sanctuary .kcs-btn::after { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent); transform: skewX(-20deg); transition: left .7s var(--k-ease); pointer-events: none; }
+.k-design-sanctuary .k-btn:hover::after, .k-design-sanctuary .kcs-btn:hover::after { left: 120%; }
+.k-design-sanctuary .k-btn--accent { background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent) 80%, #fff), var(--k-gold)); border-color: var(--k-gold); }
+
+/* Banner: warm light rays falling from above */
+.k-design-sanctuary .k-hero--cover .k-hero__overlay { background: linear-gradient(180deg, rgba(25, 15, 5, .55), rgba(25, 15, 5, .45) 40%, rgba(25, 15, 5, .85)); }
+.k-design-sanctuary .k-hero--cover::after {
+	content: ""; position: absolute; z-index: 1; top: -30%; left: 50%; width: 160%; height: 160%; translate: -50% 0; pointer-events: none; mix-blend-mode: soft-light; opacity: .9;
+	background: repeating-conic-gradient(from 160deg at 50% 0%, color-mix(in srgb, var(--k-accent) 55%, #fff) 0 2deg, transparent 2deg 9deg);
+	-webkit-mask-image: radial-gradient(ellipse at 50% 0%, #000, transparent 70%); mask-image: radial-gradient(ellipse at 50% 0%, #000, transparent 70%);
+	animation: k-rays 40s linear infinite alternate;
+}
+@keyframes k-rays { from { rotate: -6deg; } to { rotate: 6deg; } }
+.k-design-sanctuary .k-hero__title { text-shadow: 0 2px 30px rgba(0, 0, 0, .45); }
+.k-design-sanctuary .k-hero__content { text-align: center; margin-inline: auto; }
+.k-design-sanctuary .k-hero--cover .k-btns { justify-content: center; }
+.k-design-sanctuary .k-hero--cover .k-hero__text { margin-inline: auto; }
+
+/* Bands and footer */
+.k-design-sanctuary .k-section--alt { background: var(--k-surface-2); background-image: radial-gradient(color-mix(in srgb, var(--k-gold) 14%, transparent) 1px, transparent 1px); background-size: 22px 22px; }
+.k-design-sanctuary .k-stats, .k-design-sanctuary .k-verse-band { background: linear-gradient(180deg, color-mix(in srgb, var(--k-primary) 80%, #000), color-mix(in srgb, var(--k-primary) 55%, #000)); border-block: 1px solid var(--k-gold); }
+.k-design-sanctuary .k-stat strong { color: color-mix(in srgb, var(--k-accent) 80%, #fff); font-weight: 500; }
+.k-design-sanctuary .k-verse-band__text { font-style: italic; }
+.k-design-sanctuary .k-times { background: var(--k-surface-2); color: var(--k-text); border-block: 1px solid var(--k-border); }
+.k-design-sanctuary .k-cta__inner { border: 1px solid var(--k-gold); box-shadow: inset 0 0 0 6px color-mix(in srgb, #000 12%, transparent); }
+.k-design-sanctuary .k-footer { border-top: 3px double var(--k-gold); }
+.k-design-sanctuary .k-page-header:not(.has-image) { background: var(--k-surface-2); border-bottom: 1px solid var(--k-border); text-align: center; }
+.k-design-sanctuary .k-page-header:not(.has-image) .k-page-header__subtitle { margin-inline: auto; }
+
+@keyframes k-sanct-rise { from { opacity: 0; transform: translateY(18px) scale(.985); } }

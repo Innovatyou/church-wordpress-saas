@@ -160,6 +160,21 @@ A full church-management dashboard on the **Church Admin** page (`[kcs_church_ad
 - **Prayer Requests**: moderate and approve for the public prayer wall, mark answered
 - **Settings**: General · Payment Gateways · Email & Notifications · Email Templates (editable) · Live Streaming · SEO · REST API
 
+### Website designs
+Churches pick a complete look in *Church Admin → Design & live stream → Website design* (or *Customize → Church Branding*). Each design restyles every page and keeps the church's pictures, text, colours and fonts; *Preview* tries one on the homepage before saving, and an optional tick also applies the design's suggested palette and fonts.
+
+| Design | Look and interaction |
+|---|---|
+| **Classic** | The original look |
+| **Aurora Glass** | Animated northern-lights colour behind frosted-glass cards; light follows the cursor |
+| **Sanctuary** | Ivory and gold, arched pictures, light rays over the banner, ornamented headings, slow parallax |
+| **Pulse Night** | Always dark, neon edges that travel around cards, huge headlines, moving grid, magnetic buttons, scroll progress |
+| **Horizon Editorial** | Magazine style: numbered sections, headline words rise in, pictures unveil on scroll |
+| **Ember Community** | Warm, morphing shapes behind sections, wavy section edges, layered paper cards |
+| **Cosmos 3D** | Always dark: interactive starfield, nebula and orbit ring, cards rise into place in 3D |
+
+Designs live in `themes/kingdom/assets/css/designs/` with shared effects in `assets/js/designs.js`; motion is switched off for visitors who prefer reduced motion, and Church Admin and the partner portal keep the Classic look. Add your own with the `kingdom_designs` filter.
+
 ### Payment gateways
 - **Zenith GlobalPay** (automatic): turn it on in *Settings → Payments → Zenith GlobalPay* with the API key (public key) from the GlobalPay dashboard and the currencies on your account. Givers pay on GlobalPay's page and return; each payment is confirmed with GlobalPay's API (status *Successful*, matching amount and currency) before it counts — otherwise it waits in *Needs review*. GlobalPay asks for the giver's phone number, so the phone field becomes required when it is chosen.
 - **Payment links from any provider** (Paystack page, Flutterwave link, Zenith GlobalPay form, Remita, Opay, Moniepoint, Stripe, PayPal…): up to three, in *Settings → Payments → Payment link 1–3*. Each appears to givers as its own method, named after the provider automatically (or a name you choose), with optional currencies. Givers see the amount and reference, open the page, pay, then press *I have paid* (optional receipt and transaction ID). The payment waits in *Church Admin → Confirm payments* until the church confirms it, like a bank transfer.

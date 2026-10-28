@@ -1,0 +1,98 @@
+/* ==========================================================================
+   Design: Horizon Editorial — calm, magazine-style. Large headlines whose
+   words rise into view, numbered sections, hairline rules and pictures that
+   unveil as they scroll in.
+   ========================================================================== */
+:root[data-design="horizon"] {
+	--k-radius: 2px;
+	--k-bg: #ffffff;
+	--k-surface: #ffffff;
+	--k-surface-2: #f4f4f1;
+	--k-text: #121212;
+	--k-muted: #5f5f5a;
+	--k-border: #e4e4df;
+	--k-shadow: none;
+	--k-shadow-lg: 0 20px 50px -30px rgba(0, 0, 0, .35);
+	--k-section: clamp(4.5rem, 10vw, 9rem);
+	--k-rise: k-hz-rise;
+}
+:root[data-design="horizon"][data-theme="dark"] {
+	--k-bg: #0e0e0d;
+	--k-surface: #0e0e0d;
+	--k-surface-2: #161615;
+	--k-text: #f2f2ee;
+	--k-muted: #a3a39c;
+	--k-border: #2a2a27;
+}
+.k-design-horizon { background: var(--k-bg); counter-reset: k-sec; }
+
+/* Headlines: big, tight, left-aligned, with a numbered hairline above */
+.k-design-horizon :is(.k-section__title, .k-page-header__title, .k-hero__title) { font-weight: 400; letter-spacing: -.025em; line-height: 1.02; }
+.k-design-horizon .k-section__title { font-size: clamp(2.3rem, 5.5vw, 4.4rem); }
+.k-design-horizon .k-section__head { text-align: left; margin-inline: 0; max-width: 880px; }
+.k-design-horizon .k-section__head::before {
+	counter-increment: k-sec; content: counter(k-sec, decimal-leading-zero);
+	display: block; padding-top: .9rem; margin-bottom: 1.4rem; border-top: 1px solid var(--k-text);
+	font: 600 .78rem/1 var(--k-font-body); letter-spacing: .25em; color: var(--k-muted);
+}
+.k-design-horizon .k-section--dark .k-section__head::before { border-color: rgba(255, 255, 255, .6); color: rgba(255, 255, 255, .7); }
+.k-design-horizon .k-eyebrow { color: var(--k-text); font-weight: 600; letter-spacing: .22em; }
+.k-design-horizon .k-section--dark .k-eyebrow, .k-design-horizon .k-hero .k-eyebrow { color: #fff !important; }
+.k-design-horizon .k-section__text { font-size: 1.2rem; max-width: 620px; }
+
+/* Sections: white space and rules instead of boxes */
+.k-design-horizon .k-section--alt { background: var(--k-surface-2); }
+.k-design-horizon .k-section + .k-section:not(.k-section--alt):not(.k-section--dark) { border-top: 1px solid var(--k-border); }
+
+/* Cards: no boxes; the picture unveils, the title underlines on hover */
+.k-design-horizon :is(.k-card, .k-feature, .k-testimony, .kcs-plan, .k-event-row) { background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+.k-design-horizon .k-card:hover, .k-design-horizon .k-feature:hover { transform: none; box-shadow: none; }
+.k-design-horizon .k-card__body { padding: 1.2rem 0 0; }
+.k-design-horizon .k-card__media { border-radius: 0; overflow: hidden; }
+.k-design-horizon .k-card__media img.k-par, .k-design-horizon .k-split__media img.k-par { transform: scale(1.1) translateY(calc(var(--k-par, 0) * -4%)); transition: none; }
+.k-fx .k-design-horizon .k-card.k-rv:not(.k-in) .k-card__media { clip-path: inset(100% 0 0 0); }
+.k-fx .k-design-horizon .k-card.k-in .k-card__media { animation: k-unveil 1.1s var(--k-ease) var(--k-d, 0ms) backwards; }
+@keyframes k-unveil { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+.k-design-horizon .k-card__title a { background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat; transition: background-size .4s var(--k-ease); }
+.k-design-horizon .k-card:hover .k-card__title a { background-size: 100% 1px; color: var(--k-text); }
+.k-design-horizon .k-feature, .k-design-horizon .kcs-plan, .k-design-horizon .k-testimony { border-top: 1px solid var(--k-text); padding-inline: 0; }
+.k-design-horizon .kcs-plan.is-featured { border-top: 4px solid var(--k-primary); }
+.k-design-horizon .k-event-row { border-bottom: 1px solid var(--k-border); padding-inline: 0; }
+.k-design-horizon .k-event-row:hover { transform: none; border-color: var(--k-text); }
+.k-design-horizon .k-split__media img { border-radius: 0; }
+.k-design-horizon .k-split__media { overflow: hidden; }
+.k-design-horizon .k-split__accent { display: none; }
+.k-fx .k-design-horizon .k-split__media.k-in { animation: k-unveil 1.2s var(--k-ease) backwards; }
+
+/* Buttons: square, with an arrow that slides */
+.k-design-horizon .k-btn, .k-design-horizon .kcs-btn { border-radius: 0; padding-inline: 1.8em; font-weight: 500; letter-spacing: .02em; }
+.k-design-horizon .k-btn:not(.k-btn--glass):not(.k-btn--light)::after { content: "→"; transition: transform .3s var(--k-ease); }
+.k-design-horizon .k-btn:hover { transform: none; box-shadow: none; }
+.k-design-horizon .k-btn:hover::after { transform: translateX(5px); }
+.k-design-horizon .k-btn:not(.k-btn--accent):not(.k-btn--glass):not(.k-btn--light):not(.k-btn--outline) { background: var(--k-text); border-color: var(--k-text); color: var(--k-bg) !important; }
+
+/* Header and banner */
+.k-design-horizon .k-header { border-bottom: 1px solid var(--k-border); box-shadow: none; }
+.k-design-horizon .k-menu a { text-transform: uppercase; font-size: .78rem; letter-spacing: .14em; font-weight: 600; border-radius: 0; }
+.k-design-horizon .k-menu a:hover, .k-design-horizon .k-menu .current-menu-item > a { background: none; color: var(--k-text); box-shadow: inset 0 -2px 0 var(--k-text); }
+.k-design-horizon.has-transparent-header .k-header:not(.is-scrolled) .k-menu a:hover { box-shadow: inset 0 -2px 0 #fff; }
+.k-design-horizon .k-hero--cover { align-items: flex-end; padding-bottom: clamp(3rem, 8vw, 6rem); }
+.k-design-horizon .k-hero__content { max-width: 1000px; }
+.k-design-horizon .k-hero__title { font-size: clamp(2.4rem, 9vw, 7.5rem); overflow-wrap: anywhere; }
+.k-design-horizon .k-hero--cover .k-hero__overlay { background: linear-gradient(180deg, rgba(0, 0, 0, .25), rgba(0, 0, 0, .15) 40%, rgba(0, 0, 0, .8)); }
+.k-design-horizon .k-hero__scene { display: none; }
+.k-design-horizon .k-page-header:not(.has-image) { background: var(--k-bg); border-bottom: 1px solid var(--k-text); }
+.k-design-horizon .k-page-header__title { font-size: clamp(2.6rem, 7vw, 5.5rem); }
+
+/* Bands */
+.k-design-horizon .k-stats { background: var(--k-text); color: var(--k-bg); }
+.k-design-horizon .k-stat strong { font-weight: 400; }
+.k-design-horizon .k-stat__plus { color: var(--k-accent); }
+.k-design-horizon .k-verse-band { background: var(--k-surface-2); color: var(--k-text); }
+.k-design-horizon .k-verse-band__text { font-size: clamp(1.8rem, 4vw, 3.2rem); line-height: 1.2; letter-spacing: -.01em; }
+.k-design-horizon .k-verse-band cite { color: var(--k-muted); }
+.k-design-horizon .k-times { background: var(--k-surface-2); color: var(--k-text); border-block: 1px solid var(--k-border); }
+.k-design-horizon .k-cta__inner { border-radius: 0; background: var(--k-primary); }
+.k-design-horizon .k-progress { background: var(--k-text); height: 2px; }
+
+@keyframes k-hz-rise { from { opacity: 0; transform: translateY(24px); } }

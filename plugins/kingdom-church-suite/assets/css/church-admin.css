@@ -317,3 +317,32 @@ tr.is-updated td { animation: kca-flash 1.6s ease-out; }
 .kca-col-check { width: 36px; }
 .kca-col-check input { width: 18px; height: 18px; }
 .kca-bulk [data-kca-for][hidden] { display: none !important; }
+
+/* Website design picker */
+.kca-designs { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+.kca-design { position: relative; display: grid; gap: .35rem; align-content: start; padding: .75rem; border: 2px solid var(--kcs-border); border-radius: 16px; background: var(--kcs-surface); cursor: pointer; transition: border-color .2s, box-shadow .2s, transform .2s; }
+.kca-design:hover { transform: translateY(-2px); box-shadow: 0 12px 28px -16px rgba(0, 0, 0, .35); }
+.kca-design:has(input:checked) { border-color: var(--kcs-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--kcs-primary) 20%, transparent); }
+.kca-design:has(input:focus-visible) { outline: 2px solid var(--kcs-primary); outline-offset: 2px; }
+.kca-design input { position: absolute; opacity: 0; pointer-events: none; }
+.kca-design__name { font-weight: 700; display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.kca-design__name em { font-style: normal; font-size: .72rem; font-weight: 700; padding: .1em .55em; border-radius: 999px; background: color-mix(in srgb, var(--kcs-primary) 14%, transparent); color: var(--kcs-primary); }
+.kca-design__desc { font-size: .85rem; color: var(--kcs-muted); line-height: 1.45; }
+.kca-design__preview { justify-self: start; margin-top: .2rem; font-size: .85rem; font-weight: 600; }
+/* Mini mock-up: header bar + three cards */
+.kca-design__shot { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; align-content: end; aspect-ratio: 16 / 10; padding: 26px 10px 10px; border-radius: 10px; overflow: hidden; background: var(--d-bg); }
+.kca-design__shot i { position: absolute; top: 8px; left: 10px; right: 10px; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--d-ink) 18%, transparent); }
+.kca-design__shot i::before { content: ""; position: absolute; left: 0; top: 0; width: 26%; height: 100%; border-radius: inherit; background: var(--d-ink); opacity: .6; }
+.kca-design__shot b { height: clamp(34px, 9vw, 64px); border-radius: 6px; background: var(--d-card); box-shadow: 0 4px 10px -6px rgba(0, 0, 0, .4); }
+.kca-design__shot--aurora { background: radial-gradient(60% 70% at 20% 30%, #3b82f6aa, transparent), radial-gradient(60% 70% at 85% 20%, #2dd4bfaa, transparent), radial-gradient(60% 60% at 60% 100%, #a855f7aa, transparent), var(--d-bg); }
+.kca-design__shot--aurora b { background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .35); backdrop-filter: blur(4px); }
+.kca-design__shot--sanctuary b { border-radius: 999px 999px 3px 3px; border: 1px solid #c8a24a; height: clamp(44px, 12vw, 80px); }
+.kca-design__shot--sanctuary::after { content: ""; position: absolute; inset: 0; background: repeating-conic-gradient(from 160deg at 50% 0%, #e8c66a33 0 2deg, transparent 2deg 9deg); }
+.kca-design__shot--pulse b { border: 1px solid #22d3ee; box-shadow: 0 0 12px -2px #22d3ee; }
+.kca-design__shot--pulse i { background: #22d3ee44; }
+.kca-design__shot--horizon { gap: 10px; }
+.kca-design__shot--horizon b { border-radius: 0; box-shadow: none; border-top: 2px solid var(--d-ink); background: var(--d-card); }
+.kca-design__shot--ember::before { content: ""; position: absolute; width: 60%; aspect-ratio: 1; right: -15%; top: -20%; border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; background: #fb923c55; }
+.kca-design__shot--ember b { border-radius: 14px; box-shadow: 0 4px 0 -2px #fcd9b6, 0 8px 0 -4px #f8c9a0; }
+.kca-design__shot--cosmos { background: radial-gradient(1px 1px at 20% 30%, #fff 50%, transparent 51%) 0 0 / 40px 40px, radial-gradient(1px 1px at 70% 60%, #cfd6ff 50%, transparent 51%) 0 0 / 55px 55px, radial-gradient(70% 70% at 80% 10%, #7c3aed88, transparent), var(--d-bg); }
+.kca-design__shot--cosmos b { background: #1b1535cc; border: 1px solid #8b7cff66; transform: perspective(200px) rotateX(14deg); }

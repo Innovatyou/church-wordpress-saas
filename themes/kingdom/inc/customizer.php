@@ -88,6 +88,7 @@ function kingdom_customize_register( $wp ) {
 		$palette_choices[ $slug ] = $p[0];
 	}
 	$palette_choices['custom'] = __( 'Custom (use the colour pickers)', 'kingdom' );
+	$add( 'kingdom_brand', 'kingdom_design', __( 'Website design', 'kingdom' ), 'select', 'classic', wp_list_pluck( kingdom_designs(), 0 ), __( 'A complete look for every page. Your colours, fonts, pictures and text stay the same.', 'kingdom' ) );
 	$add( 'kingdom_brand', 'kingdom_palette', __( 'Site colour palette', 'kingdom' ), 'select', 'royal', $palette_choices, __( 'Pick a ready-made palette, or choose Custom and set your own brand colours under "Custom Colours & Typography".', 'kingdom' ) );
 	$add( 'kingdom_brand', 'kingdom_palette_switcher', __( 'Let visitors pick a colour palette', 'kingdom' ), 'checkbox', true );
 	$add( 'kingdom_brand', 'kingdom_logo_light', __( 'Light logo (for dark/transparent header and dark mode)', 'kingdom' ), 'image', '', array(), __( 'Your main logo is set under Site Identity. Upload a white version here.', 'kingdom' ) );

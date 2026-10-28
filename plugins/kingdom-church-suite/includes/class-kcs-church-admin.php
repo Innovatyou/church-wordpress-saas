@@ -752,6 +752,7 @@ class KCS_Church_Admin {
 							$value = sanitize_hex_color( $raw ) ? sanitize_hex_color( $raw ) : $f[3];
 							break;
 						case 'select':
+						case 'design':
 							$value = array_key_exists( $raw, (array) ( $f[4] ?? array() ) ) ? $raw : $f[3];
 							break;
 						case 'textarea':
@@ -782,7 +783,13 @@ class KCS_Church_Admin {
 					}
 					set_theme_mod( $key, $value );
 				}
-				$msg  = __( 'Website updated.', 'kingdom-church-suite' );
+				/**
+				 * Website settings were saved from Church Admin.
+				 *
+				 * @param array $groups Groups saved (empty = all).
+				 */
+				do_action( 'kcs_website_saved', $groups );
+				$msg  = in_array( 'design', $groups, true ) ? __( 'Website design saved. Open your website to see it.', 'kingdom-church-suite' ) : __( 'Website updated.', 'kingdom-church-suite' );
 				$view = in_array( $view, array( 'website', 'content' ), true ) ? $view : 'website';
 				break;
 
@@ -2502,6 +2509,7 @@ class KCS_Church_Admin {
 			</form>
 			<?php
 		}
+		self::website_form( array( 'design' => __( 'Website design', 'kingdom-church-suite' ) ), 'website' );
 		self::website_form(
 			array(
 				'brand'    => __( 'Church colours', 'kingdom-church-suite' ),
@@ -2558,6 +2566,8 @@ class KCS_Church_Admin {
 					<h3><?php echo esc_html( $title ); ?></h3>
 					<?php if ( 'banner' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'Upload a video from your phone or computer, or paste a YouTube, Vimeo or MP4 link. It plays muted and looping behind the homepage banner and fills the banner on every screen size. Leave it empty to use the banner image.', 'kingdom-church-suite' ); ?></p>
+					<?php elseif ( 'design' === $group ) : ?>
+						<p class="kcs-muted"><?php esc_html_e( 'Choose how your whole website looks. Every design keeps your pictures, text, colours and fonts, and works on phones. Press Preview to try one on your homepage before saving.', 'kingdom-church-suite' ); ?></p>
 					<?php elseif ( 'brand' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'Pick a ready-made palette, or choose Custom and set your own church colours. Button text switches between white and dark automatically so it stays readable.', 'kingdom-church-suite' ); ?></p>
 					<?php elseif ( 'media' === $group ) : ?>
@@ -2593,6 +2603,19 @@ class KCS_Church_Admin {
 						if ( 'checkbox' === $f[1] ) :
 							?>
 							<label class="kcs-check kca-switch"><input type="checkbox" name="<?php echo esc_attr( $key ); ?>" value="1" <?php checked( (bool) $value ); ?>> <?php echo esc_html( $f[0] ); ?></label>
+						<?php elseif ( 'design' === $f[1] ) : ?>
+							<div class="kca-designs" role="radiogroup" aria-label="<?php echo esc_attr( $f[0] ); ?>">
+								<?php foreach ( (array) ( $f[4] ?? array() ) as $slug => $card ) : ?>
+									<?php $c = (array) ( $card['colours'] ?? array( '#f6f3fa', '#fff', '#1f1b24' ) ); ?>
+									<label class="kca-design<?php echo $slug === $value ? ' is-active' : ''; ?>">
+										<input type="radio" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $slug ); ?>" <?php checked( $slug, $value ); ?>>
+										<span class="kca-design__shot kca-design__shot--<?php echo esc_attr( $slug ); ?>" style="--d-bg:<?php echo esc_attr( $c[0] ); ?>;--d-card:<?php echo esc_attr( $c[1] ); ?>;--d-ink:<?php echo esc_attr( $c[2] ); ?>" aria-hidden="true"><i></i><b></b><b></b><b></b></span>
+										<span class="kca-design__name"><?php echo esc_html( $card['label'] ?? $slug ); ?><?php if ( $slug === $value ) : ?> <em><?php esc_html_e( 'In use', 'kingdom-church-suite' ); ?></em><?php endif; ?></span>
+										<span class="kca-design__desc"><?php echo esc_html( $card['desc'] ?? '' ); ?></span>
+										<?php if ( ! empty( $card['preview'] ) ) : ?><a class="kca-design__preview" href="<?php echo esc_url( $card['preview'] ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Preview ↗', 'kingdom-church-suite' ); ?></a><?php endif; ?>
+									</label>
+								<?php endforeach; ?>
+							</div>
 						<?php elseif ( 'color' === $f[1] ) : ?>
 							<label class="kca-colour"><input type="color" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>"> <span><?php echo esc_html( $f[0] ); ?> <code><?php echo esc_html( $value ); ?></code></span></label>
 						<?php elseif ( in_array( $f[1], array( 'textarea', 'longtext' ), true ) ) : ?>

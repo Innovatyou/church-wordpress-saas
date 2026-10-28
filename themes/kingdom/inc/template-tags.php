@@ -126,6 +126,8 @@ function kingdom_website_settings() {
 		'kingdom_hero_anim_speed'   => array( __( 'Animation speed', 'kingdom' ), 'select', 'banner', 'normal', array( 'slow' => __( 'Slow', 'kingdom' ), 'normal' => __( 'Normal', 'kingdom' ), 'fast' => __( 'Fast', 'kingdom' ) ) ),
 		'kingdom_hero_overlay'      => array( __( 'Banner darkness over the video/image (0–90)', 'kingdom' ), 'number', 'banner', 55 ),
 	);
+	$out['kingdom_design']       = array( __( 'Website design', 'kingdom' ), 'design', 'design', 'classic', kingdom_design_cards() );
+	$out['kingdom_design_match'] = array( __( 'Also switch to this design’s suggested colours and fonts', 'kingdom' ), 'checkbox', 'design', false );
 	$palettes = array();
 	foreach ( kingdom_palettes() as $slug => $p ) {
 		$palettes[ $slug ] = $p[0];
