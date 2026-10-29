@@ -346,3 +346,4 @@ tr.is-updated td { animation: kca-flash 1.6s ease-out; }
 .kca-design__shot--ember b { border-radius: 14px; box-shadow: 0 4px 0 -2px #fcd9b6, 0 8px 0 -4px #f8c9a0; }
 .kca-design__shot--cosmos { background: radial-gradient(1px 1px at 20% 30%, #fff 50%, transparent 51%) 0 0 / 40px 40px, radial-gradient(1px 1px at 70% 60%, #cfd6ff 50%, transparent 51%) 0 0 / 55px 55px, radial-gradient(70% 70% at 80% 10%, #7c3aed88, transparent), var(--d-bg); }
 .kca-design__shot--cosmos b { background: #1b1535cc; border: 1px solid #8b7cff66; transform: perspective(200px) rotateX(14deg); }
+.kca-abandoned { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }

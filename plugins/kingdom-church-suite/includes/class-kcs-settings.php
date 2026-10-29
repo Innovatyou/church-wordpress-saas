@@ -80,6 +80,7 @@ class KCS_Settings {
 					'show_plan_benefits'  => array( 'label' => __( 'Show plan benefits (the list under each partnership plan)', 'kingdom-church-suite' ), 'type' => 'checkbox', 'default' => '1' ),
 					'show_partnership_reasons' => array( 'label' => __( 'Show the three “why partner” cards on the Partnership page', 'kingdom-church-suite' ), 'type' => 'checkbox', 'default' => '1' ),
 					'partner_auto_activate' => array( 'label' => __( 'Activate partners after first successful payment only', 'kingdom-church-suite' ), 'type' => 'checkbox', 'default' => '1' ),
+					'partner_abandon_days'  => array( 'label' => __( 'Remove sign-ups that never paid after (days)', 'kingdom-church-suite' ), 'type' => 'number', 'default' => '7', 'desc' => __( 'Partners still Pending with no payment are deleted with their website login after this many days. 0 keeps them.', 'kingdom-church-suite' ) ),
 					'grace_days'          => array( 'label' => __( 'Days after the due date before the partner dashboard locks', 'kingdom-church-suite' ), 'type' => 'number', 'default' => '7' ),
 					'reminder_days'       => array( 'label' => __( 'Send payment reminder N days before due date', 'kingdom-church-suite' ), 'type' => 'number', 'default' => '3' ),
 				),

@@ -321,17 +321,25 @@ class KCS_Church_Admin {
 				$login = ! empty( $d['delete_login'] ) ? self::partner_login_removable( $partner ) : null;
 				KCS_Partners::delete( $id );
 				if ( $login ) {
-					require_once ABSPATH . 'wp-admin/includes/user.php';
-					if ( is_multisite() ) {
-						remove_user_from_blog( $login->ID, get_current_blog_id() );
-					} else {
-						wp_delete_user( $login->ID );
-					}
+					KCS_Partners::remove_login( $login );
 				}
 				/* translators: %s: partner name */
 				$msg  = sprintf( __( '%s was deleted. Their past payments are kept in Giving received.', 'kingdom-church-suite' ), trim( $partner->first_name . ' ' . $partner->last_name ) );
 				$view = 'partners';
 				$d['return'] = self::url( 'partners' );
+				break;
+
+			case 'partners_cleanup':
+				$view = 'partners';
+				if ( ! current_user_can( 'manage_options' ) ) {
+					$msg  = __( 'Only church administrators can delete partners.', 'kingdom-church-suite' );
+					$type = 'error';
+					break;
+				}
+				$days = (int) kcs_get_option( 'partner_abandon_days', 7 );
+				$n    = KCS_Partners::cleanup_abandoned( $days > 0 ? $days : 7 );
+				/* translators: %d: number of partners */
+				$msg = sprintf( _n( '%d sign-up that never paid was removed, with its website login.', '%d sign-ups that never paid were removed, with their website logins.', $n, 'kingdom-church-suite' ), $n );
 				break;
 
 			case 'partners_bulk':
@@ -361,11 +369,7 @@ class KCS_Church_Admin {
 						KCS_Partners::delete( $pid );
 						++$n;
 						if ( $login ) {
-							if ( is_multisite() ) {
-								remove_user_from_blog( $login->ID, get_current_blog_id() );
-							} else {
-								wp_delete_user( $login->ID );
-							}
+							KCS_Partners::remove_login( $login );
 							++$logins;
 						}
 					}
@@ -1526,11 +1530,7 @@ class KCS_Church_Admin {
 	 * @return WP_User|null
 	 */
 	private static function partner_login_removable( $partner ) {
-		$user = $partner->user_id ? get_user_by( 'id', (int) $partner->user_id ) : null;
-		if ( ! $user || get_current_user_id() === (int) $user->ID || is_super_admin( $user->ID ) || user_can( $user, 'manage_kcs' ) || user_can( $user, 'edit_posts' ) ) {
-			return null;
-		}
-		return array_diff( (array) $user->roles, array( 'kcs_partner', 'subscriber' ) ) ? null : $user;
+		return KCS_Partners::login_removable( $partner );
 	}
 
 	/**
@@ -1666,6 +1666,18 @@ class KCS_Church_Admin {
 			<button class="kcs-btn"><?php esc_html_e( 'Filter', 'kingdom-church-suite' ); ?></button>
 		</form>
 		<?php $kcs_owner = current_user_can( 'manage_options' ); ?>
+		<?php
+		$kcs_days      = (int) kcs_get_option( 'partner_abandon_days', 7 );
+		$kcs_abandoned = $kcs_owner ? KCS_Partners::abandoned( $kcs_days > 0 ? $kcs_days : 7, true ) : 0;
+		?>
+		<?php if ( $kcs_abandoned ) : ?>
+			<form method="post" class="kcs-alert kca-abandoned" onsubmit="return confirm('<?php echo esc_js( __( 'Remove these sign-ups and their website logins? Their unpaid payment attempts stay in Giving received.', 'kingdom-church-suite' ) ); ?>')">
+				<?php echo self::fields( 'partners_cleanup', 'partners' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<span><?php /* translators: 1: number of partners, 2: days */ printf( esc_html( _n( '%1$d partner signed up more than %2$d days ago and never paid.', '%1$d partners signed up more than %2$d days ago and never paid.', $kcs_abandoned, 'kingdom-church-suite' ) ), (int) $kcs_abandoned, (int) ( $kcs_days > 0 ? $kcs_days : 7 ) ); ?>
+				<?php if ( $kcs_days > 0 ) : ?><?php esc_html_e( 'They are removed automatically each day.', 'kingdom-church-suite' ); ?><?php endif; ?></span>
+				<button class="kcs-btn kcs-btn--sm"><?php esc_html_e( 'Remove them now', 'kingdom-church-suite' ); ?></button>
+			</form>
+		<?php endif; ?>
 		<?php if ( $result['items'] ) : ?>
 			<form method="post" id="kca-bulk-partners" class="kca-bulk" data-kca-bulk onsubmit="return confirm(this.bulk.value === 'delete' ? '<?php echo esc_js( __( 'Delete all ticked partners? This cannot be undone. Their past payments are kept.', 'kingdom-church-suite' ) ); ?>' : '<?php echo esc_js( __( 'Change the status of all ticked partners?', 'kingdom-church-suite' ) ); ?>')">
 				<?php echo self::fields( 'partners_bulk', 'partners' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>

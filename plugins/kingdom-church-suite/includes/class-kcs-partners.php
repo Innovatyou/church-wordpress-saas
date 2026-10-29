@@ -605,6 +605,8 @@ class KCS_Partners {
 		$table = kcs_table( 'partners' );
 		$today = current_time( 'Y-m-d' );
 
+		self::cleanup_abandoned();
+
 		// Mark overdue once the grace period has passed (this also locks the partner dashboard).
 		$grace = max( 0, (int) kcs_get_option( 'grace_days', 7 ) );
 		$wpdb->query( $wpdb->prepare( "UPDATE $table SET status = 'overdue' WHERE status = 'active' AND frequency <> 'one_time' AND next_due_date IS NOT NULL AND next_due_date < %s", gmdate( 'Y-m-d', strtotime( $today . ' -' . $grace . ' days' ) ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -619,6 +621,91 @@ class KCS_Partners {
 			$plan = $partner->plan_id ? KCS_Plans::get( $partner->plan_id ) : null;
 			KCS_Email::send_template( $partner->email, 'payment_reminder', self::email_vars( $partner, $plan ) );
 		}
+	}
+
+	/**
+	 * Can this partner's website login be removed along with them?
+	 * Only plain partner/subscriber logins: never staff, editors, the person doing it, or a network admin.
+	 *
+	 * @param object $partner Partner.
+	 * @return WP_User|null
+	 */
+	public static function login_removable( $partner ) {
+		$user = $partner->user_id ? get_user_by( 'id', (int) $partner->user_id ) : null;
+		if ( ! $user || get_current_user_id() === (int) $user->ID || is_super_admin( $user->ID ) || user_can( $user, 'manage_kcs' ) || user_can( $user, 'edit_posts' ) ) {
+			return null;
+		}
+		return array_diff( (array) $user->roles, array( 'kcs_partner', 'subscriber' ) ) ? null : $user;
+	}
+
+	/**
+	 * Remove a partner's website login. On a network the person is taken off this church's site, and
+	 * their account is deleted completely when they no longer belong to any site (otherwise it stayed
+	 * in Network Admin → Users).
+	 *
+	 * @param WP_User $user Login.
+	 * @return string deleted|removed
+	 */
+	public static function remove_login( $user ) {
+		require_once ABSPATH . 'wp-admin/includes/user.php';
+		if ( ! is_multisite() ) {
+			wp_delete_user( $user->ID );
+			return 'deleted';
+		}
+		remove_user_from_blog( $user->ID, get_current_blog_id() );
+		if ( ! is_super_admin( $user->ID ) && ! get_blogs_of_user( $user->ID ) ) {
+			require_once ABSPATH . 'wp-admin/includes/ms.php';
+			wpmu_delete_user( $user->ID );
+			return 'deleted';
+		}
+		return 'removed';
+	}
+
+	/**
+	 * Partners who signed up more than $days days ago and never paid.
+	 *
+	 * @param int  $days  Days.
+	 * @param bool $count Return only how many.
+	 * @return array|int
+	 */
+	public static function abandoned( $days, $count = false ) {
+		global $wpdb;
+		$table    = kcs_table( 'partners' );
+		$payments = kcs_table( 'payments' );
+		$before   = gmdate( 'Y-m-d H:i:s', strtotime( current_time( 'mysql' ) ) - max( 1, (int) $days ) * DAY_IN_SECONDS );
+		$where    = "p.status = 'pending' AND p.last_payment_at IS NULL AND p.total_given <= 0 AND p.created_at < %s AND NOT EXISTS (SELECT 1 FROM $payments y WHERE y.partner_id = p.id AND y.status IN ('completed','review'))";
+		if ( $count ) {
+			return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $table p WHERE $where", $before ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery
+		}
+		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table p WHERE $where LIMIT 200", $before ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery
+	}
+
+	/**
+	 * Sign-ups that never paid: still Pending, nothing given, older than the setting
+	 * (Settings → Partnership, default 7 days, 0 = keep). They are removed with their login.
+	 * Partners with a transfer waiting for the church to confirm are kept.
+	 *
+	 * @param int|null $days Days (null = setting).
+	 * @return int Partners removed.
+	 */
+	public static function cleanup_abandoned( $days = null ) {
+		$days = null === $days ? (int) kcs_get_option( 'partner_abandon_days', 7 ) : (int) $days;
+		if ( $days <= 0 ) {
+			return 0;
+		}
+		$n = 0;
+		foreach ( self::abandoned( $days ) as $partner ) {
+			$login = self::login_removable( $partner );
+			self::delete( $partner->id );
+			if ( $login ) {
+				self::remove_login( $login );
+			}
+			++$n;
+		}
+		if ( $n ) {
+			update_option( 'kcs_partners_cleaned', array( 'count' => $n, 'at' => current_time( 'mysql' ) ), false );
+		}
+		return $n;
 	}
 
 	/**
