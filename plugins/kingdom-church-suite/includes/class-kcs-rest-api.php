@@ -257,6 +257,12 @@ class KCS_REST_API {
 			$args['email']      = $args['email'] ? $args['email'] : $partner->email;
 			$args['name']       = $args['name'] ? $args['name'] : trim( $partner->first_name . ' ' . $partner->last_name );
 			$args['phone']      = $args['phone'] ? $args['phone'] : $partner->phone;
+		} elseif ( $partner ) {
+			// A partner's tithe, offering or other gift: kept in their giving history, but it does not renew the partnership.
+			$args['partner_id'] = $partner->id;
+			$args['email']      = $args['email'] ? $args['email'] : $partner->email;
+			$args['name']       = $args['name'] ? $args['name'] : trim( $partner->first_name . ' ' . $partner->last_name );
+			$args['phone']      = $args['phone'] ? $args['phone'] : $partner->phone;
 		} elseif ( 'partnership' === $args['purpose'] ) {
 			// Guests can sow a partnership seed, but it is not tied to a partner record.
 			$args['purpose'] = 'partnership';

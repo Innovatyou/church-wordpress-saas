@@ -347,3 +347,60 @@ tr.is-updated td { animation: kca-flash 1.6s ease-out; }
 .kca-design__shot--cosmos { background: radial-gradient(1px 1px at 20% 30%, #fff 50%, transparent 51%) 0 0 / 40px 40px, radial-gradient(1px 1px at 70% 60%, #cfd6ff 50%, transparent 51%) 0 0 / 55px 55px, radial-gradient(70% 70% at 80% 10%, #7c3aed88, transparent), var(--d-bg); }
 .kca-design__shot--cosmos b { background: #1b1535cc; border: 1px solid #8b7cff66; transform: perspective(200px) rotateX(14deg); }
 .kca-abandoned { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+.kca-add-partner > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
+.kca-add-partner > summary::-webkit-details-marker { display: none; }
+.kca-add-partner[open] > summary { margin-bottom: 1rem; }
+.kca-add-partner .kcs-form { border: 0; padding: 0; background: none; }
+
+/* Giving received on phones: compact cards and tidy tool rows */
+@media (max-width: 720px) {
+	.kca-filters { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+	.kca-filters input[type="search"], .kca-filters select[name="gateway"] { grid-column: 1 / -1; }
+	.kca-filters select, .kca-filters input { width: 100%; min-width: 0; }
+	.kca-filters .kca-date { display: grid; gap: .2rem; font-size: .78rem; }
+	.kca-filters .kca-date input { width: 100%; }
+	.kca-filters .kcs-btn { grid-column: 1 / -1; width: 100%; }
+	.kca-filters .kcs-btn + .kcs-btn { grid-column: 1 / -1; }
+	.kca-payments-tools { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+	.kca-payments-tools > .kcs-muted { grid-column: 1 / -1; margin: 0; font-weight: 600; color: var(--kcs-text); }
+	.kca-payments-tools .kca-inline, .kca-payments-tools > .kcs-btn { display: block; min-width: 0; }
+	.kca-payments-tools .kcs-btn { width: 100%; padding: .6em .7em; font-size: .82rem; white-space: normal; line-height: 1.25; }
+	.kca-bulk { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; padding: .75rem; }
+	.kca-bulk .kcs-check { grid-column: 1 / 2; align-self: center; }
+	.kca-bulk__count { grid-column: 2; justify-self: end; align-self: center; }
+	.kca-bulk > .kcs-btn--ghost { padding: .55em .6em; font-size: .8rem; white-space: normal; line-height: 1.25; }
+	.kca-bulk select { width: 100%; min-width: 0; grid-column: 1 / -1; }
+	.kca-bulk select[name="hours"] { grid-column: 1; }
+	.kca-bulk > .kcs-btn:not(.kcs-btn--ghost) { grid-column: 2; }
+	.kca-bulk:not(:has(select[name="hours"]:not([hidden]))) > .kcs-btn:not(.kcs-btn--ghost) { grid-column: 1 / -1; }
+
+	.kca-table--pay tr { grid-template-columns: auto minmax(0, 1fr) auto; column-gap: .7rem; row-gap: .35rem; padding: .85rem .9rem; }
+	.kca-table--pay td[data-label]::before { display: none; }
+	.kca-table--pay .kca-col-check { grid-column: 1; grid-row: 1; padding-top: .1rem; }
+	.kca-table--pay .kca-c-giver { grid-column: 2; grid-row: 1; min-width: 0; overflow-wrap: anywhere; }
+	.kca-table--pay .kca-c-amount { grid-column: 3; grid-row: 1; text-align: right; white-space: nowrap; }
+	.kca-table--pay .kca-c-method { grid-column: 2 / -1; grid-row: 2; font-size: .85rem; color: var(--kcs-muted); }
+	.kca-table--pay .kca-c-status { grid-column: 2 / -1; grid-row: 3; font-size: .85rem; }
+	.kca-table--pay .kca-actions { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-top: .35rem; padding-top: .6rem; border-top: 1px dashed var(--kcs-border); }
+	.kca-table--pay .kca-actions .kca-inline, .kca-table--pay .kca-actions > * { min-width: 0; }
+	.kca-table--pay .kca-actions .kcs-btn { width: 100%; padding: .55em .5em; font-size: .8rem; white-space: normal; line-height: 1.2; }
+	.kca-table--pay .kca-actions .kca-restrict, .kca-table--pay .kca-actions details { grid-column: 1 / -1; }
+	.kca-table--pay tr.is-updated td { animation: none; }
+	.kca-table--pay tr.is-updated { animation: kca-flash 1.6s ease-out; }
+}
+
+/* Phones: every Church Admin list shows "label … value" on one line, name first */
+@media (max-width: 720px) {
+	.kca-table:not(.kca-table--pay) tr { gap: .15rem; }
+	.kca-table:not(.kca-table--pay) td[data-label] { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; padding: .3rem 0; border-top: 1px solid color-mix(in srgb, var(--kcs-border) 60%, transparent); text-align: right; }
+	.kca-table:not(.kca-table--pay) td[data-label]::before { flex: none; margin-top: .15rem; text-align: left; }
+	.kca-table:not(.kca-table--pay) td[data-label] > * { min-width: 0; }
+	.kca-table:not(.kca-table--pay) tr > td[data-label]:first-child, .kca-table:not(.kca-table--pay) td.kca-col-check + td[data-label] { display: block; text-align: left; border-top: 0; padding-top: 0; overflow-wrap: anywhere; }
+	.kca-table:not(.kca-table--pay) tr > td[data-label]:first-child::before, .kca-table:not(.kca-table--pay) td.kca-col-check + td[data-label]::before { display: none; }
+	.kca-table:not(.kca-table--pay) td.kca-col-check { position: absolute; right: 1rem; top: 1rem; }
+	.kca-table:not(.kca-table--pay) tr { position: relative; }
+	.kca-table:not(.kca-table--pay) td.kca-col-check + td[data-label] { padding-right: 2.2rem; }
+	.kca-table:not(.kca-table--pay) td[data-label] select { width: auto; min-width: 8.5rem; max-width: 100%; }
+	.kca-table:not(.kca-table--pay) td[data-label] form { display: flex; justify-content: flex-end; flex: 1 1 auto; }
+	.kca-bulk [data-kca-for], .kca-bulk label.kcs-check + label.kcs-check { grid-column: 1 / -1; }
+}

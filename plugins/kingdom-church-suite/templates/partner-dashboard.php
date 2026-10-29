@@ -14,11 +14,12 @@ defined( 'ABSPATH' ) || exit;
 
 $freqs    = kcs_frequencies();
 $statuses = KCS_Partners::statuses();
-$purposes = kcs_giving_purposes();
+$purposes = kcs_all_purposes();
 // phpcs:disable WordPress.Security.NonceVerification.Recommended
 $welcome = ! empty( $_GET['welcome'] );
 $action  = isset( $_GET['kcs_action'] ) ? sanitize_key( $_GET['kcs_action'] ) : '';
-$tab     = 'pay' === $action ? 'give' : ( 'upgrade' === $action ? 'plan' : 'overview' );
+$tab     = in_array( $action, array( 'pay', 'give', 'tithe' ), true ) ? 'give' : ( 'upgrade' === $action ? 'plan' : ( 'history' === $action ? 'history' : 'overview' ) );
+$give_as = 'tithe' === $action ? 'other' : 'seed';
 $changed = isset( $_GET['plan_changed'] ) ? sanitize_key( $_GET['plan_changed'] ) : '';
 $focus   = isset( $_GET['plan'] ) ? absint( $_GET['plan'] ) : 0;
 // phpcs:enable
@@ -81,6 +82,39 @@ $completed = array_filter(
 			<div class="kcs-stat"><span><?php esc_html_e( 'Next due', 'kingdom-church-suite' ); ?></span><strong><?php echo $partner->next_due_date && 'one_time' !== $partner->frequency ? esc_html( date_i18n( get_option( 'date_format' ), strtotime( $partner->next_due_date ) ) ) : '—'; ?></strong></div>
 			<div class="kcs-stat"><span><?php esc_html_e( 'Total given', 'kingdom-church-suite' ); ?></span><strong><?php echo esc_html( KCS_Partners::total_given_label( $partner ) ); ?></strong><small><?php /* translators: %d: number of gifts */ printf( esc_html( _n( '%d gift', '%d gifts', count( $completed ), 'kingdom-church-suite' ) ), count( $completed ) ); ?></small></div>
 		</div>
+		<?php
+		$seed     = kcs_format_money( $partner->amount, $partner->currency );
+		$due_text = null === $due_in ? '' : ( $due_in < 0 ? __( 'Overdue', 'kingdom-church-suite' ) : ( 0 === $due_in ? __( 'Due today', 'kingdom-church-suite' ) : sprintf( /* translators: %d: days */ _n( 'Due in %d day', 'Due in %d days', $due_in, 'kingdom-church-suite' ), $due_in ) ) );
+		?>
+		<h3 class="kcs-dash-h"><?php esc_html_e( 'What would you like to do?', 'kingdom-church-suite' ); ?></h3>
+		<div class="kcs-actions">
+			<button type="button" class="kcs-action kcs-action--main<?php echo null !== $due_in && $due_in <= 5 ? ' is-due' : ''; ?>" data-tab-link="give" data-give-as="seed">
+				<span class="kcs-action__icon" aria-hidden="true">↻</span>
+				<span><strong><?php esc_html_e( 'Renew my partnership', 'kingdom-church-suite' ); ?></strong><small><?php echo esc_html( $seed . ( $due_text ? ' · ' . $due_text : '' ) ); ?></small></span>
+			</button>
+			<button type="button" class="kcs-action" data-tab-link="give" data-give-as="seed" data-give-more>
+				<span class="kcs-action__icon" aria-hidden="true">＋</span>
+				<span><strong><?php esc_html_e( 'Give more this time', 'kingdom-church-suite' ); ?></strong><small><?php esc_html_e( 'Sow above your commitment', 'kingdom-church-suite' ); ?></small></span>
+			</button>
+			<button type="button" class="kcs-action" data-tab-link="plan">
+				<span class="kcs-action__icon" aria-hidden="true">↑</span>
+				<span><strong><?php esc_html_e( 'Raise my commitment', 'kingdom-church-suite' ); ?></strong><small><?php esc_html_e( 'Upgrade to a higher plan or amount', 'kingdom-church-suite' ); ?></small></span>
+			</button>
+			<button type="button" class="kcs-action" data-tab-link="give" data-give-as="other">
+				<span class="kcs-action__icon" aria-hidden="true">♥</span>
+				<span><strong><?php esc_html_e( 'Tithe, offering & more', 'kingdom-church-suite' ); ?></strong><small><?php esc_html_e( 'Thanksgiving, projects, missions…', 'kingdom-church-suite' ); ?></small></span>
+			</button>
+			<button type="button" class="kcs-action" data-tab-link="history">
+				<span class="kcs-action__icon" aria-hidden="true">≣</span>
+				<span><strong><?php esc_html_e( 'Receipts & history', 'kingdom-church-suite' ); ?></strong><small><?php /* translators: %d: number of gifts */ printf( esc_html( _n( '%d gift', '%d gifts', count( $completed ), 'kingdom-church-suite' ) ), count( $completed ) ); ?></small></span>
+			</button>
+			<?php if ( $pastors ) : ?>
+				<button type="button" class="kcs-action" data-tab-link="pastors">
+					<span class="kcs-action__icon" aria-hidden="true">💬</span>
+					<span><strong><?php esc_html_e( 'Chat with a pastor', 'kingdom-church-suite' ); ?></strong><small><?php esc_html_e( 'On WhatsApp', 'kingdom-church-suite' ); ?></small></span>
+				</button>
+			<?php endif; ?>
+		</div>
 		<?php $benefits = kcs_plan_benefits( $plan ); ?>
 		<?php if ( $benefits ) : ?>
 			<div class="kcs-benefits">
@@ -98,24 +132,58 @@ $completed = array_filter(
 		</div>
 	</section>
 
-	<section class="kcs-tab-panel" data-panel="give">
-		<?php
-		echo kcs_get_template( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			'payment-form',
-			array(
-				'context'  => 'partnership',
-				'purpose'  => 'partnership',
-				'amounts'  => array(),
-				'title'    => __( 'Give your partnership seed', 'kingdom-church-suite' ),
-				'amount'   => (float) $partner->amount,
-				'currency' => $partner->currency,
-				'name'     => '',
-				'email'    => '',
-				'partner'  => $partner,
-			)
-		);
-		?>
-		<p class="kcs-muted"><?php esc_html_e( 'Want to give a tithe, offering or towards a project instead?', 'kingdom-church-suite' ); ?> <a href="<?php echo esc_url( kcs_page_url( 'give' ) ); ?>"><?php esc_html_e( 'Use the general giving page', 'kingdom-church-suite' ); ?></a></p>
+	<section class="kcs-tab-panel" data-panel="give" data-give="<?php echo esc_attr( $give_as ); ?>">
+		<div class="kcs-seg" role="tablist" aria-label="<?php esc_attr_e( 'What are you giving?', 'kingdom-church-suite' ); ?>">
+			<button type="button" role="tab" data-give-as="seed"><?php esc_html_e( 'Partnership seed', 'kingdom-church-suite' ); ?></button>
+			<button type="button" role="tab" data-give-as="other"><?php esc_html_e( 'Tithe, offering & other', 'kingdom-church-suite' ); ?></button>
+		</div>
+		<div class="kcs-give-pane" data-give-pane="seed">
+			<p class="kcs-muted">
+				<?php
+				/* translators: %s: commitment amount */
+				printf( esc_html__( 'Your commitment is %s. Give it to renew your partnership, or give more if you are led to — anything at or above your commitment renews it.', 'kingdom-church-suite' ), '<strong>' . esc_html( $seed ) . '</strong>' );
+				?>
+				<?php if ( $partner->next_due_date && 'one_time' !== $partner->frequency ) : ?>
+					<?php /* translators: %s: date */ printf( esc_html__( 'Next due: %s.', 'kingdom-church-suite' ), esc_html( date_i18n( get_option( 'date_format' ), strtotime( $partner->next_due_date ) ) ) ); ?>
+				<?php endif; ?>
+			</p>
+			<?php
+			echo kcs_get_template( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				'payment-form',
+				array(
+					'context'  => 'partnership',
+					'purpose'  => 'partnership',
+					'amounts'  => array_values( array_unique( array( (float) $partner->amount, (float) $partner->amount * 2, (float) $partner->amount * 3 ) ) ),
+					'title'    => __( 'Renew your partnership', 'kingdom-church-suite' ),
+					'amount'   => (float) $partner->amount,
+					'currency' => $partner->currency,
+					'name'     => '',
+					'email'    => '',
+					'partner'  => $partner,
+				)
+			);
+			?>
+			<p class="kcs-muted"><?php esc_html_e( 'Want to give more every time?', 'kingdom-church-suite' ); ?> <button type="button" class="kcs-link-btn" data-tab-link="plan"><?php esc_html_e( 'Raise your commitment', 'kingdom-church-suite' ); ?></button></p>
+		</div>
+		<div class="kcs-give-pane" data-give-pane="other">
+			<p class="kcs-muted"><?php esc_html_e( 'Give your tithe, an offering, thanksgiving or towards a project. It appears in your giving history and you get a receipt, but it does not count as your partnership seed.', 'kingdom-church-suite' ); ?></p>
+			<?php
+			echo kcs_get_template( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				'payment-form',
+				array(
+					'context'  => 'donation',
+					'purpose'  => '',
+					'amounts'  => array(),
+					'title'    => __( 'Tithe, offering & other giving', 'kingdom-church-suite' ),
+					'amount'   => '',
+					'currency' => $partner->currency,
+					'name'     => '',
+					'email'    => '',
+					'partner'  => $partner,
+				)
+			);
+			?>
+		</div>
 	</section>
 
 	<section class="kcs-tab-panel" data-panel="pastors">
@@ -222,7 +290,7 @@ $completed = array_filter(
 		<?php if ( $payments ) : ?>
 			<div class="kcs-table-wrap">
 				<table class="kcs-table">
-					<thead><tr><th><?php esc_html_e( 'Date', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Reference', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Purpose', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Amount', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Status', 'kingdom-church-suite' ); ?></th></tr></thead>
+					<thead><tr><th><?php esc_html_e( 'Date', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Reference', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Purpose', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Amount', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Status', 'kingdom-church-suite' ); ?></th><th><span class="screen-reader-text"><?php esc_html_e( 'Receipt', 'kingdom-church-suite' ); ?></span></th></tr></thead>
 					<tbody>
 					<?php foreach ( $payments as $p ) : ?>
 						<tr>
@@ -231,6 +299,7 @@ $completed = array_filter(
 							<td><?php echo esc_html( $purposes[ $p->purpose ] ?? ucwords( str_replace( array( '-', '_' ), ' ', $p->purpose ) ) ); ?></td>
 							<td><?php echo esc_html( kcs_format_money( $p->amount, $p->currency ) ); ?></td>
 							<td><?php echo kcs_status_badge( $p->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
+							<td><?php if ( 'completed' === $p->status ) : ?><a href="<?php echo esc_url( KCS_Receipts::url( $p ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Receipt', 'kingdom-church-suite' ); ?></a><?php elseif ( in_array( $p->status, array( 'failed', 'cancelled' ), true ) && 'partnership' === $p->purpose ) : ?><button type="button" class="kcs-link-btn" data-tab-link="give" data-give-as="seed"><?php esc_html_e( 'Try again', 'kingdom-church-suite' ); ?></button><?php endif; ?></td>
 						</tr>
 					<?php endforeach; ?>
 					</tbody>

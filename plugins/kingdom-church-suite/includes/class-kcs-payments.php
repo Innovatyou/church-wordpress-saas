@@ -484,7 +484,7 @@ class KCS_Payments {
 		}
 		$payment = self::get( $payment->id );
 
-		if ( $payment->partner_id ) {
+		if ( $payment->partner_id && 'partnership' === $payment->purpose ) {
 			$partner = KCS_Partners::get( $payment->partner_id );
 			if ( $partner ) {
 				KCS_Partners::apply_payment( $partner, $payment );

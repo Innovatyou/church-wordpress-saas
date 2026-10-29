@@ -369,10 +369,29 @@
 			wrap.querySelectorAll('[data-tab]').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.tab === name ? 'true' : 'false'); });
 			wrap.querySelectorAll('[data-panel]').forEach(function (p) { p.hidden = p.dataset.panel !== name; });
 		}
+		// Give tab: partnership seed or tithe/offering ("data-give-as"), and "give more" focuses the amount.
+		function giveAs(kind, more) {
+			var panel = wrap.querySelector('[data-panel="give"][data-give]');
+			if (!panel) { return; }
+			panel.dataset.give = kind;
+			panel.querySelectorAll('.kcs-seg [data-give-as]').forEach(function (s) { s.setAttribute('aria-selected', s.dataset.giveAs === kind ? 'true' : 'false'); });
+			var pane = panel.querySelector('[data-give-pane="' + kind + '"]');
+			var amount = pane && pane.querySelector('input[name="amount"]');
+			if (more && amount) {
+				var presets = pane.querySelectorAll('.kcs-preset');
+				if (presets[1]) { presets[1].click(); }
+				setTimeout(function () { amount.focus(); amount.select(); }, 50);
+			}
+		}
 		wrap.addEventListener('click', function (e) {
 			var b = e.target.closest('[data-tab],[data-tab-link]');
 			if (b) { show(b.dataset.tab || b.dataset.tabLink); }
+			var g = e.target.closest('[data-give-as]');
+			if (g) { giveAs(g.dataset.giveAs, g.hasAttribute('data-give-more')); }
+			if (b && b.dataset.tabLink) { wrap.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 		});
+		var givePanel = wrap.querySelector('[data-panel="give"][data-give]');
+		if (givePanel) { giveAs(givePanel.dataset.give); }
 		var hash = (location.hash || '').slice(1);
 		show(hash && wrap.querySelector('[data-panel="' + hash.replace(/[^a-z0-9_-]/gi, '') + '"]') ? hash : (wrap.dataset.active || 'overview'));
 	});

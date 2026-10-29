@@ -4,6 +4,8 @@
 $ok = function ( $c, $m ) { echo ( $c ? 'PASS ' : 'FAIL ' ) . $m . "\n"; };
 $GLOBALS['bx_reply'] = null;
 $GLOBALS['bx_sent']  = array();
+// Start clean: earlier runs reuse the same fake checkout IDs.
+$GLOBALS['wpdb']->query( "DELETE FROM " . kcs_table( 'payments' ) . " WHERE reference LIKE 'BXTEST-%'" );
 add_filter( 'pre_http_request', function ( $pre, $args, $url ) {
 	if ( false === strpos( $url, 'bachs.io' ) || null === $GLOBALS['bx_reply'] ) { return $pre; }
 	$GLOBALS['bx_sent'][] = array( 'url' => $url, 'args' => $args );

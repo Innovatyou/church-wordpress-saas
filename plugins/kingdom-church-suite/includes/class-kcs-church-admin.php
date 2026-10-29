@@ -285,6 +285,37 @@ class KCS_Church_Admin {
 		}
 
 		switch ( $do ) {
+			case 'partner_add':
+				$view = 'partners';
+				$data = array_intersect_key( $d, array_flip( array( 'first_name', 'last_name', 'email', 'phone', 'country', 'city', 'address', 'plan_id', 'amount', 'frequency', 'region', 'notes' ) ) );
+				$data['status']       = 'active' === ( $d['status'] ?? '' ) ? 'active' : 'pending';
+				$data['email_opt_in'] = ! empty( $d['email_opt_in'] );
+				if ( ! trim( (string) ( $data['first_name'] ?? '' ) ) ) {
+					$msg  = __( 'Please enter the partner’s first name.', 'kingdom-church-suite' );
+					$type = 'error';
+					break;
+				}
+				$new = KCS_Partners::create( $data, ! empty( $d['create_login'] ) );
+				if ( is_wp_error( $new ) ) {
+					$msg  = $new->get_error_message();
+					$type = 'error';
+					break;
+				}
+				$new = is_object( $new ) ? $new : KCS_Partners::get( is_array( $new ) ? (int) ( $new['id'] ?? 0 ) : (int) $new );
+				if ( $new ) {
+					$added   = (array) get_option( 'kcs_church_added_partners', array() );
+					$added[] = (int) $new->id;
+					update_option( 'kcs_church_added_partners', array_values( array_unique( array_map( 'absint', $added ) ) ), false );
+					if ( 'active' === $data['status'] && ! empty( $d['next_due_date'] ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) $d['next_due_date'] ) ) {
+						KCS_Partners::update( $new->id, array( 'next_due_date' => $d['next_due_date'] ) );
+					}
+					$id = (int) $new->id;
+				}
+				/* translators: %s: partner name */
+				$msg = sprintf( __( '%s was added as a partner.', 'kingdom-church-suite' ), trim( ( $data['first_name'] ?? '' ) . ' ' . ( $data['last_name'] ?? '' ) ) ) . ( ! empty( $d['create_login'] ) ? ' ' . __( 'They were emailed a link to set their password and open their partner dashboard.', 'kingdom-church-suite' ) : '' );
+				$d['return'] = $new ? add_query_arg( 'id', (int) $new->id, self::url( 'partners' ) ) : self::url( 'partners' );
+				break;
+
 			case 'partner_save':
 				$data    = array_intersect_key( $d, array_flip( array( 'first_name', 'last_name', 'email', 'phone', 'country', 'city', 'status', 'next_due_date', 'notes' ) ) );
 				$partner = KCS_Partners::get( $id );
@@ -1659,6 +1690,49 @@ class KCS_Church_Admin {
 			$names[ $pl->id ] = $pl->name;
 		}
 		?>
+		<?php // Anyone who can open Partners (the owner, or a team member allowed Partners) can add one. ?>
+			<details class="kca-card kca-add-partner"<?php echo empty( $result['items'] ) ? ' open' : ''; ?>>
+				<summary><span class="kcs-btn">＋ <?php esc_html_e( 'Add a partner', 'kingdom-church-suite' ); ?></span> <span class="kcs-muted"><?php esc_html_e( 'For someone who signed up in person, by phone or on paper.', 'kingdom-church-suite' ); ?></span></summary>
+				<form method="post" class="kcs-form">
+					<?php echo self::fields( 'partner_add', 'partners' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					<div class="kcs-grid-2">
+						<label><?php esc_html_e( 'First name', 'kingdom-church-suite' ); ?><input name="first_name" required maxlength="100"></label>
+						<label><?php esc_html_e( 'Last name', 'kingdom-church-suite' ); ?><input name="last_name" maxlength="100"></label>
+						<label><?php esc_html_e( 'Email', 'kingdom-church-suite' ); ?><input type="email" name="email" required></label>
+						<label><?php esc_html_e( 'Phone / WhatsApp', 'kingdom-church-suite' ); ?><input type="tel" name="phone"></label>
+						<label><?php esc_html_e( 'Country', 'kingdom-church-suite' ); ?><input name="country"></label>
+						<label><?php esc_html_e( 'City', 'kingdom-church-suite' ); ?><input name="city"></label>
+					</div>
+					<div class="kcs-grid-2">
+						<label><?php esc_html_e( 'Partnership plan', 'kingdom-church-suite' ); ?>
+							<select name="plan_id">
+								<?php foreach ( $plans as $pl ) : ?><option value="<?php echo (int) $pl->id; ?>"><?php echo esc_html( $pl->name . ( KCS_Plans::is_custom( $pl ) ? '' : ' — ' . wp_strip_all_tags( KCS_Plans::price_html( $pl, false ) ) ) ); ?></option><?php endforeach; ?>
+								<option value="0"><?php esc_html_e( 'No plan (custom amount)', 'kingdom-church-suite' ); ?></option>
+							</select>
+						</label>
+						<?php if ( count( kcs_regions() ) > 1 ) : ?>
+							<label><?php esc_html_e( 'Pays in', 'kingdom-church-suite' ); ?>
+								<select name="region"><?php foreach ( kcs_regions() as $rk => $r ) : ?><option value="<?php echo esc_attr( $rk ); ?>"><?php echo esc_html( $r['label'] . ' (' . $r['currency'] . ')' ); ?></option><?php endforeach; ?></select>
+							</label>
+						<?php endif; ?>
+						<label><?php esc_html_e( 'Amount (for custom plans; leave empty to use the plan price)', 'kingdom-church-suite' ); ?><input type="number" name="amount" min="0" step="0.01" inputmode="decimal"></label>
+						<label><?php esc_html_e( 'How often', 'kingdom-church-suite' ); ?>
+							<select name="frequency"><option value=""><?php esc_html_e( 'As the plan', 'kingdom-church-suite' ); ?></option><?php foreach ( kcs_frequencies() as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>"><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
+						</label>
+						<label><?php esc_html_e( 'Status', 'kingdom-church-suite' ); ?>
+							<select name="status">
+								<option value="pending"><?php esc_html_e( 'Pending — waits for their first payment', 'kingdom-church-suite' ); ?></option>
+								<option value="active"><?php esc_html_e( 'Active — they have already paid (cash, transfer…)', 'kingdom-church-suite' ); ?></option>
+							</select>
+						</label>
+						<label><?php esc_html_e( 'Next payment due (for Active partners, optional)', 'kingdom-church-suite' ); ?><input type="date" name="next_due_date"></label>
+					</div>
+					<label><?php esc_html_e( 'Notes (only the church team sees these)', 'kingdom-church-suite' ); ?><textarea name="notes" rows="2"></textarea></label>
+					<label class="kcs-check"><input type="checkbox" name="create_login" value="1" checked> <?php esc_html_e( 'Create their partner dashboard login and email them a link to set a password', 'kingdom-church-suite' ); ?></label>
+					<label class="kcs-check"><input type="checkbox" name="email_opt_in" value="1" checked> <?php esc_html_e( 'Send them partner updates and the newsletter', 'kingdom-church-suite' ); ?></label>
+					<button class="kcs-btn"><?php esc_html_e( 'Add partner', 'kingdom-church-suite' ); ?></button>
+				</form>
+			</details>
 		<form class="kca-filters" method="get">
 			<input type="hidden" name="view" value="partners">
 			<input type="search" name="find" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search name, email, phone, ID…', 'kingdom-church-suite' ); ?>" aria-label="<?php esc_attr_e( 'Search partners', 'kingdom-church-suite' ); ?>">
@@ -1811,7 +1885,7 @@ class KCS_Church_Admin {
 				<button class="kcs-btn"><?php esc_html_e( 'Apply', 'kingdom-church-suite' ); ?></button>
 			</form>
 		<?php endif; ?>
-		<div class="kca-table">
+		<div class="kca-table kca-table--pay">
 			<table>
 				<thead><tr><?php if ( $can_conf ) : ?><th class="kca-col-check"><span class="screen-reader-text"><?php esc_html_e( 'Select', 'kingdom-church-suite' ); ?></span></th><?php endif; ?><th><?php esc_html_e( 'Giver', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Amount', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Method', 'kingdom-church-suite' ); ?></th><th><?php esc_html_e( 'Status', 'kingdom-church-suite' ); ?></th><th></th></tr></thead>
 				<tbody>
@@ -1824,12 +1898,12 @@ class KCS_Church_Admin {
 					?>
 					<tr data-pay="<?php echo (int) $pay->id; ?>" data-st="<?php echo esc_attr( $pay->status ); ?>"<?php echo $kcs_blocked ? ' data-blocked' : ''; ?><?php echo 'pending' === $pay->status && ! KCS_Transfers::is_manual( $pay ) ? ' data-auto-check' : ''; ?><?php echo $kcs_place['ip'] && ! $kcs_place['known'] ? ' data-locate' : ''; ?>>
 						<?php if ( $can_conf ) : ?><td class="kca-col-check"><?php if ( 'completed' !== $pay->status || $kcs_blocked ) : ?><input type="checkbox" name="ids[]" value="<?php echo (int) $pay->id; ?>" form="kca-bulk-pay" data-kca-pick aria-label="<?php esc_attr_e( 'Select', 'kingdom-church-suite' ); ?>"><?php endif; ?></td><?php endif; ?>
-						<td data-label="<?php esc_attr_e( 'Giver', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( $pay->name ? $pay->name : $pay->email ); ?></strong><?php echo $kcs_blocked ? ' <span class="kca-pill kca-pill--blocked">⛔ ' . esc_html__( 'Restricted', 'kingdom-church-suite' ) . '</span>' : ''; ?><small><?php echo esc_html( $pay->reference . ' · ' . kcs_datetime( $pay->created_at ) ); ?></small>
+						<td class="kca-c-giver" data-label="<?php esc_attr_e( 'Giver', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( $pay->name ? $pay->name : $pay->email ); ?></strong><?php echo $kcs_blocked ? ' <span class="kca-pill kca-pill--blocked">⛔ ' . esc_html__( 'Restricted', 'kingdom-church-suite' ) . '</span>' : ''; ?><small><?php echo esc_html( $pay->reference . ' · ' . kcs_datetime( $pay->created_at ) ); ?></small>
 							<?php if ( $kcs_place['ip'] || $kcs_place['cc'] ) : ?><small class="kca-where" data-pay-where>📍 <?php echo esc_html( $kcs_place['where'] ? $kcs_place['where'] : ( $kcs_place['cc'] ? $kcs_place['cc'] : __( 'Finding location…', 'kingdom-church-suite' ) ) ); ?><?php echo $kcs_place['ip'] && KCS_Transfers::can_confirm() ? ' · IP ' . esc_html( $kcs_place['ip'] ) : ''; ?></small><?php endif; ?>
 						</td>
-						<td data-label="<?php esc_attr_e( 'Amount', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( kcs_format_money( $pay->amount, $pay->currency ) ); ?></strong><small><?php echo esc_html( $purposes[ $pay->purpose ] ?? ucwords( str_replace( array( '-', '_' ), ' ', $pay->purpose ) ) ); ?></small></td>
-						<td data-label="<?php esc_attr_e( 'Method', 'kingdom-church-suite' ); ?>"><?php echo esc_html( $pay->gateway ); ?><?php echo 'test' === $kcs_mode ? ' <span class="kca-pill kca-pill--test">' . esc_html__( 'TEST', 'kingdom-church-suite' ) . '</span>' : ''; ?></td>
-						<td data-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>" data-pay-status><?php echo kcs_status_badge( $pay->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php if ( 'completed' !== $pay->status && ! empty( $pay->ip_hash ) && ( $kcs_tries[ $pay->ip_hash ] ?? 0 ) >= 3 ) : ?><small class="kca-warn">⚠ <?php /* translators: %d: count */ echo esc_html( sprintf( __( '%d unfinished payments from this device in 24 hours — possible card testing', 'kingdom-church-suite' ), $kcs_tries[ $pay->ip_hash ] ) ); ?><?php echo isset( KCS_Security::blocked()[ $pay->ip_hash ] ) ? ' · ' . esc_html__( 'device paused', 'kingdom-church-suite' ) : ''; ?></small><?php endif; ?><?php if ( $pay->note && 'completed' !== $pay->status ) : ?><small><?php echo esc_html( $pay->note ); ?></small><?php endif; ?></td>
+						<td class="kca-c-amount" data-label="<?php esc_attr_e( 'Amount', 'kingdom-church-suite' ); ?>"><strong><?php echo esc_html( kcs_format_money( $pay->amount, $pay->currency ) ); ?></strong><small><?php echo esc_html( $purposes[ $pay->purpose ] ?? ucwords( str_replace( array( '-', '_' ), ' ', $pay->purpose ) ) ); ?></small></td>
+						<td class="kca-c-method" data-label="<?php esc_attr_e( 'Method', 'kingdom-church-suite' ); ?>"><?php echo esc_html( $pay->gateway ); ?><?php echo 'test' === $kcs_mode ? ' <span class="kca-pill kca-pill--test">' . esc_html__( 'TEST', 'kingdom-church-suite' ) . '</span>' : ''; ?></td>
+						<td class="kca-c-status" data-label="<?php esc_attr_e( 'Status', 'kingdom-church-suite' ); ?>" data-pay-status><?php echo kcs_status_badge( $pay->status ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php if ( 'completed' !== $pay->status && ! empty( $pay->ip_hash ) && ( $kcs_tries[ $pay->ip_hash ] ?? 0 ) >= 3 ) : ?><small class="kca-warn">⚠ <?php /* translators: %d: count */ echo esc_html( sprintf( __( '%d unfinished payments from this device in 24 hours — possible card testing', 'kingdom-church-suite' ), $kcs_tries[ $pay->ip_hash ] ) ); ?><?php echo isset( KCS_Security::blocked()[ $pay->ip_hash ] ) ? ' · ' . esc_html__( 'device paused', 'kingdom-church-suite' ) : ''; ?></small><?php endif; ?><?php if ( $pay->note && 'completed' !== $pay->status ) : ?><small><?php echo esc_html( $pay->note ); ?></small><?php endif; ?></td>
 						<td class="kca-actions">
 							<?php if ( 'completed' === $pay->status ) : ?>
 								<?php $sent = KCS_Transfers::meta( $pay )['receipt_sent'] ?? ''; ?>
@@ -3041,7 +3115,7 @@ class KCS_Church_Admin {
 		}
 		?>
 		<details class="kca-card kca-modes"<?php echo $test ? ' open' : ''; ?>>
-			<summary><strong><?php esc_html_e( 'Can’t find a payment in your Flutterwave or GlobalPay dashboard?', 'kingdom-church-suite' ); ?></strong></summary>
+			<summary><strong><?php esc_html_e( 'Can’t find a payment in your Flutterwave or GlobalPay dashboard?', 'kingdom-church-suite' ); ?></strong><?php if ( $test ) : ?> <span class="kca-pill kca-pill--test"><?php esc_html_e( 'TEST keys in use', 'kingdom-church-suite' ); ?></span><?php endif; ?></summary>
 			<?php if ( $test ) : ?><div class="kcs-alert kcs-alert--error"><?php esc_html_e( 'A gateway is using TEST keys. Real cards are declined in test mode, and these payments only appear in the provider’s dashboard when it is switched to Test mode. Put your LIVE keys in Settings → Payments to receive real gifts.', 'kingdom-church-suite' ); ?></div><?php endif; ?>
 			<ul class="kca-modes__list"><?php echo wp_kses_post( implode( '', $items ) ); ?></ul>
 			<p class="kcs-muted"><?php esc_html_e( 'Payments are created in the provider account that owns the saved key. In the provider’s dashboard, open Settings → API keys and check the key there ends with the same characters, and that the dashboard is in the same mode (Test or Live). Search the dashboard by our reference (GIV-… or PTN-…). Checkouts the giver closed without entering a card never appear there.', 'kingdom-church-suite' ); ?></p>

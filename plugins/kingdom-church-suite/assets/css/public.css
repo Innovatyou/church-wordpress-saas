@@ -528,3 +528,28 @@ a.kcs-pager__num:hover, a.kcs-pager__step:hover { border-color: var(--kcs-primar
 .kcs-story .kcs-check input { flex: 0 0 auto; margin-top: .3em; }
 @media (max-width: 420px) { .kcs-story__types span { padding: .75rem .3rem; font-size: .85rem; } }
 .kcs-story__types span { height: 100%; align-content: center; }
+
+/* Partner dashboard: quick actions and the Give tab switch */
+.kcs-dash-h { margin: 1.75rem 0 .75rem; font-size: 1.15rem; }
+.kcs-actions { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); margin-bottom: 1.5rem; }
+.kcs-action { display: flex; align-items: center; gap: .85rem; width: 100%; padding: 1rem 1.1rem; border-radius: var(--kcs-radius); border: 1px solid var(--kcs-border); background: var(--kcs-surface); color: var(--kcs-text); font: inherit; text-align: left; cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s; }
+.kcs-action:hover { transform: translateY(-2px); border-color: var(--kcs-primary); box-shadow: 0 10px 24px -14px rgba(0, 0, 0, .35); }
+.kcs-action > span:last-child { display: grid; gap: .1rem; min-width: 0; }
+.kcs-action small { color: var(--kcs-muted); font-size: .84rem; }
+.kcs-action__icon { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; font-size: 1.25rem; background: color-mix(in srgb, var(--kcs-primary) 12%, transparent); color: var(--kcs-primary); }
+.kcs-action--main { background: linear-gradient(135deg, var(--kcs-primary), color-mix(in srgb, var(--kcs-primary) 60%, #000)); color: var(--kcs-primary-contrast); border-color: transparent; }
+.kcs-action--main small { color: color-mix(in srgb, var(--kcs-primary-contrast) 80%, transparent); }
+.kcs-action--main .kcs-action__icon { background: rgba(255, 255, 255, .18); color: inherit; }
+.kcs-action--main.is-due { box-shadow: 0 0 0 3px color-mix(in srgb, var(--kcs-accent) 70%, transparent); }
+.kcs-seg { display: inline-flex; flex-wrap: wrap; gap: .25rem; padding: .3rem; margin-bottom: 1rem; border-radius: 999px; background: var(--kcs-surface-2); border: 1px solid var(--kcs-border); }
+.kcs-seg button { border: 0; background: none; color: var(--kcs-muted); font: inherit; font-weight: 600; padding: .55rem 1.1rem; border-radius: 999px; cursor: pointer; }
+.kcs-seg button[aria-selected="true"] { background: var(--kcs-primary); color: var(--kcs-primary-contrast); }
+[data-give="seed"] [data-give-pane="other"], [data-give="other"] [data-give-pane="seed"] { display: none; }
+.kcs-link-btn { border: 0; background: none; padding: 0; color: var(--kcs-primary); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+@media (max-width: 560px) { .kcs-seg { display: flex; border-radius: 14px; } .kcs-seg button { flex: 1 1 auto; border-radius: 10px; } }
+/* The ticker and the dashboard never push the page wider than the screen */
+.kcs-ticker { width: 100%; max-width: min(1200px, 100%); min-width: 0; box-sizing: border-box; }
+.kcs-dashboard { min-width: 0; max-width: 100%; }
+.kcs-dashboard > * { min-width: 0; }
+.kcs-slider { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+.kcs-slider__track { min-width: 0; max-width: 100%; }

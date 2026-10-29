@@ -455,3 +455,9 @@ document.querySelectorAll('[data-kca-bulk]').forEach(function (bulk) {
 	bulk.addEventListener('submit', function (e) { if (!picks().some(function (c) { return c.checked; })) { e.preventDefault(); } });
 	update();
 });
+
+/* Phones: the long "can't find a payment" help box starts folded (tap to open). */
+(function () {
+	if (!window.matchMedia || !window.matchMedia('(max-width: 720px)').matches) { return; }
+	document.querySelectorAll('details.kca-modes[open]').forEach(function (d) { d.removeAttribute('open'); });
+})();

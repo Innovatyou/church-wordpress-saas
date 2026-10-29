@@ -674,6 +674,11 @@ class KCS_Partners {
 		$payments = kcs_table( 'payments' );
 		$before   = gmdate( 'Y-m-d H:i:s', strtotime( current_time( 'mysql' ) ) - max( 1, (int) $days ) * DAY_IN_SECONDS );
 		$where    = "p.status = 'pending' AND p.last_payment_at IS NULL AND p.total_given <= 0 AND p.created_at < %s AND NOT EXISTS (SELECT 1 FROM $payments y WHERE y.partner_id = p.id AND y.status IN ('completed','review'))";
+		// Partners the church added itself are never removed automatically.
+		$keep = array_filter( array_map( 'absint', (array) get_option( 'kcs_church_added_partners', array() ) ) );
+		if ( $keep ) {
+			$where .= ' AND p.id NOT IN (' . implode( ',', $keep ) . ')';
+		}
 		if ( $count ) {
 			return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $table p WHERE $where", $before ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery
 		}
