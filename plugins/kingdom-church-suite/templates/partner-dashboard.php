@@ -175,6 +175,7 @@ $completed = array_filter(
 					'purpose'  => '',
 					'amounts'  => array(),
 					'title'    => __( 'Tithe, offering & other giving', 'kingdom-church-suite' ),
+					'presets'  => false,
 					'amount'   => '',
 					'currency' => $partner->currency,
 					'name'     => '',

@@ -14,6 +14,7 @@
  * @var string      $name     Name.
  * @var string      $email    Email.
  * @var object|null $partner  Partner.
+ * @var bool        $presets  Show quick-amount buttons (default yes; tithe & offering forms leave the amount open).
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -27,6 +28,7 @@ $gateways   = array_filter( $gateways, function ( $g ) use ( $for ) {
 $currencies = KCS_Payments::allowed_currencies();
 $purposes   = kcs_giving_purposes();
 $uid        = 'kcs-pay-' . wp_rand( 1000, 99999 );
+$presets    = ! isset( $presets ) || false !== $presets;
 $regions    = kcs_regions();
 $split      = count( $regions ) > 1 && 'partnership' !== $context;
 $region     = kcs_currency_region( $currency );
@@ -82,7 +84,7 @@ if ( ! $gateways ) {
 		</label>
 	</div>
 
-	<?php if ( $split ) : ?>
+	<?php if ( $split && $presets ) : ?>
 		<?php foreach ( array_keys( $regions ) as $rk ) : ?>
 			<div class="kcs-presets kcs-in-<?php echo esc_attr( $rk ); ?>" role="group" aria-label="<?php esc_attr_e( 'Quick amounts', 'kingdom-church-suite' ); ?>">
 				<?php foreach ( ( 'international' === $rk && ! empty( $amounts ) ) ? $amounts : kcs_region_amounts( $rk ) as $preset ) : ?>
@@ -90,7 +92,7 @@ if ( ! $gateways ) {
 				<?php endforeach; ?>
 			</div>
 		<?php endforeach; ?>
-	<?php elseif ( ! empty( $amounts ) ) : ?>
+	<?php elseif ( $presets && ! empty( $amounts ) ) : ?>
 		<div class="kcs-presets" role="group" aria-label="<?php esc_attr_e( 'Quick amounts', 'kingdom-church-suite' ); ?>">
 			<?php foreach ( $amounts as $preset ) : ?>
 				<button type="button" class="kcs-preset" data-amount="<?php echo esc_attr( $preset ); ?>"><?php echo esc_html( number_format_i18n( $preset ) ); ?></button>

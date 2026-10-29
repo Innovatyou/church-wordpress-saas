@@ -102,6 +102,8 @@ final class KCS_Plugin {
 				'restUrl'  => esc_url_raw( rest_url( 'kcs/v1/' ) ),
 				'nonce'    => wp_create_nonce( 'wp_rest' ),
 				'loggedIn' => is_user_logged_in(),
+				// The visitor's own details, to fill empty name/email/phone boxes on public forms.
+				'person'   => kcs_current_person(),
 				'i18n'     => array(
 					'processing' => __( 'Processing…', 'kingdom-church-suite' ),
 					'error'      => __( 'Something went wrong. Please try again.', 'kingdom-church-suite' ),

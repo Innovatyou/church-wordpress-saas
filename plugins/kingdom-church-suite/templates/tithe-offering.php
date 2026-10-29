@@ -94,13 +94,7 @@ if ( ! $gateways ) {
 				<input type="number" name="amount" min="<?php echo esc_attr( kcs_get_option( 'min_amount', 1 ) ); ?>" step="0.01" required inputmode="decimal">
 			</label>
 		</div>
-		<?php foreach ( $regions as $rk => $r ) : ?>
-			<div class="kcs-presets kcs-in-<?php echo esc_attr( $rk ); ?>" role="group" aria-label="<?php esc_attr_e( 'Quick amounts', 'kingdom-church-suite' ); ?>">
-				<?php foreach ( kcs_region_amounts( $rk ) as $preset ) : ?>
-					<button type="button" class="kcs-preset" data-amount="<?php echo esc_attr( $preset ); ?>"><?php echo esc_html( kcs_currency_symbol( $r['currency'] ) . number_format_i18n( $preset ) ); ?></button>
-				<?php endforeach; ?>
-			</div>
-		<?php endforeach; ?>
+		<?php // Tithe and offering amounts are personal: no quick-amount buttons, any amount can be entered. ?>
 
 		<?php if ( isset( $types['tithe'] ) ) : ?>
 			<details class="kcs-tithe__calc" data-kcs-tithe-calc>

@@ -540,3 +540,36 @@ document.querySelectorAll('[data-kcs-payment-form], form.kcs-pay-form').forEach(
 		setTimeout(open, Math.max(0, cfg.delay || 0) * 1000);
 	}
 })();
+
+/* Logged-in visitors: fill their own name, email, phone, country and city into empty boxes on public forms. */
+(function () {
+	var person = window.KCS && KCS.person;
+	if (!person || typeof person !== 'object' || !Object.keys(person).length) { return; }
+	var map = { name: 'name', full_name: 'name', your_name: 'name', first_name: 'first_name', last_name: 'last_name', email: 'email', your_email: 'email', phone: 'phone', whatsapp: 'phone', mobile: 'phone', country: 'country', city: 'city' };
+	var forms = '[data-kcs-payment-form],form.kcs-pay-form,[data-kcs-newsletter],[data-kcs-prayer],[data-kcs-visit],[data-kcs-questionnaire],[data-kcs-contact],[data-kcs-testimony],[data-kcs-story],[data-kpw-form],[data-kcs-register],.kcs-form';
+	function fill(root) {
+		root.querySelectorAll(forms).forEach(function (form) {
+			// Church Admin forms are often filled in for someone else: leave them alone.
+			if (form.dataset.kcsFilled || form.closest('.kca, [data-kca], .kcs-dashboard [data-panel="profile"]')) { return; }
+			form.dataset.kcsFilled = '1';
+			Object.keys(map).forEach(function (field) {
+				var value = person[map[field]];
+				if (!value) { return; }
+				form.querySelectorAll('[name="' + field + '"]').forEach(function (el) {
+					if (el.type === 'hidden' || el.type === 'checkbox' || el.type === 'radio' || el.value) { return; }
+					if (el.tagName === 'SELECT') {
+						var want = String(value).toLowerCase();
+						var opt = Array.prototype.find.call(el.options, function (o) { return o.value.toLowerCase() === want || o.text.trim().toLowerCase() === want; });
+						if (opt) { el.value = opt.value; el.dispatchEvent(new Event('change', { bubbles: true })); }
+						return;
+					}
+					el.value = value;
+					el.dispatchEvent(new Event('input', { bubbles: true }));
+				});
+			});
+		});
+	}
+	if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function () { fill(document); }); } else { fill(document); }
+	// Forms that open later (prayer wall sheet, popups) are filled when they appear.
+	document.addEventListener('click', function () { setTimeout(function () { fill(document); }, 60); }, true);
+})();

@@ -908,3 +908,36 @@ p.msg { margin: 12px auto 28px; max-width: 38ch; padding: 0 28px; color: var(--m
 	<?php
 	exit;
 }
+
+/**
+ * The logged-in person's own contact details (partner record first, then their account), used to
+ * fill public forms for them. Empty when nobody is logged in.
+ *
+ * @return array name, first_name, last_name, email, phone, country, city.
+ */
+function kcs_current_person() {
+	if ( ! is_user_logged_in() ) {
+		return array();
+	}
+	$user    = wp_get_current_user();
+	$partner = class_exists( 'KCS_Partners' ) ? KCS_Partners::get_by_user( $user->ID ) : null;
+	$first   = $partner && $partner->first_name ? $partner->first_name : (string) $user->first_name;
+	$last    = $partner && $partner->last_name ? $partner->last_name : (string) $user->last_name;
+	$name    = trim( $first . ' ' . $last );
+	if ( '' === $name ) {
+		$name = (string) $user->display_name;
+	}
+	$phone = $partner && $partner->phone ? $partner->phone : (string) ( get_user_meta( $user->ID, 'phone', true ) ? get_user_meta( $user->ID, 'phone', true ) : get_user_meta( $user->ID, 'billing_phone', true ) );
+	return array_filter(
+		array(
+			'name'       => $name,
+			'first_name' => $first,
+			'last_name'  => $last,
+			'email'      => $partner && $partner->email ? $partner->email : (string) $user->user_email,
+			'phone'      => $phone,
+			'country'    => $partner ? (string) $partner->country : '',
+			'city'       => $partner ? (string) $partner->city : '',
+		),
+		'strlen'
+	);
+}
