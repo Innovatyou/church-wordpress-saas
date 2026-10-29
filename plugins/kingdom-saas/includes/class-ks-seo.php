@@ -176,7 +176,7 @@ class KS_SEO {
 			'church-management-software'     => array(
 				'nav'     => __( 'Church management', 'kingdom-saas' ),
 				'title'   => __( 'Church Management Software for Nigerian Churches', 'kingdom-saas' ),
-				'desc'    => __( 'Manage partners, giving, prayer requests, first-time visitors, testimonies and announcements from one simple dashboard that works on your phone. Built for churches in Nigeria.', 'kingdom-saas' ),
+				'desc'    => __( 'Manage partners, giving, prayer requests, visitors, testimonies and announcements from one simple dashboard that works on your phone. Built for churches in Nigeria.', 'kingdom-saas' ),
 				'eyebrow' => __( 'Church management software', 'kingdom-saas' ),
 				'h1'      => __( 'Run your church from one simple dashboard — on your phone', 'kingdom-saas' ),
 				'intro'   => __( 'Church Admin brings giving, partners, prayer requests, first-timers, testimonies and messages together, so your pastors, admin and treasurer can see what is happening and follow up quickly.', 'kingdom-saas' ),
@@ -184,7 +184,7 @@ class KS_SEO {
 					array( '♥', __( 'Partners & members', 'kingdom-saas' ), __( 'Every partner’s plan, payments, due dates and contact details in one place, with WhatsApp follow-up.', 'kingdom-saas' ) ),
 					array( '₦', __( 'Giving records', 'kingdom-saas' ), __( 'Tithes, offerings and partnership by purpose and month, with bank transfers waiting to be confirmed.', 'kingdom-saas' ) ),
 					array( '🙏', __( 'Prayer requests', 'kingdom-saas' ), __( 'Private requests go to your prayer team; mark them as prayed for and follow up.', 'kingdom-saas' ) ),
-					array( '⌂', __( 'First-time visitors', 'kingdom-saas' ), __( '“Visit Us” bookings arrive with the visitor’s phone number so your welcome team can reach out.', 'kingdom-saas' ) ),
+					array( '⌂', __( 'Visitors', 'kingdom-saas' ), __( '“Visit Us” bookings arrive with the visitor’s phone number so your welcome team can reach out.', 'kingdom-saas' ) ),
 					array( '✉', __( 'Notify & newsletter', 'kingdom-saas' ), __( 'Email partners by plan or status, send newsletters and push notifications.', 'kingdom-saas' ) ),
 					array( '👥', __( 'Staff access', 'kingdom-saas' ), __( 'Give church staff their own login without access to settings or money confirmation.', 'kingdom-saas' ) ),
 				),

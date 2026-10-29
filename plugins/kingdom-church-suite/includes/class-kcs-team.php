@@ -26,7 +26,7 @@ class KCS_Team {
 			__( 'People', 'kingdom-church-suite' )        => array(
 				'partners'    => __( 'Partners', 'kingdom-church-suite' ),
 				'prayers'     => __( 'Prayer requests', 'kingdom-church-suite' ),
-				'visits'      => __( 'First-time visitors', 'kingdom-church-suite' ),
+				'visits'      => __( 'Visitors', 'kingdom-church-suite' ),
 				'messages'    => __( 'Contact messages', 'kingdom-church-suite' ),
 				'testimonies' => __( 'Testimonies', 'kingdom-church-suite' ),
 			),

@@ -53,7 +53,7 @@ class KCS_Church_Admin {
 			'payments'    => array( __( 'Giving received', 'kingdom-church-suite' ), '₦' ),
 			'transfers'   => array( __( 'Confirm payments', 'kingdom-church-suite' ), '⇄' ),
 			'prayers'     => array( __( 'Prayer requests', 'kingdom-church-suite' ), '✦' ),
-			'visits'      => array( __( 'First-time visitors', 'kingdom-church-suite' ), '☺' ),
+			'visits'      => array( __( 'Visitors', 'kingdom-church-suite' ), '☺' ),
 			'messages'    => array( __( 'Contact messages', 'kingdom-church-suite' ), '✉' ),
 			'testimonies' => array( __( 'Testimonies', 'kingdom-church-suite' ), '❝' ),
 			'notify'      => array( __( 'Message partners', 'kingdom-church-suite' ), '✉' ),
@@ -1302,7 +1302,7 @@ class KCS_Church_Admin {
 				'transfers'   => array( $counts['transfers'], _n( '%d payment to confirm', '%d payments to confirm', $counts['transfers'], 'kingdom-church-suite' ) ),
 				'payments'    => array( $counts['payments'], _n( '%d payment to review', '%d payments to review', $counts['payments'], 'kingdom-church-suite' ) ),
 				'prayers'     => array( $counts['prayers'], _n( '%d new prayer request', '%d new prayer requests', $counts['prayers'], 'kingdom-church-suite' ) ),
-				'visits'      => array( $counts['visits'], _n( '%d first-time visitor to welcome', '%d first-time visitors to welcome', $counts['visits'], 'kingdom-church-suite' ) ),
+				'visits'      => array( $counts['visits'], _n( '%d visitor to welcome', '%d visitors to welcome', $counts['visits'], 'kingdom-church-suite' ) ),
 				'messages'    => array( $counts['messages'], _n( '%d new contact message', '%d new contact messages', $counts['messages'], 'kingdom-church-suite' ) ),
 				'testimonies' => array( $counts['testimonies'], _n( '%d testimony to approve', '%d testimonies to approve', $counts['testimonies'], 'kingdom-church-suite' ) ),
 				'partners'    => array( $counts['partners'], _n( '%d partner is behind on payments', '%d partners are behind on payments', $counts['partners'], 'kingdom-church-suite' ) ),
@@ -1515,7 +1515,7 @@ class KCS_Church_Admin {
 				},
 			),
 			array(
-				__( 'First-time visitors', 'kingdom-church-suite' ),
+				__( 'Visitors', 'kingdom-church-suite' ),
 				KCS_Team::allowed( 'visits' ) ? $wpdb->get_results( $wpdb->prepare( 'SELECT name, email, phone, status FROM ' . kcs_table( 'visits' ) . " WHERE CONCAT_WS(' ', name, email, phone) LIKE %s ORDER BY id DESC LIMIT 10", $like ) ) : array(),
 				function ( $r ) {
 					return array( $r->name, trim( $r->email . ' · ' . $r->phone, ' ·' ), self::url( 'visits' ), $r->status );
@@ -2515,7 +2515,7 @@ class KCS_Church_Admin {
 					$rows = array(
 						array( 'label' => __( 'General enquiries', 'kingdom-church-suite' ), 'phone' => '', 'message' => '' ),
 						array( 'label' => __( 'Prayer line', 'kingdom-church-suite' ), 'phone' => '', 'message' => __( 'Hello, I would like someone to pray with me.', 'kingdom-church-suite' ) ),
-						array( 'label' => __( 'First-time visitors', 'kingdom-church-suite' ), 'phone' => '', 'message' => __( 'Hello, I am planning to visit {church} this Sunday.', 'kingdom-church-suite' ) ),
+						array( 'label' => __( 'Visitors', 'kingdom-church-suite' ), 'phone' => '', 'message' => __( 'Hello, I am planning to visit {church} this Sunday.', 'kingdom-church-suite' ) ),
 					);
 				}
 				$rows[] = array( 'label' => '', 'phone' => '', 'message' => '' );
@@ -2666,7 +2666,7 @@ class KCS_Church_Admin {
 					<?php elseif ( 'texts' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'The words on your homepage banner and welcome section. Button links are optional: leave them empty to use the usual pages.', 'kingdom-church-suite' ); ?></p>
 					<?php elseif ( 'visitpage' === $group ) : ?>
-						<p class="kcs-muted"><?php esc_html_e( 'The information visitors read on your Visit page, the questions and answers for visitors from abroad, and the visitor questionnaire. Answers to the questionnaire arrive in First-time visitors and by email. The sample text is there to be replaced with your own.', 'kingdom-church-suite' ); ?></p>
+						<p class="kcs-muted"><?php esc_html_e( 'The information visitors read on your Visit page, the questions and answers for visitors from abroad, and the visitor questionnaire. Answers to the questionnaire arrive in Visitors and by email. The sample text is there to be replaced with your own.', 'kingdom-church-suite' ); ?></p>
 						<?php if ( kcs_get_option( 'page_visit' ) ) : ?><p><a class="kcs-btn kcs-btn--ghost" href="<?php echo esc_url( kcs_page_url( 'visit' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View the Visit page', 'kingdom-church-suite' ); ?></a></p><?php endif; ?>
 					<?php elseif ( 'charity' === $group ) : ?>
 						<p class="kcs-muted"><?php esc_html_e( 'Your church’s humanitarian outreach. It shows on the About page and the Charity page. Untick “Charity” in Design & live stream → Show or hide sections to hide it everywhere.', 'kingdom-church-suite' ); ?></p>
