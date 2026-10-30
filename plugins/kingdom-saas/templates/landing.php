@@ -15,8 +15,8 @@ $view  = $local ? 'local' : 'international';
 <section class="ks-hero">
 	<div class="ks-wrap ks-hero__in">
 		<div>
-			<span class="ks-eyebrow"><?php esc_html_e( 'For churches & ministries in Nigeria and beyond', 'kingdom-saas' ); ?></span>
-			<h1><?php esc_html_e( 'Church website, online giving & church app — in one place', 'kingdom-saas' ); ?></h1>
+			<span class="ks-eyebrow"><?php esc_html_e( 'Church app & church website builder', 'kingdom-saas' ); ?></span>
+			<h1><?php esc_html_e( 'Your church website and church app, with online giving — ready in 2 minutes', 'kingdom-saas' ); ?></h1>
 			<p class="ks-lead"><?php echo esc_html( ks_get( 'tagline' ) ); ?></p>
 			<div class="ks-cta">
 				<a class="ks-btn ks-btn--lg" href="<?php echo esc_url( ks_platform_url( 'signup/' ) ); ?>"><?php /* translators: %d: days */ printf( esc_html__( 'Start your %d-day free trial', 'kingdom-saas' ), (int) $trial ); ?></a>

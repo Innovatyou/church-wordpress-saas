@@ -276,8 +276,9 @@ class KS_SEO {
 		$faqs   = array();
 		$crumbs = array();
 		if ( 'landing' === $route ) {
-			$title = ks_get( 'seo_title' ) ? ks_get( 'seo_title' ) : sprintf( /* translators: %s: platform name */ __( '%s — Church Website, App & Online Giving for Nigerian Churches', 'kingdom-saas' ), $name );
-			$desc  = $desc ? $desc : __( 'Create your church website in 2 minutes: online giving in naira (Paystack, Flutterwave, bank transfer), partnership portal, church app, live streaming and a simple admin dashboard. Free trial.', 'kingdom-saas' );
+			$title = ks_get( 'seo_title' ) ? ks_get( 'seo_title' ) : sprintf( /* translators: %s: platform name */ __( 'Church App & Church Website Builder | %s Nigeria', 'kingdom-saas' ), $name );
+			/* translators: %s: platform name */
+			$desc  = $desc ? $desc : sprintf( __( 'Get your own church app and church website in 2 minutes with %s. Online giving in naira, partner portal, live stream and prayer requests. Free trial.', 'kingdom-saas' ), $name );
 			$faqs  = self::landing_faqs();
 		} elseif ( 'solution' === $route && ! empty( $vars['solution'] ) ) {
 			$s      = $vars['solution'];
