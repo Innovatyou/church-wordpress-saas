@@ -296,13 +296,29 @@ function ks_badge( $status ) {
  *
  * @return string HTML link tags.
  */
+/**
+ * Square logo for Google (the uploaded favicon, else the built-in 512×512 tile).
+ *
+ * @return string
+ */
+function ks_logo_url() {
+	return ks_get( 'favicon' ) ? esc_url_raw( (string) ks_get( 'favicon' ) ) : KS_URL . 'assets/img/icon-512.png';
+}
+
+/**
+ * Favicon <link> tags for platform pages.
+ *
+ * @return string
+ */
 function ks_favicon_tags() {
 	$url = esc_url_raw( (string) ks_get( 'favicon' ) );
 	if ( $url ) {
 		return '<link rel="icon" href="' . esc_url( $url ) . '"><link rel="apple-touch-icon" href="' . esc_url( $url ) . '">' . "\n";
 	}
-	$color = sanitize_hex_color( ks_get( 'brand_color' ) ) ? sanitize_hex_color( ks_get( 'brand_color' ) ) : '#5b2a86';
-	$svg   = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="' . $color . '"/><path fill="#fff" d="M27 12h10v15h15v10H37v15H27V37H12V27h15z"/></svg>';
-	return '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,' . rawurlencode( $svg ) . '">' . "\n";
+	// Real image files (Google only shows a favicon it can download from a web address).
+	$img = KS_URL . 'assets/img/';
+	return '<link rel="icon" type="image/png" sizes="48x48" href="' . esc_url( $img . 'icon-48.png' ) . '">'
+		. '<link rel="icon" type="image/png" sizes="192x192" href="' . esc_url( $img . 'icon-192.png' ) . '">'
+		. '<link rel="apple-touch-icon" sizes="180x180" href="' . esc_url( $img . 'apple-touch-icon.png' ) . '">' . "\n";
 }
 

@@ -28,6 +28,18 @@ class KS_SEO {
 		add_filter( 'wp_sitemaps_post_types', array( __CLASS__, 'sitemap_post_types' ) );
 		add_filter( 'wp_sitemaps_add_provider', array( __CLASS__, 'sitemap_providers' ), 10, 2 );
 		add_filter( 'wp_robots', array( __CLASS__, 'robots_meta' ) );
+		add_action( 'do_faviconico', array( __CLASS__, 'favicon_ico' ), 5 );
+	}
+
+	/**
+	 * /favicon.ico on the platform site: the Ministry OS icon instead of the WordPress logo.
+	 */
+	public static function favicon_ico() {
+		if ( has_site_icon() ) {
+			return; // WordPress serves the site icon set in Settings.
+		}
+		wp_safe_redirect( ks_get( 'favicon' ) ? esc_url_raw( (string) ks_get( 'favicon' ) ) : KS_URL . 'assets/img/icon-48.png', 301 );
+		exit;
 	}
 
 	/**
@@ -359,7 +371,7 @@ class KS_SEO {
 		} elseif ( 'signup' === $route ) {
 			$url = ks_platform_url( 'signup/' );
 		}
-		$image = ks_get( 'seo_image' ) ? ks_get( 'seo_image' ) : content_url( 'themes/kingdom/screenshot.png' );
+		$image = ks_get( 'seo_image' ) ? ks_get( 'seo_image' ) : KS_URL . 'assets/img/share.png';
 		$out   = '<title>' . esc_html( $title ) . "</title>\n";
 		$out  .= '<meta name="description" content="' . esc_attr( wp_strip_all_tags( $desc ) ) . '">' . "\n";
 		$out  .= '<meta name="robots" content="' . ( $index ? 'index, follow, max-image-preview:large' : 'noindex, follow' ) . '">' . "\n";
@@ -370,7 +382,7 @@ class KS_SEO {
 		}
 		$out .= '<meta name="geo.region" content="NG"><meta name="geo.placename" content="Nigeria">' . "\n";
 		$out .= '<meta property="og:type" content="website"><meta property="og:locale" content="en_NG"><meta property="og:site_name" content="' . esc_attr( $name ) . '">' . "\n";
-		$out .= '<meta property="og:title" content="' . esc_attr( $title ) . '"><meta property="og:description" content="' . esc_attr( wp_strip_all_tags( $desc ) ) . '"><meta property="og:url" content="' . esc_url( $url ) . '"><meta property="og:image" content="' . esc_url( $image ) . '">' . "\n";
+		$out .= '<meta property="og:title" content="' . esc_attr( $title ) . '"><meta property="og:description" content="' . esc_attr( wp_strip_all_tags( $desc ) ) . '"><meta property="og:url" content="' . esc_url( $url ) . '"><meta property="og:image" content="' . esc_url( $image ) . '">' . ( ks_get( 'seo_image' ) ? '' : '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="' . esc_attr( $title ) . '">' ) . '' . "\n";
 		$out .= '<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="' . esc_attr( $title ) . '"><meta name="twitter:description" content="' . esc_attr( wp_strip_all_tags( $desc ) ) . '"><meta name="twitter:image" content="' . esc_url( $image ) . '">' . "\n";
 		if ( ks_get( 'seo_google' ) ) {
 			$out .= '<meta name="google-site-verification" content="' . esc_attr( ks_get( 'seo_google' ) ) . '">' . "\n";
@@ -407,7 +419,8 @@ class KS_SEO {
 			'@id'          => $home . '#org',
 			'name'         => $name,
 			'url'          => $home,
-			'logo'         => ks_get( 'seo_image' ) ? ks_get( 'seo_image' ) : content_url( 'themes/kingdom/screenshot.png' ),
+			'logo'         => ks_logo_url(),
+			'image'        => ks_get( 'seo_image' ) ? ks_get( 'seo_image' ) : KS_URL . 'assets/img/share.png',
 			'email'        => ks_get( 'support_email' ),
 			'areaServed'   => array( '@type' => 'Country', 'name' => 'Nigeria' ),
 		);
