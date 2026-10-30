@@ -84,10 +84,15 @@ class KS_SEO {
 		foreach ( self::slugs() as $slug ) {
 			add_rewrite_rule( '^' . $slug . '/?$', 'index.php?ks_route=solution&ks_solution=' . $slug, 'top' );
 		}
+		// New pages need their address registered once (any missing one triggers a refresh).
 		$rules = get_option( 'rewrite_rules' );
-		$first = self::slugs()[0];
-		if ( is_array( $rules ) && ! isset( $rules[ '^' . $first . '/?$' ] ) ) {
-			flush_rewrite_rules( false );
+		if ( is_array( $rules ) ) {
+			foreach ( self::slugs() as $slug ) {
+				if ( ! isset( $rules[ '^' . $slug . '/?$' ] ) ) {
+					flush_rewrite_rules( false );
+					break;
+				}
+			}
 		}
 	}
 
@@ -120,7 +125,7 @@ class KS_SEO {
 				'points'  => array(
 					array( '⛪', __( '25+ ready-made pages', 'kingdom-saas' ), __( 'Home, About, Our Pastors, Ministries, Sermons, Events, Visit Us, Statement of Faith, Prayer, Testimonies, Give and Contact — written for churches, ready to edit.', 'kingdom-saas' ) ),
 					array( '📱', __( 'Made for phones', 'kingdom-saas' ), __( 'Most visitors will find you on a phone. Every page is fast and easy to use on any smartphone, even on slow data.', 'kingdom-saas' ) ),
-					array( '🎨', __( 'Your church, your look', 'kingdom-saas' ), __( 'Your logo, colours, fonts and photos. Six homepage styles, dark mode and a beautiful mobile menu.', 'kingdom-saas' ) ),
+					array( '🎨', __( 'Your church, your look', 'kingdom-saas' ), __( 'Your logo, colours, fonts and photos. Seven complete website designs, dark mode and a beautiful mobile menu.', 'kingdom-saas' ) ),
 					array( '🔎', __( 'Found on Google', 'kingdom-saas' ), __( 'Search-friendly pages, your service times and address marked up for Google, and fast loading — so people nearby can find your church.', 'kingdom-saas' ) ),
 					array( '▶', __( 'Live stream & sermons', 'kingdom-saas' ), __( 'Paste your YouTube channel once: your site shows the live service when you go live, and replays the rest of the time.', 'kingdom-saas' ) ),
 					array( '⌘', __( 'Your own domain', 'kingdom-saas' ), __( 'Start on a free address and connect yourchurch.org or yourchurch.com.ng whenever you are ready.', 'kingdom-saas' ) ),
@@ -234,6 +239,70 @@ class KS_SEO {
 					array( __( 'How do I put my church live stream on my website?', 'kingdom-saas' ), __( 'Paste your YouTube channel link in Church Admin. Your website then shows the live service automatically whenever you go live.', 'kingdom-saas' ) ),
 					array( __( 'Do we need special streaming equipment?', 'kingdom-saas' ), __( 'No. If you can stream to YouTube — even from a phone — your website can show it.', 'kingdom-saas' ) ),
 					array( __( 'Can people give during the live service?', 'kingdom-saas' ), __( 'Yes. Giving buttons sit beside the video.', 'kingdom-saas' ) ),
+				),
+			),
+			'church-website-templates'       => array(
+				'nav'     => __( 'Website templates', 'kingdom-saas' ),
+				'title'   => __( 'Church Website Templates — 7 Modern Designs, Ready to Use', 'kingdom-saas' ),
+				'desc'    => __( 'Modern church website templates with 3D and motion effects: switch between seven complete designs in one click. Sermons, giving, live stream and church app included.', 'kingdom-saas' ),
+				'eyebrow' => __( 'Church website templates', 'kingdom-saas' ),
+				'h1'      => __( 'Modern church website templates — switch your whole look in one click', 'kingdom-saas' ),
+				'intro'   => __( 'Choose from seven complete church website designs and preview any of them on your own homepage before you switch. Every template keeps your pictures, words, colours and fonts, works beautifully on phones, and comes with all the pages a church needs.', 'kingdom-saas' ),
+				'points'  => array(
+					array( '◐', __( 'Seven complete designs', 'kingdom-saas' ), __( 'Classic, Aurora Glass, Sanctuary, Pulse Night, Horizon Editorial, Ember Community and Cosmos 3D — each restyles every page, not just the homepage.', 'kingdom-saas' ) ),
+					array( '✦', __( 'Modern 3D and motion', 'kingdom-saas' ), __( 'Depth, light that follows the cursor, headlines that rise into view and pictures that unveil as visitors scroll — gentle on visitors who prefer less motion.', 'kingdom-saas' ) ),
+					array( '👁', __( 'Preview before you switch', 'kingdom-saas' ), __( 'Try any design on your own homepage first. Visitors keep seeing your current look until you save.', 'kingdom-saas' ) ),
+					array( '🎨', __( 'Your colours and fonts', 'kingdom-saas' ), __( 'Pick a ready-made colour palette and font pairing, or apply the one each design suggests in one tick.', 'kingdom-saas' ) ),
+					array( '⛪', __( 'Pages written for churches', 'kingdom-saas' ), __( 'Home, About, Pastors, Ministries, Sermons, Events, Visit Us, Give, Prayer, Testimonies and Contact are ready on day one.', 'kingdom-saas' ) ),
+					array( '🌙', __( 'Dark mode and phones', 'kingdom-saas' ), __( 'Every template has dark mode and an app-style menu on phones.', 'kingdom-saas' ) ),
+				),
+				'faqs'    => array(
+					array( __( 'Can I change my church website template later?', 'kingdom-saas' ), __( 'Yes, at any time from Church Admin. Your pictures, text, sermons and giving stay exactly as they are.', 'kingdom-saas' ) ),
+					array( __( 'Are the templates free?', 'kingdom-saas' ), __( 'All seven designs are included in every plan at no extra cost.', 'kingdom-saas' ) ),
+					array( __( 'Do the templates work on phones?', 'kingdom-saas' ), __( 'Yes. They are designed for phones first and load fast even on slow data.', 'kingdom-saas' ) ),
+				),
+			),
+			'church-website-design'          => array(
+				'nav'     => __( 'Website design', 'kingdom-saas' ),
+				'title'   => __( 'Church Website Design in Nigeria — Professional, Without the Designer Fee', 'kingdom-saas' ),
+				/* translators: %s: platform name */
+				'desc'    => sprintf( __( 'Get a professionally designed church website without hiring a web designer. %s gives you a modern, mobile-friendly design with online giving in naira, ready in minutes.', 'kingdom-saas' ), $name ),
+				'eyebrow' => __( 'Church website design', 'kingdom-saas' ),
+				'h1'      => __( 'Professional church website design — without paying a web designer', 'kingdom-saas' ),
+				'intro'   => __( 'Many churches pay a large design fee, then wait weeks and pay again for every change. Here your church gets a professional design on day one, and your team updates words, photos and colours from a phone whenever you like.', 'kingdom-saas' ),
+				'points'  => array(
+					array( '⚡', __( 'Live in minutes', 'kingdom-saas' ), __( 'Enter your church name and address and your designed website is live straight away.', 'kingdom-saas' ) ),
+					array( '₦', __( 'No big design fee', 'kingdom-saas' ), __( 'A small monthly or yearly subscription in naira, with hosting, security and updates included.', 'kingdom-saas' ) ),
+					array( '✎', __( 'Change it yourself', 'kingdom-saas' ), __( 'No waiting for a designer: edit text, photos, colours and pages from Church Admin on your phone.', 'kingdom-saas' ) ),
+					array( '◐', __( 'Seven designs to choose from', 'kingdom-saas' ), __( 'Switch between modern designs in one click and preview them first.', 'kingdom-saas' ) ),
+					array( '🔎', __( 'Built to be found', 'kingdom-saas' ), __( 'Fast pages, your address and service times marked up for Google, and a sitemap from day one.', 'kingdom-saas' ) ),
+					array( '🔒', __( 'Secure and backed up', 'kingdom-saas' ), __( 'Free https, protection against spam and card fraud, and safe online giving.', 'kingdom-saas' ) ),
+				),
+				'faqs'    => array(
+					array( __( 'How much does church website design cost in Nigeria?', 'kingdom-saas' ), __( 'Instead of a one-off design fee plus hosting and maintenance, you pay one small subscription in naira that covers design, hosting, security and updates. You can try it free first.', 'kingdom-saas' ) ),
+					array( __( 'Do I need a web designer to make changes?', 'kingdom-saas' ), __( 'No. Anyone on your church team can change text, pictures and pages from Church Admin.', 'kingdom-saas' ) ),
+					array( __( 'Can we use our own domain name?', 'kingdom-saas' ), __( 'Yes. Start on a free address and connect yourchurch.org or yourchurch.com.ng when you are ready.', 'kingdom-saas' ) ),
+				),
+			),
+			'ministry-website'               => array(
+				'nav'     => __( 'Ministry website', 'kingdom-saas' ),
+				'title'   => __( 'Ministry Website & App — For Ministries, Fellowships and Outreaches', 'kingdom-saas' ),
+				'desc'    => __( 'A website and app for your ministry, fellowship or outreach: partners and monthly partnership, online giving, prayer requests, events and live streaming. Ready in minutes.', 'kingdom-saas' ),
+				'eyebrow' => __( 'Ministry website', 'kingdom-saas' ),
+				'h1'      => __( 'A website and app for your ministry — with partners and online giving', 'kingdom-saas' ),
+				'intro'   => __( 'Ministries, fellowships, campus groups and outreaches need more than a church brochure site. Take partnership and donations online, share your messages and events, receive prayer requests and keep your partners close — from one simple dashboard.', 'kingdom-saas' ),
+				'points'  => array(
+					array( '♥', __( 'Partners & partnership plans', 'kingdom-saas' ), __( 'Monthly partnership plans in naira or dollars, a partner dashboard, renewal reminders and receipts.', 'kingdom-saas' ) ),
+					array( '₦', __( 'Donations and offerings', 'kingdom-saas' ), __( 'Paystack, Flutterwave, bank transfer and more — for local and international supporters.', 'kingdom-saas' ) ),
+					array( '🙏', __( 'Prayer requests and testimonies', 'kingdom-saas' ), __( 'A prayer wall and testimony stories that build faith and community.', 'kingdom-saas' ) ),
+					array( '📅', __( 'Events and outreaches', 'kingdom-saas' ), __( 'Crusades, conferences and outreaches with dates, places and registration.', 'kingdom-saas' ) ),
+					array( '📲', __( 'Your ministry app', 'kingdom-saas' ), __( 'Supporters install your app in one tap and get notifications about new messages and events.', 'kingdom-saas' ) ),
+					array( '✆', __( 'WhatsApp follow-up', 'kingdom-saas' ), __( 'Partners and visitors reach your team on WhatsApp straight from the site.', 'kingdom-saas' ) ),
+				),
+				'faqs'    => array(
+					array( __( 'Is this only for churches?', 'kingdom-saas' ), __( 'No. Ministries, fellowships, campus groups, missions and outreaches use it the same way.', 'kingdom-saas' ) ),
+					array( __( 'Can international partners support our ministry?', 'kingdom-saas' ), __( 'Yes. Supporters abroad can give in US dollars while local partners give in naira.', 'kingdom-saas' ) ),
+					array( __( 'How quickly can our ministry website be ready?', 'kingdom-saas' ), __( 'In about two minutes. Then replace the sample words and photos with your own.', 'kingdom-saas' ) ),
 				),
 			),
 		);
